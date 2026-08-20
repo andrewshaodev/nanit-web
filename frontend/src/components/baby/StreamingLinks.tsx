@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { api } from '@/lib/api'
+import { useStreamingInfo } from '@/hooks/useStreamingInfo'
 import { copyToClipboard } from '@/lib/utils'
 import type { Baby } from '@/types/api'
 import { Check, ChevronRight, Copy, Globe, Link, Radio } from 'lucide-react'
@@ -42,7 +43,11 @@ function CopyButton({ text, label }: CopyButtonProps) {
 export default function StreamingLinks({ baby }: StreamingLinksProps) {
   const [isExpanded, setIsExpanded] = useState(false)
 
-  const rtmpUrl = api.getRTMPUrl(baby.uid)
+  // The RTMP address comes from the server (NANIT_RTMP_ADDR); it's rarely the
+  // host and port the dashboard is served from
+  const { streamingInfo } = useStreamingInfo(isExpanded)
+  const rtmpUrl = api.getRTMPUrl(baby.uid, streamingInfo)
+  const rtmpDisabled = streamingInfo?.rtmp?.enabled === false
   const hlsUrl = api.getHLSUrl(baby.uid)
 
   return (
@@ -76,10 +81,20 @@ export default function StreamingLinks({ baby }: StreamingLinksProps) {
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-3">
-                <div className="bg-muted p-3 rounded-sm border text-sm font-mono text-foreground overflow-x-auto whitespace-nowrap">
-                  {rtmpUrl}
-                </div>
-                <CopyButton text={rtmpUrl} label="Copy RTMP URL" />
+                {rtmpDisabled ? (
+                  <p className="rounded-md border bg-muted p-3 text-sm text-muted-foreground">
+                    The built-in RTMP server is disabled. Set{' '}
+                    <code className="font-mono text-foreground">NANIT_RTMP_ENABLED=true</code> and{' '}
+                    <code className="font-mono text-foreground">NANIT_RTMP_ADDR</code> to use it.
+                  </p>
+                ) : (
+                  <>
+                    <div className="bg-muted p-3 rounded-md border text-sm font-mono text-foreground overflow-x-auto whitespace-nowrap">
+                      {rtmpUrl}
+                    </div>
+                    <CopyButton text={rtmpUrl} label="Copy RTMP URL" />
+                  </>
+                )}
               </CardContent>
             </Card>
 

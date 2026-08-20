@@ -4,18 +4,21 @@ import CameraBox from '@/components/CameraBox';
 import StatusLabel, { DOT } from '@/components/StatusLabel';
 import type { Baby } from '@/types/api';
 import { streamStatus } from '@/lib/utils';
+import { api } from '@/lib/api';
+import { useStreamingInfo } from '@/hooks/useStreamingInfo';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 interface StreamingSettingsProps {
   babies: Baby[];
 }
 
-const haConfig = `camera:
+const haConfig = (input: string) => `camera:
   - platform: ffmpeg
     name: "Nanit Camera"
-    input: "rtmp://YOUR_SERVER_IP:1935/local/camera_uid"`;
+    input: "${input}"`;
 
 export default function StreamingSettings({ babies }: StreamingSettingsProps) {
+  const { streamingInfo } = useStreamingInfo();
   if (babies.length === 0) {
     return (
       <div className="rounded-md border border-dashed py-8 text-center text-muted-foreground">
@@ -57,9 +60,12 @@ export default function StreamingSettings({ babies }: StreamingSettingsProps) {
         <AlertTitle>Home Assistant integration</AlertTitle>
         <AlertDescription className="space-y-2">
           <p>To add these streams to Home Assistant, use the RTMP URLs in your camera configuration:</p>
-          <pre className="overflow-x-auto rounded-md border bg-muted p-3 font-mono text-xs text-foreground">{haConfig}</pre>
+          <pre className="overflow-x-auto rounded-md border bg-muted p-3 font-mono text-xs text-foreground">
+            {haConfig(api.getRTMPUrl(babies[0].uid, streamingInfo))}
+          </pre>
           <p className="text-xs">
-            Replace YOUR_SERVER_IP with this server&apos;s address and camera_uid with the device&apos;s UID.
+            That&apos;s the first camera&apos;s address; each camera has its own (see its Streaming Links). The
+            address is NANIT_RTMP_ADDR, and it has to be reachable from both the camera and Home Assistant.
           </p>
         </AlertDescription>
       </Alert>
