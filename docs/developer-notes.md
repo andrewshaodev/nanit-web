@@ -23,6 +23,17 @@ Mobile clients start sending keep-alive packets after 1s and then every 20s. I h
 On Nanit servers there are 2 websocket endpoints, 1 for camera (`wss://api.nanit.com/focus/cameras/{camera_uid}/connect`)
 and 1 for users (`wss://api.nanit.com/focus/cameras/{camera_uid}/user_connect`). Both seem to be using the same protobuf, but each is accepting different subset of requests.
 
+## Connection lifetime
+
+The `Authorization` header is sent with the HTTP upgrade request and cannot be renegotiated afterwards, so a connection is only as good as the token it was opened with. Once that token lapses the camera stops answering, but nothing closes the socket: keep-alives keep going out, no read ever fails, and every request sits until its own timeout. The symptom is an app that looks connected while every command reports `Request timeout`, and that only recovers on a restart.
+
+Two things guard against that, both in `pkg/client`:
+
+- The connection is retired shortly after the point where `MaybeAuthorize` starts treating the token as stale, and the attempt loop immediately reopens it with a fresh one. This means a healthy connection is deliberately recycled roughly once an hour, which briefly interrupts the RTMP stream as it is torn down and restarted.
+- Keep-alives are one-way and prove nothing on their own, so silence longer than `livenessProbeAfter` triggers a `GET_STATUS` probe. A probe that goes unanswered closes the connection, which is what makes the read loop fail and the reconnect happen.
+
+Note that `gowebsocket` sets a read deadline only when its `Timeout` is non-zero, and it discards write errors into a logger that is off by default. Neither can be relied on to notice a half-open connection, which is why writes go to the gorilla connection directly.
+
 ## Authorization
 
 There seems to be quite mess in request authorization. Probably caused by API being backed by multiple microservices.

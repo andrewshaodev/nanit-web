@@ -81,7 +81,7 @@ func (app *App) Run(ctx utils.GracefulContext) {
 	app.setupHistoryTracking()
 	// Check if we have valid authentication
 	hasValidAuth := false
-	if app.SessionStore != nil && app.SessionStore.Session != nil && app.SessionStore.Session.RefreshToken != "" {
+	if app.SessionStore != nil && app.SessionStore.RefreshToken() != "" {
 		// Try to authorize - if it fails, we'll run in web-only mode
 		defer func() {
 			if r := recover(); r != nil {
@@ -107,8 +107,8 @@ func (app *App) Run(ctx utils.GracefulContext) {
 
 	// Always start HTTP server for web UI (including setup)
 	var babies []baby.Baby
-	if hasValidAuth && app.SessionStore.Session != nil {
-		babies = app.SessionStore.Session.Babies
+	if hasValidAuth {
+		babies = app.SessionStore.Babies()
 	}
 	
 	if app.Opts.HTTPEnabled {
@@ -134,7 +134,7 @@ func (app *App) Run(ctx utils.GracefulContext) {
 		}
 
 		// Start reading the data from the stream
-		for _, babyInfo := range app.SessionStore.Session.Babies {
+		for _, babyInfo := range app.SessionStore.Babies() {
 			_babyInfo := babyInfo
 			ctx.RunAsChild(func(childCtx utils.GracefulContext) {
 				app.handleBaby(_babyInfo, childCtx)
@@ -152,7 +152,7 @@ func (app *App) Run(ctx utils.GracefulContext) {
 func (app *App) handleBaby(baby baby.Baby, ctx utils.GracefulContext) {
 	if app.Opts.RTMP != nil || app.MQTTConnection != nil {
 		// Websocket connection
-		ws := client.NewWebsocketConnectionManager(baby.UID, baby.CameraUID, app.SessionStore.Session, app.RestClient, app.BabyStateManager)
+		ws := client.NewWebsocketConnectionManager(baby.UID, baby.CameraUID, app.RestClient, app.BabyStateManager)
 
 		ws.WithReadyConnection(func(conn *client.WebsocketConnection, childCtx utils.GracefulContext) {
 			// Register connection
@@ -326,7 +326,7 @@ func (app *App) runWebsocket(babyUID string, conn *client.WebsocketConnection, c
 }
 
 func (app *App) getRemoteStreamURL(babyUID string) string {
-	return fmt.Sprintf("rtmps://media-secured.nanit.com/nanit/%v.%v", babyUID, app.SessionStore.Session.AuthToken)
+	return fmt.Sprintf("rtmps://media-secured.nanit.com/nanit/%v.%v", babyUID, app.SessionStore.AuthToken())
 }
 
 func (app *App) getLocalStreamURL(babyUID string) string {
@@ -357,21 +357,19 @@ func (app *App) getConnection(babyUID string) *client.WebsocketConnection {
 	return app.connections[babyUID]
 }
 
-// RefreshAuthentication - reload session after successful web authentication
+// RefreshAuthentication - reload session after successful web authentication.
+//
+// The store is reloaded in place rather than replaced: everything that holds a
+// reference to it, including websocket managers already running, would
+// otherwise keep reading the session this store had at startup and reconnect
+// forever with a token that is never renewed again.
 func (app *App) RefreshAuthentication() error {
-	// Reinitialize session store to pick up new session file
-	sessionStore, err := session.InitSessionStore(app.Opts.SessionFile)
-	if err != nil {
-		return fmt.Errorf("failed to reinitialize session store: %w", err)
+	if err := app.SessionStore.Load(); err != nil {
+		return fmt.Errorf("failed to reload session store: %w", err)
 	}
-	app.SessionStore = sessionStore
-	
-	// Update RestClient with new session
-	if app.SessionStore.Session != nil {
-		app.RestClient.SessionStore = app.SessionStore
-		if app.SessionStore.Session.RefreshToken != "" {
-			app.RestClient.RefreshToken = app.SessionStore.Session.RefreshToken
-		}
+
+	if refreshToken := app.SessionStore.RefreshToken(); refreshToken != "" {
+		app.RestClient.RefreshToken = refreshToken
 	}
 	
 	log.Info().Msg("Authentication refreshed successfully")
@@ -397,14 +395,15 @@ func (app *App) StartMonitoringServices() {
 		log.Error().Err(err).Msg("Failed to ensure babies after authorization")
 		return
 	}
-	
-	if app.SessionStore.Session == nil || len(app.SessionStore.Session.Babies) == 0 {
+
+	babies := app.SessionStore.Babies()
+	if len(babies) == 0 {
 		log.Warn().Msg("No babies found after authentication")
 		return
 	}
-	
-	log.Info().Int("babies_count", len(app.SessionStore.Session.Babies)).Msg("Found babies, starting services")
-	
+
+	log.Info().Int("babies_count", len(babies)).Msg("Found babies, starting services")
+
 	// Start RTMP server if configured
 	if app.Opts.RTMP != nil {
 		go func() {
@@ -424,7 +423,7 @@ func (app *App) StartMonitoringServices() {
 	}
 	
 	// Start baby monitoring for each baby (use same pattern as original Run method)
-	for _, babyInfo := range app.SessionStore.Session.Babies {
+	for _, babyInfo := range babies {
 		_babyInfo := babyInfo
 		ctx.RunAsChild(func(childCtx utils.GracefulContext) {
 			app.handleBaby(_babyInfo, childCtx)

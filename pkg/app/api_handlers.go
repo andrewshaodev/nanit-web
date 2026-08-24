@@ -12,7 +12,6 @@ import (
 
 	"github.com/rs/zerolog/log"
 	"github.com/indiefan/home_assistant_nanit/pkg/baby"
-	"github.com/indiefan/home_assistant_nanit/pkg/session"
 	"github.com/indiefan/home_assistant_nanit/pkg/streaming"
 )
 
@@ -562,7 +561,7 @@ func handleAuthStatusAPI(w http.ResponseWriter, r *http.Request, app *App) {
 
 	if _, err := os.Stat(sessionFile); err == nil {
 		// Session file exists - check if it's valid
-		if app.SessionStore != nil && app.SessionStore.Session != nil && app.SessionStore.Session.RefreshToken != "" {
+		if app.SessionStore != nil && app.SessionStore.RefreshToken() != "" {
 			isAuthenticated = true
 			message = "Authenticated"
 			
@@ -572,16 +571,17 @@ func handleAuthStatusAPI(w http.ResponseWriter, r *http.Request, app *App) {
 			}
 			
 			// Get auth time
-			if !app.SessionStore.Session.AuthTime.IsZero() {
-				authTime = &app.SessionStore.Session.AuthTime
+			if sessionAuthTime := app.SessionStore.AuthTime(); !sessionAuthTime.IsZero() {
+				authTime = &sessionAuthTime
 			}
 			
 			// Count babies
-			babiesCount = len(app.SessionStore.Session.Babies)
-			
+			babies := app.SessionStore.Babies()
+			babiesCount = len(babies)
+
 			// Check if services are running (at least one baby has active WebSocket)
 			if babiesCount > 0 {
-				for _, baby := range app.SessionStore.Session.Babies {
+				for _, baby := range babies {
 					state := app.BabyStateManager.GetBabyState(baby.UID)
 					if state.GetIsWebsocketAlive() {
 						servicesRunning = true
@@ -632,7 +632,7 @@ func handleAuthResetAPI(w http.ResponseWriter, r *http.Request, app *App) {
 	
 	// Clear session store in memory
 	if app.SessionStore != nil {
-		app.SessionStore.Session = &session.Session{Revision: session.Revision}
+		app.SessionStore.Reset()
 		log.Info().Msg("Cleared session store from memory")
 	}
 	
@@ -648,11 +648,12 @@ func handleAuthResetAPI(w http.ResponseWriter, r *http.Request, app *App) {
 			log.Info().Str("file", sessionFile).Msg("Removed session file")
 		}
 	}
-	
-	// Clear REST client credentials
+
+	// Clear REST client credentials. The store itself is left in place and
+	// merely emptied above: handing the client a fresh one would detach it from
+	// the store the rest of the app reads, so a later login would be invisible.
 	if app.RestClient != nil {
 		app.RestClient.RefreshToken = ""
-		app.RestClient.SessionStore = session.NewSessionStore()
 		log.Info().Msg("Cleared REST client credentials")
 	}
 	
@@ -1332,7 +1333,7 @@ func handleReadinessAPI(w http.ResponseWriter, r *http.Request, app *App) {
 
 	// Check authentication status
 	authReady := false
-	if app.SessionStore != nil && app.SessionStore.Session != nil && app.SessionStore.Session.RefreshToken != "" {
+	if app.SessionStore != nil && app.SessionStore.RefreshToken() != "" {
 		authReady = true
 	}
 	readiness["services"].(map[string]interface{})["authentication"] = map[string]interface{}{
@@ -1348,8 +1349,8 @@ func handleReadinessAPI(w http.ResponseWriter, r *http.Request, app *App) {
 	// Check if any babies are configured
 	babiesReady := false
 	babyCount := 0
-	if app.SessionStore != nil && app.SessionStore.Session != nil {
-		babyCount = len(app.SessionStore.Session.Babies)
+	if app.SessionStore != nil {
+		babyCount = len(app.SessionStore.Babies())
 		babiesReady = babyCount > 0
 	}
 	readiness["services"].(map[string]interface{})["babies"] = map[string]interface{}{

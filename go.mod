@@ -4,6 +4,7 @@ go 1.24
 
 require (
 	github.com/eclipse/paho.mqtt.golang v1.3.0
+	github.com/gorilla/websocket v1.4.2
 	github.com/joho/godotenv v1.3.0
 	github.com/mattn/go-sqlite3 v1.14.16
 	github.com/notedit/rtmp v0.0.2
@@ -16,7 +17,6 @@ require (
 
 require (
 	github.com/davecgh/go-spew v1.1.0 // indirect
-	github.com/gorilla/websocket v1.4.2 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/sacOO7/go-logger v0.0.0-20180719173527-9ac9add5a50d // indirect
 	golang.org/x/net v0.19.0 // indirect

@@ -49,9 +49,15 @@ type NanitClient struct {
 	SessionStore *session.Store
 }
 
-// MaybeAuthorize - Performs authorization if we don't have token or we assume it is expired
+// MaybeAuthorize - Performs authorization if we don't have token or we assume it is expired.
+//
+// The token is renewed a little ahead of its assumed expiry: the websocket
+// binds it for the whole life of a connection, so handing out one that is
+// about to lapse produces a connection that dies without saying so.
 func (c *NanitClient) MaybeAuthorize(force bool) error {
-	if force || c.SessionStore.Session.AuthToken == "" || time.Since(c.SessionStore.Session.AuthTime) > AuthTokenTimelife {
+	authToken, authTime := c.SessionStore.Credentials()
+
+	if force || authToken == "" || time.Since(authTime) > AuthTokenTimelife-AuthTokenRenewMargin {
 		return c.Authorize()
 	}
 	return nil
@@ -59,11 +65,11 @@ func (c *NanitClient) MaybeAuthorize(force bool) error {
 
 // Authorize - performs authorization attempt, returns error if it fails
 func (c *NanitClient) Authorize() error {
-	if len(c.SessionStore.Session.RefreshToken) == 0 {
-		c.SessionStore.Session.RefreshToken = c.RefreshToken
+	if len(c.SessionStore.RefreshToken()) == 0 {
+		c.SessionStore.SetRefreshToken(c.RefreshToken)
 	}
 
-	if len(c.SessionStore.Session.RefreshToken) > 0 {
+	if len(c.SessionStore.RefreshToken()) > 0 {
 		err := c.RenewSession() // We have a refresh token, so we'll use that to extend our session
 		if err == nil {
 			return nil
@@ -81,7 +87,7 @@ func (c *NanitClient) Authorize() error {
 // If the refresh token has also expired, we need to perform a full re-login
 func (c *NanitClient) RenewSession() error {
 	requestBody, requestBodyErr := json.Marshal(map[string]string{
-		"refresh_token": c.SessionStore.Session.RefreshToken,
+		"refresh_token": c.SessionStore.RefreshToken(),
 	})
 
 	if requestBodyErr != nil {
@@ -114,9 +120,7 @@ func (c *NanitClient) RenewSession() error {
 
 	log.Info().Str("token", utils.AnonymizeToken(authResponse.AccessToken, 4)).Msg("Authorized")
 	log.Info().Str("refresh_token", utils.AnonymizeToken(authResponse.RefreshToken, 4)).Msg("Retreived")
-	c.SessionStore.Session.AuthToken = authResponse.AccessToken
-	c.SessionStore.Session.RefreshToken = authResponse.RefreshToken
-	c.SessionStore.Session.AuthTime = time.Now()
+	c.SessionStore.StoreCredentials(authResponse.AccessToken, authResponse.RefreshToken, time.Now())
 	if err := c.SessionStore.Save(); err != nil {
 		log.Warn().Err(err).Msg("Failed to save session after token refresh")
 	}
@@ -172,9 +176,7 @@ func (c *NanitClient) Login() error {
 
 	log.Info().Str("token", utils.AnonymizeToken(authResponse.AccessToken, 4)).Msg("Authorized")
 	log.Info().Str("refresh_token", utils.AnonymizeToken(authResponse.RefreshToken, 4)).Msg("Retreived")
-	c.SessionStore.Session.AuthToken = authResponse.AccessToken
-	c.SessionStore.Session.RefreshToken = authResponse.RefreshToken
-	c.SessionStore.Session.AuthTime = time.Now()
+	c.SessionStore.StoreCredentials(authResponse.AccessToken, authResponse.RefreshToken, time.Now())
 	if err := c.SessionStore.Save(); err != nil {
 		log.Warn().Err(err).Msg("Failed to save session after login")
 	}
@@ -185,8 +187,8 @@ func (c *NanitClient) Login() error {
 // FetchAuthorized - makes authorized http request
 func (c *NanitClient) FetchAuthorized(req *http.Request, data interface{}) error {
 	for i := 0; i < 2; i++ {
-		if c.SessionStore.Session.AuthToken != "" {
-			req.Header.Set("Authorization", c.SessionStore.Session.AuthToken)
+		if authToken := c.SessionStore.AuthToken(); authToken != "" {
+			req.Header.Set("Authorization", authToken)
 			req.Header.Set("nanit-api-version", "1") // required by the current Nanit API, without it /babies responds 200 with an empty list
 
 			res, clientErr := myClient.Do(req)
@@ -260,7 +262,7 @@ func (c *NanitClient) FetchBabies() ([]baby.Baby, error) {
 		return nil, fmt.Errorf("failed to fetch babies: %w", err)
 	}
 
-	c.SessionStore.Session.Babies = data.Babies
+	c.SessionStore.SetBabies(data.Babies)
 	if err := c.SessionStore.Save(); err != nil {
 		log.Warn().Err(err).Msg("Failed to save session after fetching babies")
 	}
@@ -286,11 +288,11 @@ func (c *NanitClient) FetchMessages(babyUID string, limit int) ([]message.Messag
 
 // EnsureBabies - fetches baby list if not fetched already
 func (c *NanitClient) EnsureBabies() ([]baby.Baby, error) {
-	if len(c.SessionStore.Session.Babies) == 0 {
-		return c.FetchBabies()
+	if babies := c.SessionStore.Babies(); len(babies) > 0 {
+		return babies, nil
 	}
 
-	return c.SessionStore.Session.Babies, nil
+	return c.FetchBabies()
 }
 
 // FetchNewMessages - fetches 10 newest messages, ignores any messages which were already fetched or which are older than 5 minutes
@@ -313,7 +315,7 @@ func (c *NanitClient) FetchNewMessages(babyUID string, defaultMessageTimeout tim
 		return fetchedMessages[i].Time.Time().After(fetchedMessages[j].Time.Time())
 	})
 
-	lastSeenMessageTime := c.SessionStore.Session.LastSeenMessageTime
+	lastSeenMessageTime := c.SessionStore.LastSeenMessageTime()
 	messageTimeoutTime := lastSeenMessageTime
 	log.Debug().Msgf("Last seen message time was %s", lastSeenMessageTime)
 
@@ -325,7 +327,7 @@ func (c *NanitClient) FetchNewMessages(babyUID string, defaultMessageTimeout tim
 	// lastSeenMessageTime is older than most recent fetchedMessage, or is unset
 	if lastSeenMessageTime.Before(fetchedMessages[0].Time.Time()) {
 		lastSeenMessageTime = fetchedMessages[0].Time.Time()
-		c.SessionStore.Session.LastSeenMessageTime = lastSeenMessageTime
+		c.SessionStore.SetLastSeenMessageTime(lastSeenMessageTime)
 		if err := c.SessionStore.Save(); err != nil {
 			log.Warn().Err(err).Msg("Failed to save session after updating last seen message time")
 		}
