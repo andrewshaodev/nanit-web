@@ -29,8 +29,10 @@ The `Authorization` header is sent with the HTTP upgrade request and cannot be r
 
 Two things guard against that, both in `pkg/client`:
 
-- The connection is retired shortly after the point where `MaybeAuthorize` starts treating the token as stale, and the attempt loop immediately reopens it with a fresh one. This means a healthy connection is deliberately recycled roughly once an hour, which briefly interrupts the RTMP stream as it is torn down and restarted.
+- The connection is retired shortly after the point where `MaybeAuthorize` starts treating the token as stale, and the attempt loop immediately reopens it with a fresh one. This means a healthy connection is deliberately recycled roughly once an hour.
 - Keep-alives are one-way and prove nothing on their own, so silence longer than `livenessProbeAfter` triggers a `GET_STATUS` probe. A probe that goes unanswered closes the connection, which is what makes the read loop fail and the reconnect happen.
+
+Reconnecting must not disturb the stream. The cam publishes RTMP over its own connection, which a websocket drop does not touch, so the reconnect leaves a live stream exactly as it is: `autoStopStreaming` releases nothing while the cam is still publishing, and `autoStartStreaming` skips the `PUT_STREAMING` request rather than asking for a stream that is already running. That matters because the cam answers a request for a stream it is already publishing by opening a *second* publisher connection, and `getNewPublisher` closes every subscriber of the first one when it registers - which disconnects anything consuming the stream, go2rtc and Frigate included.
 
 Note that `gowebsocket` sets a read deadline only when its `Timeout` is non-zero, and it discards write errors into a logger that is off by default. Neither can be relied on to notice a half-open connection, which is why writes go to the gorilla connection directly.
 

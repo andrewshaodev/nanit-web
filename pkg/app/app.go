@@ -161,7 +161,7 @@ func (app *App) handleBaby(baby baby.Baby, ctx utils.GracefulContext) {
 				app.unregisterConnection(baby.UID)
 				// Gracefully stop streaming when WebSocket disconnects
 				if app.Opts.RTMP != nil && app.Opts.RTMP.AutoStart {
-					app.autoStopStreaming(baby.UID, conn)
+					app.autoStopStreaming(baby.UID)
 				}
 			}()
 			
@@ -451,6 +451,26 @@ func (app *App) StartMonitoringServices() {
 	})
 }
 
+// shouldRequestStream - whether the cam still needs to be asked to publish.
+//
+// Asking for a stream the cam is already publishing makes it open a second
+// publisher connection, and registering that one closes every subscriber of the
+// first, so a stream that is already alive is left alone.
+func shouldRequestStream(state *baby.State) bool {
+	return state.GetStreamState() != baby.StreamState_Alive
+}
+
+// shouldReleaseStreamResources - whether a websocket ending means the stream is
+// really over, rather than a reconnect the cam publishes straight through.
+//
+// The cam publishes over its own connection, so a dropped websocket says
+// nothing about the stream. A websocket that is still alive means we are
+// shutting down on purpose; a stream that is no longer alive means the cam
+// stopped on its own. Either way there is nothing left to keep running.
+func shouldReleaseStreamResources(state *baby.State) bool {
+	return state.GetIsWebsocketAlive() || state.GetStreamState() != baby.StreamState_Alive
+}
+
 // autoStartStreaming automatically starts RTMP streaming and HLS transcoding when a baby comes online
 func (app *App) autoStartStreaming(babyUID string, conn *client.WebsocketConnection) {
 	// Give the WebSocket connection a moment to fully establish
@@ -462,21 +482,37 @@ func (app *App) autoStartStreaming(babyUID string, conn *client.WebsocketConnect
 		log.Error().Str("baby_uid", babyUID).Msg("Cannot auto-start streaming: no RTMP URL available")
 		return
 	}
-	
-	log.Info().
-		Str("baby_uid", babyUID).
-		Str("rtmp_url", streamURL).
-		Msg("Auto-starting RTMP streaming and HLS transcoding")
-	
-	// Start RTMP streaming first
-	requestLocalStreaming(babyUID, streamURL, client.Streaming_STARTED, conn, app.BabyStateManager)
-	
+
+	// Asking for a stream the cam is already publishing makes it open a second
+	// publisher connection, and registering that one closes every subscriber of
+	// the first. After a reconnect the existing stream is usually still running,
+	// so the request is only worth making when it is not.
+	if !shouldRequestStream(app.BabyStateManager.GetBabyState(babyUID)) {
+		log.Info().
+			Str("baby_uid", babyUID).
+			Msg("Cam is already publishing, leaving the existing stream alone")
+	} else {
+		log.Info().
+			Str("baby_uid", babyUID).
+			Str("rtmp_url", streamURL).
+			Msg("Auto-starting RTMP streaming")
+
+		requestLocalStreaming(babyUID, streamURL, client.Streaming_STARTED, conn, app.BabyStateManager)
+	}
+
 	// Start HLS transcoding for instant playback
 	if app.HLSManager != nil {
 		// Give RTMP stream a moment to establish before starting HLS transcoding
 		go func() {
 			time.Sleep(3 * time.Second)
-			
+
+			// A transcoder left running against a still-live stream is already
+			// producing what we would be restarting it for.
+			if transcoder, exists := app.HLSManager.GetTranscoder(babyUID); exists && transcoder.IsRunning() {
+				log.Debug().Str("baby_uid", babyUID).Msg("HLS transcoding is already running")
+				return
+			}
+
 			if err := app.HLSManager.StartTranscoding(babyUID, streamURL); err != nil {
 				log.Error().
 					Err(err).
@@ -491,38 +527,27 @@ func (app *App) autoStartStreaming(babyUID string, conn *client.WebsocketConnect
 	}
 }
 
-// autoStopStreaming gracefully stops RTMP streaming and HLS transcoding when WebSocket disconnects
-func (app *App) autoStopStreaming(babyUID string, conn *client.WebsocketConnection) {
-	// Get the RTMP URL for this baby
-	streamURL := app.getLocalStreamURL(babyUID)
-	if streamURL == "" {
-		log.Debug().Str("baby_uid", babyUID).Msg("No RTMP URL available for auto-stop")
+// autoStopStreaming releases streaming resources once the websocket handler ends.
+//
+// The cam publishes RTMP over its own connection, which a websocket drop does
+// not touch. Tearing the stream down here closed every subscriber and cut off
+// anything consuming the stream, once per reconnect, so a cam that is still
+// publishing is now left exactly as it is. Telling the cam to stop on a
+// deliberate shutdown is runWebsocket's cleanup, which still does it while the
+// socket can still carry the request.
+func (app *App) autoStopStreaming(babyUID string) {
+	if !shouldReleaseStreamResources(app.BabyStateManager.GetBabyState(babyUID)) {
+		log.Info().
+			Str("baby_uid", babyUID).
+			Msg("Websocket ended while the cam is still publishing, leaving the stream up")
 		return
 	}
-	
-	log.Info().
-		Str("baby_uid", babyUID).
-		Str("rtmp_url", streamURL).
-		Msg("Auto-stopping RTMP streaming and HLS transcoding due to WebSocket disconnect")
-	
-	// Send stop streaming command to camera (best effort - may not reach if connection is already dead)
-	go func() {
-		defer func() {
-			if r := recover(); r != nil {
-				log.Debug().Interface("error", r).Msg("Expected error stopping stream on dead connection")
-			}
-		}()
-		requestLocalStreaming(babyUID, streamURL, client.Streaming_STOPPED, conn, app.BabyStateManager)
-	}()
-	
-	// Stop HLS transcoding to prevent orphaned processes
+
+	// Nothing is feeding the transcoder any more, so it would only linger.
 	if app.HLSManager != nil {
 		app.HLSManager.StopTranscoding(babyUID)
-		log.Info().Str("baby_uid", babyUID).Msg("Auto-stopped HLS transcoding")
+		log.Info().Str("baby_uid", babyUID).Msg("Stopped HLS transcoding")
 	}
-	
-	// Update state to reflect stream is no longer active
-	app.BabyStateManager.Update(babyUID, *baby.NewState().SetStreamState(baby.StreamState_Unhealthy))
 }
 
 // setupHistoryTracking configures historical data tracking for state changes
