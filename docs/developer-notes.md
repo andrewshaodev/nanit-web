@@ -27,9 +27,17 @@ and 1 for users (`wss://api.nanit.com/focus/cameras/{camera_uid}/user_connect`).
 
 The `Authorization` header is sent with the HTTP upgrade request and cannot be renegotiated afterwards, so a connection is only as good as the token it was opened with. Once that token lapses the camera stops answering, but nothing closes the socket: keep-alives keep going out, no read ever fails, and every request sits until its own timeout. The symptom is an app that looks connected while every command reports `Request timeout`, and that only recovers on a restart.
 
+The token is a JWT and states its own lifetime in an `exp` claim, which is what the renewal is scheduled from. An observed token was issued for three hours:
+
+```
+{"payload": {"bs": [["2379cb17", 4]], "c": true, "i": ..., "v": 1}, "iat": 1787550569, "exp": 1787561369}
+```
+
+`exp - iat` is 10800s. `AuthTokenTimelife` claimed an hour and is now only a fallback for a token that states nothing - worth knowing before trusting that constant, since it was an assumption from the first commit and never matched a real token.
+
 Two things guard against that, both in `pkg/client`:
 
-- The connection is retired shortly after the point where `MaybeAuthorize` starts treating the token as stale, and the attempt loop immediately reopens it with a fresh one. This means a healthy connection is deliberately recycled roughly once an hour.
+- The connection is retired shortly after the point where `MaybeAuthorize` starts treating the token as stale, and the attempt loop immediately reopens it with a fresh one. This means a healthy connection is deliberately recycled a few minutes before its token lapses.
 - Keep-alives are one-way and prove nothing on their own, so silence longer than `livenessProbeAfter` triggers a `GET_STATUS` probe. A probe that goes unanswered closes the connection, which is what makes the read loop fail and the reconnect happen.
 
 Reconnecting must not disturb the stream. The cam publishes RTMP over its own connection, which a websocket drop does not touch, so the reconnect leaves a live stream exactly as it is: `autoStopStreaming` releases nothing while the cam is still publishing, and `autoStartStreaming` skips the `PUT_STREAMING` request rather than asking for a stream that is already running. That matters because the cam answers a request for a stream it is already publishing by opening a *second* publisher connection, and `getNewPublisher` closes every subscriber of the first one when it registers - which disconnects anything consuming the stream, go2rtc and Frigate included.

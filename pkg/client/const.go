@@ -3,13 +3,19 @@ package client
 import "time"
 
 const (
-	// AuthTokenTimelife - Time duration after which we assume auth token expired
+	// AuthTokenTimelife - assumed token lifetime, used only for a token that
+	// does not state its own expiry.
+	//
+	// Tokens are JWTs carrying an `exp` claim, and the observed lifetime is
+	// three hours, so this is a deliberately conservative fallback rather than
+	// a description of reality: renewing earlier than necessary costs a
+	// refresh, renewing later than necessary costs a dead connection.
 	AuthTokenTimelife = 60 * time.Minute
 
-	// AuthTokenRenewMargin - how long before its assumed expiry a token is
-	// treated as stale. The websocket binds the token at dial time and cannot
-	// renegotiate it, so a token that would expire mid-connection is renewed
-	// before the connection is opened rather than after it silently dies.
+	// AuthTokenRenewMargin - how long before it expires a token is treated as
+	// stale. The websocket binds the token at dial time and cannot renegotiate
+	// it, so a token that would expire mid-connection is renewed before the
+	// connection is opened rather than after it silently dies.
 	AuthTokenRenewMargin = 5 * time.Minute
 
 	// keepaliveInterval - how often a keepalive frame is pushed to the camera

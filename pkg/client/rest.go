@@ -49,15 +49,16 @@ type NanitClient struct {
 	SessionStore *session.Store
 }
 
-// MaybeAuthorize - Performs authorization if we don't have token or we assume it is expired.
+// MaybeAuthorize - Performs authorization if we don't have a token or the one
+// we hold is close to expiring.
 //
-// The token is renewed a little ahead of its assumed expiry: the websocket
-// binds it for the whole life of a connection, so handing out one that is
-// about to lapse produces a connection that dies without saying so.
+// The token is renewed a little ahead of the expiry it states for itself: the
+// websocket binds it for the whole life of a connection, so handing out one
+// that is about to lapse produces a connection that dies without saying so.
 func (c *NanitClient) MaybeAuthorize(force bool) error {
 	authToken, authTime := c.SessionStore.Credentials()
 
-	if force || authToken == "" || time.Since(authTime) > AuthTokenTimelife-AuthTokenRenewMargin {
+	if force || authToken == "" || time.Until(authTokenExpiry(authToken, authTime)) < AuthTokenRenewMargin {
 		return c.Authorize()
 	}
 	return nil

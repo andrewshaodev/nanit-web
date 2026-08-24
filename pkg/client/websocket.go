@@ -285,8 +285,11 @@ func (manager *WebsocketConnectionManager) run(attempt utils.AttemptContext) {
 	// The Authorization header is fixed for the life of the connection and the
 	// camera stops answering once the token behind it expires, without ever
 	// closing the socket. Retire the connection while the token is still good
-	// so the attempt loop reopens it with a fresh one.
-	renewIn := time.Until(authTime.Add(AuthTokenTimelife - AuthTokenRenewMargin + connectionRenewGrace))
+	// so the attempt loop reopens it with a fresh one. Landing just inside the
+	// window where MaybeAuthorize considers the token stale is what makes that
+	// reconnect pick up a new one rather than reuse this one.
+	expiry := authTokenExpiry(authToken, authTime)
+	renewIn := time.Until(expiry.Add(connectionRenewGrace - AuthTokenRenewMargin))
 	if renewIn < minConnectionLifetime {
 		renewIn = minConnectionLifetime
 	}
