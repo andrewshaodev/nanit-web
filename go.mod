@@ -1,4 +1,4 @@
-module github.com/indiefan/home_assistant_nanit
+module github.com/andrewshaodev/nanit-web
 
 go 1.27
 

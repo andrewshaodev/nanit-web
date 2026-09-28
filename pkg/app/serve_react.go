@@ -9,7 +9,7 @@ import (
 	"strings"
 
 	"github.com/rs/zerolog/log"
-	"github.com/indiefan/home_assistant_nanit/pkg/baby"
+	"github.com/andrewshaodev/nanit-web/pkg/baby"
 )
 
 // ServeReact serves the React frontend instead of Go templates

@@ -7,7 +7,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/indiefan/home_assistant_nanit/pkg/client"
+	"github.com/andrewshaodev/nanit-web/pkg/client"
 	"github.com/rs/zerolog/log"
 )
 

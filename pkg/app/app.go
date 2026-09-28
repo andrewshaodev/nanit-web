@@ -7,16 +7,16 @@ import (
 	"time"
 
 	"github.com/rs/zerolog/log"
-	"github.com/indiefan/home_assistant_nanit/pkg/baby"
-	"github.com/indiefan/home_assistant_nanit/pkg/client"
-	"github.com/indiefan/home_assistant_nanit/pkg/history"
-	"github.com/indiefan/home_assistant_nanit/pkg/message"
-	"github.com/indiefan/home_assistant_nanit/pkg/mqtt"
-	"github.com/indiefan/home_assistant_nanit/pkg/rtmpserver"
-	"github.com/indiefan/home_assistant_nanit/pkg/session"
-	"github.com/indiefan/home_assistant_nanit/pkg/streaming"
-	"github.com/indiefan/home_assistant_nanit/pkg/utils"
-	"github.com/indiefan/home_assistant_nanit/pkg/webauth"
+	"github.com/andrewshaodev/nanit-web/pkg/baby"
+	"github.com/andrewshaodev/nanit-web/pkg/client"
+	"github.com/andrewshaodev/nanit-web/pkg/history"
+	"github.com/andrewshaodev/nanit-web/pkg/message"
+	"github.com/andrewshaodev/nanit-web/pkg/mqtt"
+	"github.com/andrewshaodev/nanit-web/pkg/rtmpserver"
+	"github.com/andrewshaodev/nanit-web/pkg/session"
+	"github.com/andrewshaodev/nanit-web/pkg/streaming"
+	"github.com/andrewshaodev/nanit-web/pkg/utils"
+	"github.com/andrewshaodev/nanit-web/pkg/webauth"
 )
 
 // App - application container

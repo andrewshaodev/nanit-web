@@ -11,8 +11,8 @@ import (
 	"time"
 
 	"github.com/rs/zerolog/log"
-	"github.com/indiefan/home_assistant_nanit/pkg/baby"
-	"github.com/indiefan/home_assistant_nanit/pkg/streaming"
+	"github.com/andrewshaodev/nanit-web/pkg/baby"
+	"github.com/andrewshaodev/nanit-web/pkg/streaming"
 )
 
 // API handler for current status

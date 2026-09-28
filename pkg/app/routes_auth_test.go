@@ -6,8 +6,8 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/indiefan/home_assistant_nanit/pkg/baby"
-	"github.com/indiefan/home_assistant_nanit/pkg/webauth"
+	"github.com/andrewshaodev/nanit-web/pkg/baby"
+	"github.com/andrewshaodev/nanit-web/pkg/webauth"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

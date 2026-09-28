@@ -7,8 +7,8 @@ import (
 	"time"
 
 	MQTT "github.com/eclipse/paho.mqtt.golang"
-	"github.com/indiefan/home_assistant_nanit/pkg/baby"
-	"github.com/indiefan/home_assistant_nanit/pkg/utils"
+	"github.com/andrewshaodev/nanit-web/pkg/baby"
+	"github.com/andrewshaodev/nanit-web/pkg/utils"
 	"github.com/rs/zerolog/log"
 )
 

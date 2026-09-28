@@ -10,10 +10,10 @@ import (
 	"sort"
 	"time"
 
-	"github.com/indiefan/home_assistant_nanit/pkg/baby"
-	"github.com/indiefan/home_assistant_nanit/pkg/message"
-	"github.com/indiefan/home_assistant_nanit/pkg/session"
-	"github.com/indiefan/home_assistant_nanit/pkg/utils"
+	"github.com/andrewshaodev/nanit-web/pkg/baby"
+	"github.com/andrewshaodev/nanit-web/pkg/message"
+	"github.com/andrewshaodev/nanit-web/pkg/session"
+	"github.com/andrewshaodev/nanit-web/pkg/utils"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 )

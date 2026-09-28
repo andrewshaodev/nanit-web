@@ -3,7 +3,7 @@ package app
 import (
 	"testing"
 
-	"github.com/indiefan/home_assistant_nanit/pkg/baby"
+	"github.com/andrewshaodev/nanit-web/pkg/baby"
 	"github.com/stretchr/testify/assert"
 )
 

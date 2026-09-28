@@ -9,10 +9,10 @@ import (
 	"time"
 
 	"github.com/rs/zerolog/log"
-	"github.com/indiefan/home_assistant_nanit/pkg/app"
-	"github.com/indiefan/home_assistant_nanit/pkg/mqtt"
-	"github.com/indiefan/home_assistant_nanit/pkg/utils"
-	"github.com/indiefan/home_assistant_nanit/pkg/webauth"
+	"github.com/andrewshaodev/nanit-web/pkg/app"
+	"github.com/andrewshaodev/nanit-web/pkg/mqtt"
+	"github.com/andrewshaodev/nanit-web/pkg/utils"
+	"github.com/andrewshaodev/nanit-web/pkg/webauth"
 )
 
 func main() {

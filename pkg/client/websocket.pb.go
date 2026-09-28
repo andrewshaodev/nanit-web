@@ -2573,7 +2573,7 @@ const file_pkg_client_websocket_proto_rawDesc = "" +
 	"\n" +
 	"\x06TRAVEL\x10\x01\x12\n" +
 	"\n" +
-	"\x06SWITCH\x10\x02B5Z3github.com/indiefan/home_assistant_nanit/pkg/client"
+	"\x06SWITCH\x10\x02B/Z-github.com/andrewshaodev/nanit-web/pkg/client"
 
 var (
 	file_pkg_client_websocket_proto_rawDescOnce sync.Once

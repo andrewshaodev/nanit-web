@@ -10,7 +10,7 @@ import (
 
 	_ "github.com/mattn/go-sqlite3"
 	"github.com/rs/zerolog/log"
-	"github.com/indiefan/home_assistant_nanit/pkg/baby"
+	"github.com/andrewshaodev/nanit-web/pkg/baby"
 )
 
 //go:embed schema.sql

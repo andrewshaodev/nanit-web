@@ -9,8 +9,8 @@ import (
 
 	"github.com/gorilla/websocket"
 	"github.com/rs/zerolog/log"
-	"github.com/indiefan/home_assistant_nanit/pkg/baby"
-	"github.com/indiefan/home_assistant_nanit/pkg/utils"
+	"github.com/andrewshaodev/nanit-web/pkg/baby"
+	"github.com/andrewshaodev/nanit-web/pkg/utils"
 	"google.golang.org/protobuf/proto"
 )
 
