@@ -59,6 +59,7 @@ type HLSTranscoder struct {
 	rtmpURL      string
 	hlsDir       string
 	cmd          *exec.Cmd
+	cmdExited    chan struct{} // closed once monitor has reaped cmd
 	mutex        sync.RWMutex
 	isRunning    bool
 	stopChan     chan struct{}
@@ -68,6 +69,7 @@ type HLSTranscoder struct {
 	retryCount   int
 	maxRetries   int
 	retryDelay   time.Duration
+	ffmpegBin    string // "ffmpeg"; tests swap in a stand-in
 }
 
 // NewHLSTranscoder creates a new HLS transcoder for a baby
@@ -83,6 +85,7 @@ func NewHLSTranscoder(babyUID, rtmpURL, baseHLSDir string) *HLSTranscoder {
 		status:     StatusStopped,
 		maxRetries: 5,
 		retryDelay: 10 * time.Second,
+		ffmpegBin:  "ffmpeg",
 	}
 }
 
@@ -110,7 +113,7 @@ func (h *HLSTranscoder) Start() error {
 	// Clean up any existing files
 	h.cleanupFiles()
 
-	h.cmd = exec.Command("ffmpeg", h.ffmpegArgs()...)
+	h.cmd = exec.Command(h.ffmpegBin, h.ffmpegArgs()...)
 	h.cmd.Dir = h.hlsDir
 
 	// Set up logging
@@ -133,7 +136,8 @@ func (h *HLSTranscoder) Start() error {
 	h.status = StatusConnecting
 
 	// Monitor the process
-	go h.monitor()
+	h.cmdExited = make(chan struct{})
+	go h.monitor(h.cmd, h.cmdExited)
 
 	return nil
 }
@@ -156,7 +160,11 @@ func (h *HLSTranscoder) Stop() {
 	// Terminate FFmpeg process
 	if h.cmd != nil && h.cmd.Process != nil {
 		h.cmd.Process.Kill()
-		h.cmd.Wait() // Wait for process to exit
+		// monitor is the one waiting on the process; calling Wait here too
+		// would race it
+		if h.cmdExited != nil {
+			<-h.cmdExited
+		}
 	}
 
 	// Clean up files
@@ -181,8 +189,15 @@ func (h *HLSTranscoder) GetHLSDir() string {
 }
 
 // monitor watches the FFmpeg process and handles cleanup
-func (h *HLSTranscoder) monitor() {
+func (h *HLSTranscoder) monitor(cmd *exec.Cmd, exited chan struct{}) {
+	// While a retry is pending the transcoder still counts as running: the
+	// retry needs that to go ahead, and the app's own stream monitor, which
+	// restarts transcoders that are not running, must not race it
+	retryPending := false
 	defer func() {
+		if retryPending {
+			return
+		}
 		h.mutex.Lock()
 		h.isRunning = false
 		if h.status != StatusError {
@@ -212,7 +227,8 @@ func (h *HLSTranscoder) monitor() {
 	// Wait for process to finish or stop signal
 	done := make(chan error, 1)
 	go func() {
-		done <- h.cmd.Wait()
+		done <- cmd.Wait()
+		close(exited)
 	}()
 
 	select {
@@ -221,15 +237,19 @@ func (h *HLSTranscoder) monitor() {
 	case err := <-done:
 		if err != nil {
 			h.classifyAndSetError(err)
+			h.mutex.RLock()
+			errorType, retryCount, retry := h.lastError.Type, h.retryCount, h.shouldRetry()
+			h.mutex.RUnlock()
 			log.Error().
 				Err(err).
 				Str("baby_uid", h.babyUID).
-				Str("error_type", h.lastError.Type).
-				Int("retry_count", h.retryCount).
+				Str("error_type", errorType).
+				Int("retry_count", retryCount).
 				Msg("HLS transcoding process exited with error")
-			
+
 			// Attempt retry for connection issues
-			if h.shouldRetry() {
+			if retry {
+				retryPending = true
 				h.scheduleRetry()
 				return
 			}
@@ -524,11 +544,14 @@ func (h *HLSTranscoder) shouldRetry() bool {
 
 // scheduleRetry schedules a retry attempt after a delay
 func (h *HLSTranscoder) scheduleRetry() {
+	h.mutex.Lock()
 	h.retryCount++
-	
+	attempt := h.retryCount
+	h.mutex.Unlock()
+
 	log.Info().
 		Str("baby_uid", h.babyUID).
-		Int("retry_count", h.retryCount).
+		Int("retry_count", attempt).
 		Int("max_retries", h.maxRetries).
 		Dur("retry_delay", h.retryDelay).
 		Msg("Scheduling HLS transcoding retry")
@@ -536,16 +559,10 @@ func (h *HLSTranscoder) scheduleRetry() {
 	go func() {
 		select {
 		case <-time.After(h.retryDelay):
-			h.mutex.Lock()
-			if !h.isRunning {
-				h.mutex.Unlock()
-				return
-			}
-			h.mutex.Unlock()
 			
 			log.Info().
 				Str("baby_uid", h.babyUID).
-				Int("retry_count", h.retryCount).
+				Int("retry_count", attempt).
 				Msg("Retrying HLS transcoding")
 			
 			// Restart FFmpeg process
@@ -598,10 +615,20 @@ func (h *HLSTranscoder) ffmpegArgs() []string {
 
 // restartFFmpeg restarts the FFmpeg process for retries
 func (h *HLSTranscoder) restartFFmpeg() error {
+	h.mutex.Lock()
+	defer h.mutex.Unlock()
+
+	// A Stop() may have landed between the retry timer firing and here
+	select {
+	case <-h.stopChan:
+		return nil
+	default:
+	}
+
 	// Clean up any existing files
 	h.cleanupFiles()
 
-	h.cmd = exec.Command("ffmpeg", h.ffmpegArgs()...)
+	h.cmd = exec.Command(h.ffmpegBin, h.ffmpegArgs()...)
 	h.cmd.Dir = h.hlsDir
 
 	// Set up logging
@@ -609,14 +636,15 @@ func (h *HLSTranscoder) restartFFmpeg() error {
 	h.cmd.Stderr = nil // Suppress stderr for now - could add logging if needed
 
 	if err := h.cmd.Start(); err != nil {
-		h.mutex.Lock()
 		h.setError(ErrorTypeFFmpegFailed, "Failed to restart FFmpeg process", err.Error())
-		h.mutex.Unlock()
+		// Nothing is left to retry, so let the app's stream monitor take over
+		h.isRunning = false
 		return fmt.Errorf("failed to restart FFmpeg: %v", err)
 	}
 
 	// Monitor the process
-	go h.monitor()
+	h.cmdExited = make(chan struct{})
+	go h.monitor(h.cmd, h.cmdExited)
 
 	return nil
 }
