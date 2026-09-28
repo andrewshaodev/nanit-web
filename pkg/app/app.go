@@ -385,8 +385,8 @@ func (app *App) StartMonitoringServices() {
 	}
 	log.Info().Msg("Starting monitoring services after authentication...")
 
-	// Force refresh authorization and fetch babies (token may have expired since web auth)
-	if err := app.RestClient.MaybeAuthorize(true); err != nil { // Force refresh
+	// Sign-in has just stored fresh tokens; renew only if they're somehow stale
+	if err := app.RestClient.MaybeAuthorize(false); err != nil {
 		log.Error().Err(err).Msg("Failed to refresh authorization")
 		return
 	}

@@ -379,7 +379,7 @@ func handleAuthLoginAPI(w http.ResponseWriter, r *http.Request, app *App) {
 
 	// An account without 2FA is signed in already
 	if challenge == nil {
-		go app.StartMonitoringServices()
+		app.afterSignIn()
 		writeJSON(w, map[string]interface{}{
 			"success":   true,
 			"signed_in": true,
@@ -428,14 +428,25 @@ func handleAuthVerify2FAAPI(w http.ResponseWriter, r *http.Request, app *App) {
 		return
 	}
 
-	// Start the cameras (only the first time: they keep running across a
-	// second sign-in, and pick up the new tokens from the session)
-	go app.StartMonitoringServices()
+	app.afterSignIn()
 
 	writeJSON(w, map[string]interface{}{
 		"success": true,
 		"message": "Authentication completed successfully",
 	})
+}
+
+// afterSignIn fetches the account's cameras before the sign-in is answered,
+// so the dashboard it opens has them: they used to be fetched in the
+// background, and the first load said "No babies configured". The cameras'
+// connections then start in the background (only the first time: they keep
+// running across a second sign-in, and pick up the new tokens from the
+// session).
+func (app *App) afterSignIn() {
+	if _, err := app.RestClient.FetchBabies(); err != nil {
+		log.Error().Err(err).Msg("Failed to fetch babies after signing in")
+	}
+	go app.StartMonitoringServices()
 }
 
 // writeLoginError answers a failed Nanit sign-in: 401 with Nanit's reason

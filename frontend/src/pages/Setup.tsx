@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router'
+import { mutate } from 'swr'
 import { api } from '@/lib/api'
 import { Baby, CircleAlert, Loader2, MessageSquareText } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -10,6 +11,14 @@ import { Card, CardContent } from '@/components/ui/card'
 
 export default function SetupPage() {
   const navigate = useNavigate()
+
+  // The dashboard caches the Nanit sign-in status, and redirects here while
+  // it says signed out. Refetch it first, or the cached "signed out" sends
+  // the browser straight back to this page.
+  const goToDashboard = async () => {
+    await mutate('/auth/status', api.getAuthStatus())
+    navigate('/')
+  }
   const [step, setStep] = useState<'login' | '2fa'>('login')
   const [formData, setFormData] = useState({
     email: '',
@@ -31,7 +40,7 @@ export default function SetupPage() {
       
       if (response.success && response.signed_in) {
         // No 2FA on this account: Nanit signed in straight away
-        navigate('/')
+        await goToDashboard()
       } else if (response.success && response.mfa_token) {
         setMfaToken(response.mfa_token)
         setMfaDelivery({ channel: response.channel, phoneSuffix: response.phone_suffix })
@@ -61,8 +70,7 @@ export default function SetupPage() {
       )
       
       if (response.success) {
-        // Redirect to dashboard
-        navigate('/')
+        await goToDashboard()
       } else {
         setError(response.error || 'Verification failed')
       }
