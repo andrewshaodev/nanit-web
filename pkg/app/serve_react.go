@@ -25,7 +25,9 @@ func ServeReact(babies []baby.Baby, dataDir DataDirectories, stateManager *baby.
 	fs := http.FileServer(http.Dir("web"))
 	
 	// Handle Next.js static assets (_next/static/*)
-	http.Handle("/_next/static/", http.StripPrefix("/_next/static/", http.FileServer(http.Dir("web/_next/static"))))
+	// Their file names carry a content hash, so a changed file gets a new URL
+	// and each one can be cached for good
+	http.Handle("/_next/static/", immutable(http.StripPrefix("/_next/static/", http.FileServer(http.Dir("web/_next/static")))))
 	
 	// Handle other static files (favicon, etc.)
 	http.Handle("/static/", http.StripPrefix("/static/", fs))
@@ -60,6 +62,8 @@ func ServeReact(babies []baby.Baby, dataDir DataDirectories, stateManager *baby.
 		// Check if route-specific HTML exists
 		if _, err := os.Stat(routePath); err == nil {
 			w.Header().Set("Content-Type", "text/html")
+			// Revalidate every load so a new build's asset URLs are picked up
+			w.Header().Set("Cache-Control", "no-cache")
 			http.ServeFile(w, r, routePath)
 			return
 		}
@@ -73,6 +77,7 @@ func ServeReact(babies []baby.Baby, dataDir DataDirectories, stateManager *baby.
 		}
 		
 		w.Header().Set("Content-Type", "text/html")
+		w.Header().Set("Cache-Control", "no-cache")
 		http.ServeFile(w, r, indexPath)
 	})
 
@@ -81,6 +86,14 @@ func ServeReact(babies []baby.Baby, dataDir DataDirectories, stateManager *baby.
 
 	log.Info().Int("port", port).Msg("Starting HTTP server with React frontend")
 	http.ListenAndServe(fmt.Sprintf(":%v", port), nil)
+}
+
+// immutable marks responses as safe to cache forever
+func immutable(h http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Cache-Control", "public, max-age=31536000, immutable")
+		h.ServeHTTP(w, r)
+	})
 }
 
 // requireAuth is middleware that checks for web authentication
