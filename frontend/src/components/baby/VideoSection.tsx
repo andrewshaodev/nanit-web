@@ -24,9 +24,7 @@ export default function VideoSection({ baby }: VideoSectionProps) {
   } = useVideoPlayer({ hlsUrl })
 
   return (
-    <div className="space-y-4">
-      <h3 className="text-lg font-semibold">Live Video Stream</h3>
-      
+    <div className="space-y-2">
       {/* Error display */}
       {error && (
         <Alert variant="destructive">
@@ -40,13 +38,13 @@ export default function VideoSection({ baby }: VideoSectionProps) {
           there must be no data-setup attribute, or video.js's own auto-setup
           can reach the element first and create the player without our
           options (fluid/fill), leaving it small and off-centre */}
-      <div className="bg-black rounded-lg overflow-hidden">
+      {/* 16:9 box; the player fills it (fill: true in its options) */}
+      <div className="aspect-video bg-black rounded-md border overflow-hidden">
         <video
           ref={videoRef}
-          className="video-js vjs-default-skin w-full h-auto"
+          className="video-js vjs-default-skin w-full h-full"
           controls
           preload="none"
-          style={{ minHeight: '300px' }}
         >
           <p className="vjs-no-js">
             To view this video please enable JavaScript, and consider upgrading to a web browser that

@@ -42,7 +42,9 @@ function ControlButton({ onClick, disabled, loading, children, variant = 'primar
       case 'danger':
         return 'destructive'
       default:
-        return 'default'
+        // Neutral, as GitHub's everyday buttons are; solid mauve is kept for
+        // a page's main action
+        return 'outline'
     }
   }
 
@@ -67,6 +69,7 @@ function ControlButton({ onClick, disabled, loading, children, variant = 'primar
       onClick={handleClick}
       disabled={disabled || loading || !!feedback}
       variant={buttonVariant()}
+      className="w-full"
     >
       {getButtonContent()}
     </Button>
@@ -103,8 +106,8 @@ export default function ControlPanel({ baby }: ControlPanelProps) {
   const isDisabled = !baby.websocket_alive
 
   return (
-    <div className="space-y-4">
-      <h3 className="text-lg font-semibold">Controls</h3>
+    <div className="space-y-2">
+      <h3 className="font-semibold">Controls</h3>
       
       {!baby.websocket_alive && (
         <Alert variant="warning">
@@ -115,7 +118,7 @@ export default function ControlPanel({ baby }: ControlPanelProps) {
         </Alert>
       )}
       
-      <div className="flex flex-wrap gap-3">
+      <div className="grid grid-cols-2 gap-2">
         <ControlButton
           onClick={handleNightLightToggle}
           disabled={isDisabled}
@@ -128,7 +131,6 @@ export default function ControlPanel({ baby }: ControlPanelProps) {
           onClick={handleStandbyToggle}
           disabled={isDisabled}
           loading={loadingStates.standby || false}
-          variant="secondary"
         >
           {baby.standby ? 'Exit Standby' : 'Enter Standby'}
         </ControlButton>

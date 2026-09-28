@@ -11,7 +11,7 @@ export default function MainLayout({ children }: MainLayoutProps) {
       <Header />
       
       <main className="flex-1">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="mx-auto max-w-[1280px] px-4 md:px-6 py-4">
           {children}
         </div>
       </main>

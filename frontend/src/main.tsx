@@ -1,7 +1,6 @@
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router'
-import '@fontsource-variable/inter'
 import './index.css'
 import { initTheme } from '@/lib/theme'
 import ClientTooltip from '@/components/ui/ClientTooltip'

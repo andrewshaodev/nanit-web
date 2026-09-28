@@ -11,7 +11,9 @@
 @import "shadcn/tailwind.css";
 
 @theme {
-  --font-sans: 'Inter Variable', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+  /* GitHub's system font stacks */
+  --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', Helvetica, Arial, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji';
+  --font-mono: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace;
 
   --animate-pulse-slow: pulse 2s infinite;
 }
@@ -172,7 +174,8 @@
    Mapping follows catppuccin/shadcn-ui, except that the page is mantle under
    base cards, and borders are surface0. */
 :root {
-  --radius: 0.625rem;
+  /* 6px corners, as GitHub uses */
+  --radius: 0.375rem;
 
   --background: var(--catppuccin-color-mantle);
   --foreground: var(--catppuccin-color-text);
@@ -180,9 +183,9 @@
   --card-foreground: var(--catppuccin-color-text);
   --popover: var(--catppuccin-color-base);
   --popover-foreground: var(--catppuccin-color-text);
-  /* Latte's blue is 4.3:1 behind base-coloured text, so light mode takes the
-     700 shade (5.4:1); Mocha's plain blue is fine */
-  --primary: var(--catppuccin-color-blue-700);
+  /* Solid mauve for primary actions: base-coloured text on it is 4.8:1 in
+     Latte and 8.1:1 in Mocha */
+  --primary: var(--catppuccin-color-mauve);
   --primary-foreground: var(--catppuccin-color-base);
   --secondary: var(--catppuccin-color-surface0);
   --secondary-foreground: var(--catppuccin-color-text);
@@ -218,5 +221,4 @@
 
 :root.dark {
   color-scheme: dark;
-  --primary: var(--catppuccin-color-blue);
 }

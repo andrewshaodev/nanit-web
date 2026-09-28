@@ -124,7 +124,7 @@ export const injectCustomStyles = () => {
     }
     
     .video-js .vjs-progress-control .vjs-play-progress {
-      background: var(--color-ctp-blue);
+      background: var(--color-ctp-mauve);
       border-radius: 0.1875rem;
     }
     
@@ -135,12 +135,12 @@ export const injectCustomStyles = () => {
     
     /* Loading spinner */
     .vjs-loading-spinner {
-      border-color: var(--color-ctp-blue) transparent var(--color-ctp-blue) transparent;
+      border-color: var(--color-ctp-mauve) transparent var(--color-ctp-mauve) transparent;
     }
     
     /* Big play button */
     .video-js .vjs-big-play-button {
-      background: color-mix(in srgb, var(--color-ctp-blue) 90%, transparent);
+      background: color-mix(in srgb, var(--color-ctp-mauve) 90%, transparent);
       color: var(--color-ctp-base);
       border: none;
       border-radius: 50%;
@@ -153,7 +153,7 @@ export const injectCustomStyles = () => {
     }
     
     .video-js .vjs-big-play-button:hover {
-      background: var(--color-ctp-blue);
+      background: var(--color-ctp-mauve);
     }
     
     /* Volume control */

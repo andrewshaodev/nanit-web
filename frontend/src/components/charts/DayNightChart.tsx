@@ -46,7 +46,7 @@ Duration: ${formatDuration((period.end - period.start) / 60)}`
 export default function DayNightChart({ analytics, isLoading }: DayNightChartProps) {
   if (isLoading) {
     return (
-      <div className="h-24 bg-muted rounded-lg flex items-center justify-center">
+      <div className="h-16 bg-muted rounded-md flex items-center justify-center">
         <div className="text-muted-foreground text-sm">Loading day/night data...</div>
       </div>
     )
@@ -55,7 +55,7 @@ export default function DayNightChart({ analytics, isLoading }: DayNightChartPro
   const periods = analytics?.periods ?? []
   if (!analytics || periods.length === 0) {
     return (
-      <div className="h-24 bg-muted rounded-lg flex items-center justify-center">
+      <div className="h-16 bg-muted rounded-md flex items-center justify-center">
         <div className="text-muted-foreground text-sm">No day/night pattern data available</div>
       </div>
     )
@@ -72,7 +72,7 @@ export default function DayNightChart({ analytics, isLoading }: DayNightChartPro
   return (
     <div className="space-y-3">
       {/* Timeline: each period's width is its share of the window */}
-      <div className="flex h-12 rounded-lg border overflow-hidden">
+      <div className="flex h-8 rounded-md border overflow-hidden">
         {periods.map((period) => (
           <div
             key={period.start}

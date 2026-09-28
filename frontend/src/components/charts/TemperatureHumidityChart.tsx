@@ -17,16 +17,16 @@ export default function TemperatureHumidityChart({ data, range, isLoading }: Tem
 
   if (isLoading) {
     return (
-      <div className="h-64 bg-ctp-mantle rounded-sm flex items-center justify-center">
-        <div className="text-ctp-subtext1">Loading chart data...</div>
+      <div className="h-full bg-muted rounded-md flex items-center justify-center">
+        <div className="text-sm text-muted-foreground">Loading chart data...</div>
       </div>
     )
   }
 
   if (!data || data.length === 0) {
     return (
-      <div className="h-64 bg-ctp-mantle rounded-sm flex items-center justify-center">
-        <div className="text-ctp-subtext1">No data available for selected timeframe</div>
+      <div className="h-full bg-muted rounded-md flex items-center justify-center">
+        <div className="text-sm text-muted-foreground">No data available for selected timeframe</div>
       </div>
     )
   }

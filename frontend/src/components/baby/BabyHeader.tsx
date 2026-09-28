@@ -4,7 +4,7 @@ import { errorTooltipConfig } from '@/lib/tooltipSetup'
 import type { Baby, StreamStatusResponse, HealthResponse } from '@/types/api'
 import { displayName } from '@/lib/utils'
 import { useTemperatureUnit } from '@/hooks/useTemperatureUnit'
-import { ChevronDown, ChevronRight, ChevronUp } from 'lucide-react'
+import { Cctv, ChevronDown, ChevronRight, ChevronUp } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 
 interface BabyHeaderProps {
@@ -16,11 +16,9 @@ interface BabyHeaderProps {
   onMoveDown?: () => void
 }
 
-// Ghost icon buttons, tinted for the gradient header rather than the card
 // (aria-expanded: shadcn's ghost button highlights an open disclosure, which
 // here is every expanded card)
-const headerButton =
-  'text-current hover:bg-ctp-base/20 hover:text-current dark:hover:bg-ctp-base/20 aria-expanded:bg-transparent aria-expanded:text-current aria-expanded:hover:bg-ctp-base/20'
+const headerButton = 'aria-expanded:bg-transparent aria-expanded:hover:bg-accent'
 
 export default function BabyHeader({ baby, collapsed, onToggleCollapsed, onMoveUp, onMoveDown }: BabyHeaderProps) {
   const { formatTemperature } = useTemperatureUnit()
@@ -122,9 +120,10 @@ export default function BabyHeader({ baby, collapsed, onToggleCollapsed, onMoveU
   const cameraStatus = getCameraStatusInfo()
   
   return (
-    <div className={`bg-gradient-nanit text-ctp-base ${collapsed ? 'px-6 py-3' : 'p-6'}`}>
-      <div className="flex justify-between items-center gap-4">
-        <div className="flex items-center gap-2 min-w-0">
+    // A GitHub-style box header: a subtle row with the title and its actions
+    <div className={`bg-ctp-mauve/10 px-2 py-1.5 ${collapsed ? '' : 'border-b border-ctp-mauve/25'}`}>
+      <div className="flex justify-between items-center gap-3">
+        <div className="flex items-center gap-1 min-w-0">
           <Button
             variant="ghost"
             size="icon-sm"
@@ -136,27 +135,28 @@ export default function BabyHeader({ baby, collapsed, onToggleCollapsed, onMoveU
           >
             {collapsed ? <ChevronRight /> : <ChevronDown />}
           </Button>
-          <h2 className={`font-bold truncate ${collapsed ? 'text-xl' : 'text-2xl'}`}>{displayName(baby)}</h2>
+          <Cctv className="size-4 shrink-0 text-ctp-mauve" aria-hidden="true" />
+          <h2 className="ml-1 font-semibold truncate">{displayName(baby)}</h2>
         </div>
 
         <div className="flex items-center gap-3 shrink-0">
           {/* A collapsed card still shows the readings at a glance */}
           {collapsed && (
-            <div className="hidden sm:flex items-center gap-3 text-sm text-ctp-base/90">
+            <div className="hidden sm:flex items-center gap-3 text-xs text-muted-foreground tabular-nums">
               <span>{formatTemperature(baby.temperature)}</span>
               {baby.humidity !== undefined && baby.humidity > 0 && <span>{baby.humidity.toFixed(0)}%</span>}
             </div>
           )}
 
           {/* Single Camera Status */}
-          <div 
-            className="flex items-center gap-2 bg-ctp-base/20 px-4 py-2 rounded-full text-sm cursor-help"
+          <div
+            className="flex items-center gap-1.5 rounded-full border bg-background px-2 py-0.5 text-xs cursor-help"
             data-tooltip-id="app-tooltip"
             data-tooltip-content={cameraStatus.tooltip}
             data-tooltip-place={errorTooltipConfig.place}
             data-tooltip-delay-show={errorTooltipConfig.delayShow}
           >
-            <div className={`w-2.5 h-2.5 rounded-full ${cameraStatus.color}`} />
+            <div className={`size-2 rounded-full ${cameraStatus.color}`} />
             <span className="font-medium">{cameraStatus.text}</span>
           </div>
 

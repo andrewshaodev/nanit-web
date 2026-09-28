@@ -1,26 +1,20 @@
 export default function Footer() {
   return (
-    <footer className="bg-ctp-base border-t border-ctp-surface0 mt-12">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-        <div className="text-center text-ctp-subtext1 space-y-3">
-          <p className="text-sm font-medium">
-            Nanit Dashboard
-          </p>
-          <div className="pt-3 border-t border-ctp-surface0">
-            <p className="text-xs">
-              <strong>Disclaimer:</strong> This project has no association with Nanit. Much of the API reverse engineering came from{' '}
-              <a 
-                href="https://github.com/indiefan/home_assistant_nanit" 
-                target="_blank" 
-                rel="noopener noreferrer"
-                className="text-ctp-blue-700 dark:text-ctp-blue hover:text-ctp-blue-700 dark:hover:text-ctp-blue hover:underline"
-              >
-                this GitHub repository
-              </a>
-              .
-            </p>
-          </div>
-        </div>
+    <footer className="border-t">
+      <div className="mx-auto flex max-w-[1280px] flex-wrap items-center justify-between gap-2 px-4 md:px-6 py-4 text-xs text-muted-foreground">
+        <span>Nanit Dashboard</span>
+        <span>
+          Not affiliated with Nanit. API reverse engineering by{' '}
+          <a
+            href="https://github.com/indiefan/home_assistant_nanit"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-ctp-blue-700 dark:text-ctp-blue hover:underline"
+          >
+            indiefan/home_assistant_nanit
+          </a>
+          .
+        </span>
       </div>
     </footer>
   )

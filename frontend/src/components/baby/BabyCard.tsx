@@ -30,15 +30,20 @@ export default function BabyCard({ baby, collapsed, onToggleCollapsed, onMoveUp,
       {/* Collapsed cards render nothing below the header, so the video
           player and the charts don't load at all */}
       {!collapsed && (
-        <div className="p-6 space-y-8">
-          <VideoSection baby={baby} />
-
-          <SensorGrid baby={baby} />
-
-          <ControlPanel baby={baby} />
+        <>
+          {/* Video beside the readings and controls, rather than above them */}
+          <div className="grid gap-4 p-4 lg:grid-cols-3">
+            <div className="lg:col-span-2">
+              <VideoSection baby={baby} />
+            </div>
+            <div className="space-y-4">
+              <SensorGrid baby={baby} />
+              <ControlPanel baby={baby} />
+            </div>
+          </div>
 
           <HistoricalData baby={baby} />
-        </div>
+        </>
       )}
     </Card>
   )

@@ -1,34 +1,34 @@
+import { Droplets, Lightbulb, LightbulbOff, Moon, Sun, Thermometer, type LucideIcon } from 'lucide-react'
 import { useTemperatureUnit } from '@/hooks/useTemperatureUnit'
 import { formatRelativeTime } from '@/lib/utils'
 import { sensorTooltipConfig } from '@/lib/tooltipSetup'
 import type { Baby } from '@/types/api'
 
-interface SensorCardProps {
+interface SensorRowProps {
+  icon: LucideIcon
+  iconClass: string
   title: string
   value: string
-  type: 'temperature' | 'humidity' | 'night-mode' | 'night-light'
   tooltip?: string
   onClick?: () => void
-  className?: string
 }
 
-function SensorCard({ title, value, type, tooltip, onClick, className }: SensorCardProps) {
+// One reading as a GitHub-style box row: icon, label, value on the right
+function SensorRow({ icon: Icon, iconClass, title, value, tooltip, onClick }: SensorRowProps) {
+  const Row = onClick ? 'button' : 'div'
   return (
-    <div 
-      className={`sensor-card ${type} ${onClick ? 'cursor-pointer' : ''} ${className}`}
-      onClick={onClick}
-      data-tooltip-id="app-tooltip"
+    <Row
+      {...(onClick ? { type: 'button' as const, onClick } : {})}
+      className={`flex w-full items-center gap-2.5 px-3 py-2 text-left ${onClick ? 'hover:bg-accent cursor-pointer' : ''}`}
+      data-tooltip-id={tooltip ? 'app-tooltip' : undefined}
       data-tooltip-content={tooltip}
       data-tooltip-place={sensorTooltipConfig.place}
       data-tooltip-delay-show={sensorTooltipConfig.delayShow}
     >
-      <div className="text-sm font-medium text-ctp-subtext1 mb-1">
-        {title}
-      </div>
-      <div className="text-xl font-bold text-ctp-text">
-        {value}
-      </div>
-    </div>
+      <Icon className={`size-4 shrink-0 ${iconClass}`} aria-hidden="true" />
+      <span className="text-muted-foreground">{title}</span>
+      <span className="ml-auto font-semibold tabular-nums">{value}</span>
+    </Row>
   )
 }
 
@@ -85,33 +85,33 @@ export default function SensorGrid({ baby }: SensorGridProps) {
 
 
   return (
-    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-      <SensorCard
+    <div className="divide-y rounded-md border bg-card">
+      <SensorRow
+        icon={Thermometer}
+        iconClass="text-ctp-peach-900 dark:text-ctp-peach"
         title="Temperature"
         value={formatTemperature(baby.temperature)}
-        type="temperature"
         onClick={toggleUnit}
         tooltip="Click to toggle °C/°F"
       />
-      
-      <SensorCard
+      <SensorRow
+        icon={Droplets}
+        iconClass="text-ctp-teal-900 dark:text-ctp-teal"
         title="Humidity"
         value={formatHumidity(baby.humidity)}
-        type="humidity"
       />
-      
-      <SensorCard
-        title="Night Mode"
+      <SensorRow
+        icon={baby.is_night ? Moon : Sun}
+        iconClass={baby.is_night ? 'text-ctp-mauve' : 'text-ctp-yellow-900 dark:text-ctp-yellow'}
+        title="Camera mode"
         value={formatNightMode(baby.is_night)}
-        type="night-mode"
-        className={baby.is_night ? 'bg-ctp-mauve/10 border-l-ctp-mauve' : ''}
+        tooltip="Whether the camera is in day mode or has switched to night vision"
       />
-      
-      <SensorCard
-        title="Night Light"
+      <SensorRow
+        icon={baby.night_light ? Lightbulb : LightbulbOff}
+        iconClass={baby.night_light ? 'text-ctp-sky-900 dark:text-ctp-sky' : 'text-muted-foreground'}
+        title="Night light"
         value={formatNightLight(baby.night_light)}
-        type="night-light"
-        className={baby.night_light ? 'bg-ctp-sky/10 border-l-ctp-sky' : ''}
       />
     </div>
   )

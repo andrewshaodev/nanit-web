@@ -16,8 +16,7 @@ const THEMES = {
   dark: { label: 'Dark', icon: Moon },
 } as const
 
-// Cycles System -> Light -> Dark. Sits on the gradient header, so it is
-// tinted for that rather than the page (see BabyHeader's buttons).
+// Cycles System -> Light -> Dark
 export default function ThemeToggle() {
   const [preference, setPreference] = useState<ThemePreference>(getThemePreference)
 
@@ -29,14 +28,12 @@ export default function ThemeToggle() {
   return (
     <Button
       variant="ghost"
-      size="sm"
-      className="text-current hover:bg-ctp-base/20 hover:text-current dark:hover:bg-ctp-base/20"
+      size="icon-sm"
       onClick={() => setThemePreference(next)}
       aria-label={`Theme: ${label}. Switch to ${THEMES[next].label}`}
       title={`Theme: ${label} (click for ${THEMES[next].label})`}
     >
       <Icon />
-      <span className="hidden sm:inline">{label}</span>
     </Button>
   )
 }
