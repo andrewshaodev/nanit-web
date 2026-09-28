@@ -1166,7 +1166,9 @@ func handleHistoryDayNightAPI(w http.ResponseWriter, r *http.Request, app *App) 
 }
 
 func handleHistoryResetAPI(w http.ResponseWriter, r *http.Request, app *App) {
-	if r.Method != "POST" {
+	// The dashboard sends DELETE, and only POST used to be accepted, so the
+	// reset button always failed
+	if r.Method != http.MethodDelete {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
