@@ -1,13 +1,10 @@
-package app
+package httpapi
 
 import (
 	"net/http"
 	"net/http/httptest"
-	"path/filepath"
 	"testing"
 
-	"github.com/andrewshaodev/nanit-web/pkg/baby"
-	"github.com/andrewshaodev/nanit-web/pkg/webauth"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -17,13 +14,8 @@ import (
 // including the live video, the camera controls, Nanit sign-in and reset,
 // and history reset.
 func TestRoutesRequireAuthWhenPasswordSet(t *testing.T) {
-	dir := t.TempDir()
-	wa := webauth.NewWebAuth(filepath.Join(dir, "password.json"))
-	require.NoError(t, wa.SetPassword("correct horse battery staple"))
-
-	app := &App{WebAuth: wa}
-	mux := http.NewServeMux()
-	setupAPIRoutes(mux, baby.NewStateManager(), app)
+	app, mux := newTestServer(t)
+	wa := app.WebAuth
 
 	protected := []string{
 		"/api/status", "/api/babies", "/api/streaming/info",
@@ -59,7 +51,7 @@ func TestRoutesRequireAuthWhenPasswordSet(t *testing.T) {
 	session, err := wa.CreateSession()
 	require.NoError(t, err)
 	req := httptest.NewRequest("GET", "/api/streaming/info", nil)
-	req.AddCookie(&http.Cookie{Name: "nanit_session", Value: session})
+	req.AddCookie(&http.Cookie{Name: sessionCookie, Value: session})
 	w = httptest.NewRecorder()
 	mux.ServeHTTP(w, req)
 	assert.Equal(t, http.StatusOK, w.Code)

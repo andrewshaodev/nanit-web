@@ -46,6 +46,7 @@ All settings are environment variables. [.env.sample](.env.sample) has the same 
 | `NANIT_RTMP_ENABLED` | `true` | Run the built-in RTMP server |
 | `NANIT_RTMP_AUTO_START` | `true` | Ask the camera to start streaming when it comes online, and again if the stream drops |
 | `NANIT_HTTP_PORT` | `8080` | Dashboard and API port |
+| `NANIT_WEB_DIR` | `web` | The built dashboard, relative to the working directory (`/app/web` in the image) |
 | `NANIT_DATA_DIR` | `/data` | Where the session, history database and other files are kept |
 | `NANIT_SESSION_FILE` | `session.json` in the data dir | Saved Nanit session (contains tokens, so keep it private) |
 | `NANIT_LOG_LEVEL` | `info` | `trace`, `debug`, `info`, `warn` or `error` |

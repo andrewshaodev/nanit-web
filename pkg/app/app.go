@@ -40,16 +40,22 @@ type App struct {
 
 	// State changes waiting to be written to the history database
 	historyQueue chan historyUpdate
+
+	startedAt time.Time
 }
 
 // NewApp - constructor
 func NewApp(opts Opts) (*App, error) {
+	if opts.WebDir == "" {
+		opts.WebDir = "web"
+	}
 	sessionStore, err := session.InitSessionStore(opts.SessionFile)
 	if err != nil {
 		return nil, fmt.Errorf("failed to initialize session store: %w", err)
 	}
 
 	instance := &App{
+		startedAt:        time.Now(),
 		Opts:             opts,
 		BabyStateManager: baby.NewStateManager(),
 		SessionStore:     sessionStore,
@@ -158,20 +164,6 @@ func (app *App) hasSavedSession() bool {
 	return true
 }
 
-func (app *App) getLocalStreamURL(babyUID string) string {
-	if app.Opts.RTMP != nil {
-		return camera.LocalStreamURL(app.Opts.RTMP.PublicAddr, babyUID)
-	}
-
-	return ""
-}
-
-// getLocalStreamURLTemplate - local stream URL with the baby UID left as a
-// "{baby_uid}" placeholder, so clients can render it for any baby
-func (app *App) getLocalStreamURLTemplate() string {
-	return app.getLocalStreamURL("{baby_uid}")
-}
-
 // StartMonitoringServices - start all monitoring services after authentication
 func (app *App) StartMonitoringServices() {
 	// Use the main application context stored during Run()
@@ -230,16 +222,6 @@ func (app *App) startSharedServices(ctx utils.GracefulContext) {
 		})
 	}
 
-}
-
-// babies is the account's cameras, as last fetched from Nanit. Handlers
-// read it per request: a list captured at startup stayed empty until a
-// restart when the bridge started before sign-in.
-func (app *App) babies() []baby.Baby {
-	if app.SessionStore == nil {
-		return nil
-	}
-	return app.SessionStore.Babies()
 }
 
 // setupHistoryTracking configures historical data tracking for state changes

@@ -522,29 +522,38 @@ func (h *HLSTranscoder) GetStatus() (StreamStatus, *StreamError) {
 	return h.status, h.lastError
 }
 
-// GetDetailedInfo returns comprehensive transcoder information
-func (h *HLSTranscoder) GetDetailedInfo() map[string]interface{} {
+// TranscoderInfo - a transcoder's state, for the stream status API
+type TranscoderInfo struct {
+	BabyUID    string
+	Status     StreamStatus
+	IsRunning  bool
+	StartTime  time.Time
+	RetryCount int
+	MaxRetries int
+	Error      *StreamError
+	// Uptime and HasFiles are only set while running
+	Uptime   float64
+	HasFiles bool
+}
+
+// GetDetailedInfo returns the transcoder's state
+func (h *HLSTranscoder) GetDetailedInfo() TranscoderInfo {
 	h.mutex.RLock()
 	defer h.mutex.RUnlock()
 
-	info := map[string]interface{}{
-		"baby_uid":    h.babyUID,
-		"status":      string(h.status),
-		"is_running":  h.isRunning,
-		"start_time":  h.startTime,
-		"retry_count": h.retryCount,
-		"max_retries": h.maxRetries,
+	info := TranscoderInfo{
+		BabyUID:    h.babyUID,
+		Status:     h.status,
+		IsRunning:  h.isRunning,
+		StartTime:  h.startTime,
+		RetryCount: h.retryCount,
+		MaxRetries: h.maxRetries,
+		Error:      h.lastError,
 	}
-
-	if h.lastError != nil {
-		info["error"] = h.lastError
-	}
-
 	if h.isRunning {
-		info["uptime"] = time.Since(h.startTime).Seconds()
-		info["has_files"] = h.hasHLSFiles()
+		info.Uptime = time.Since(h.startTime).Seconds()
+		info.HasFiles = h.hasHLSFiles()
 	}
-
 	return info
 }
 

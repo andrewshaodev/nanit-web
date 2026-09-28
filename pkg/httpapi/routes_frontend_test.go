@@ -1,12 +1,15 @@
-package app
+package httpapi
 
 import (
 	"net/http"
 	"net/http/httptest"
 	"path/filepath"
 	"testing"
+	"time"
 
 	"github.com/andrewshaodev/nanit-web/pkg/baby"
+	"github.com/andrewshaodev/nanit-web/pkg/camera"
+	"github.com/andrewshaodev/nanit-web/pkg/client"
 	"github.com/andrewshaodev/nanit-web/pkg/history"
 	"github.com/andrewshaodev/nanit-web/pkg/session"
 	"github.com/andrewshaodev/nanit-web/pkg/streaming"
@@ -56,9 +59,9 @@ var publicRequests = map[string]bool{
 	"/api/webauth/logout": true,
 }
 
-// newTestServer is the app with a dashboard password, no cameras connected
-// and history off, with its routes on a fresh mux. Files go in a temp dir.
-func newTestServer(t *testing.T) (*App, *http.ServeMux) {
+// newTestServer is the API with a dashboard password, no cameras running
+// and history off. Files go in a temp dir.
+func newTestServer(t *testing.T) (*Server, http.Handler) {
 	t.Helper()
 	dir := t.TempDir()
 	wa := webauth.NewWebAuth(filepath.Join(dir, "password.json"))
@@ -66,25 +69,27 @@ func newTestServer(t *testing.T) (*App, *http.ServeMux) {
 	tracker, err := history.NewTracker(dir, false)
 	require.NoError(t, err)
 
-	app := &App{
-		Opts:             Opts{SessionFile: filepath.Join(dir, "session.json")},
-		SessionStore:     session.NewSessionStore(),
-		BabyStateManager: baby.NewStateManager(),
-		HLSManager:       streaming.NewHLSManager(filepath.Join(dir, "hls")),
-		HistoryTracker:   tracker,
-		WebAuth:          wa,
+	state := baby.NewStateManager()
+	s := &Server{
+		Config:    Config{SessionFile: filepath.Join(dir, "session.json"), WebDir: dir},
+		Sessions:  session.NewSessionStore(),
+		State:     state,
+		Cameras:   camera.NewRegistry(camera.Options{}, camera.Deps{State: state}),
+		HLS:       streaming.NewHLSManager(filepath.Join(dir, "hls")),
+		History:   tracker,
+		WebAuth:   wa,
+		Nanit:     &client.NanitClient{},
+		StartedAt: time.Now(),
 	}
-	mux := http.NewServeMux()
-	setupAPIRoutes(mux, app.BabyStateManager, app)
-	return app, mux
+	return s, s.Handler()
 }
 
 // signedIn adds a valid dashboard session to r
-func signedIn(t *testing.T, app *App, r *http.Request) *http.Request {
+func signedIn(t *testing.T, s *Server, r *http.Request) *http.Request {
 	t.Helper()
-	session, err := app.WebAuth.CreateSession()
+	id, err := s.WebAuth.CreateSession()
 	require.NoError(t, err)
-	r.AddCookie(&http.Cookie{Name: "nanit_session", Value: session})
+	r.AddCookie(&http.Cookie{Name: sessionCookie, Value: id})
 	return r
 }
 
@@ -109,7 +114,7 @@ func TestFrontendRequestsAreRouted(t *testing.T) {
 			w = httptest.NewRecorder()
 			mux.ServeHTTP(w, signedIn(t, app, httptest.NewRequest(req.method, req.path, nil)))
 			assert.NotEqual(t, http.StatusMethodNotAllowed, w.Code, w.Body.String())
-			assert.NotEqual(t, "404 page not found\n", w.Body.String())
+			assert.NotContains(t, w.Body.String(), `"error":"not_found"`, "no route")
 		})
 	}
 }

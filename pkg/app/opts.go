@@ -11,11 +11,13 @@ type Opts struct {
 	SessionFile      string
 	DataDirectories  DataDirectories
 	HTTPPort         int
-	MQTT             *mqtt.Opts
-	RTMP             *RTMPOpts
-	EventPolling     EventPollingOpts
-	History          HistoryOpts
-	WebAuth          WebAuthOpts
+	// WebDir - the built dashboard (index.html and assets/)
+	WebDir       string
+	MQTT         *mqtt.Opts
+	RTMP         *RTMPOpts
+	EventPolling EventPollingOpts
+	History      HistoryOpts
+	WebAuth      WebAuthOpts
 }
 
 // NanitCredentials - user credentials for Nanit account

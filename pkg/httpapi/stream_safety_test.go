@@ -1,4 +1,4 @@
-package app
+package httpapi
 
 import (
 	"net/http"
@@ -15,7 +15,7 @@ import (
 // accepted.
 func TestStreamRequestsNeedAKnownBaby(t *testing.T) {
 	app, mux := newTestServer(t)
-	app.SessionStore.SetBabies([]baby.Baby{{UID: "baby1", Name: "Baby"}})
+	app.Sessions.SetBabies([]baby.Baby{{UID: "baby1", Name: "Baby"}})
 
 	for _, path := range []string{"/api/stream/start/", "/api/stream/stop/"} {
 		for _, uid := range []string{"..", "../history", "unknown"} {
@@ -25,13 +25,14 @@ func TestStreamRequestsNeedAKnownBaby(t *testing.T) {
 			assert.Equal(t, http.StatusNotFound, w.Code, "%s %s", path, uid)
 		}
 	}
-	_, started := app.HLSManager.GetTranscoder("..")
+	_, started := app.HLS.GetTranscoder("..")
 	assert.False(t, started)
 }
 
 // Only the playlist and segments ffmpeg writes are served
 func TestHLSServesOnlyStreamFiles(t *testing.T) {
 	app, mux := newTestServer(t)
+	app.Sessions.SetBabies([]baby.Baby{{UID: "baby1"}})
 	for _, name := range []string{"session.json", "history.db", "playlist.m3u8.bak", "segment_x.ts"} {
 		w := httptest.NewRecorder()
 		mux.ServeHTTP(w, signedIn(t, app, httptest.NewRequest("GET", "/api/stream/hls/baby1/"+name, nil)))
@@ -44,7 +45,7 @@ func TestHLSServesOnlyStreamFiles(t *testing.T) {
 // did /api/babies, until a restart.
 func TestBabiesAreReadPerRequest(t *testing.T) {
 	app, mux := newTestServer(t)
-	app.SessionStore.SetBabies([]baby.Baby{{UID: "baby1", Name: "Baby"}})
+	app.Sessions.SetBabies([]baby.Baby{{UID: "baby1", Name: "Baby"}})
 
 	w := httptest.NewRecorder()
 	mux.ServeHTTP(w, signedIn(t, app, httptest.NewRequest("GET", "/api/babies", nil)))

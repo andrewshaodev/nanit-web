@@ -1,4 +1,4 @@
-package app
+package httpapi
 
 import (
 	"bytes"
@@ -65,25 +65,25 @@ func zeroVarying(v any) any {
 	return v
 }
 
-func goldenState(t *testing.T) (*App, *http.ServeMux) {
-	app, mux := newTestServer(t)
+func goldenState(t *testing.T) (*Server, http.Handler) {
+	app, _ := newTestServer(t)
 	dir := t.TempDir()
 	tracker, err := history.NewTracker(dir, true)
 	require.NoError(t, err)
 	t.Cleanup(func() { tracker.Close() })
-	app.HistoryTracker = tracker
-	app.Opts.RTMP = &RTMPOpts{PublicAddr: "192.0.2.1:1935", AutoStart: true}
-	require.NoError(t, os.WriteFile(app.Opts.SessionFile, []byte("{}"), 0600))
+	app.History = tracker
+	app.Config.RTMPPublicAddr = "192.0.2.1:1935"
+	require.NoError(t, os.WriteFile(app.Config.SessionFile, []byte("{}"), 0600))
 
-	app.SessionStore.SetBabies([]baby.Baby{{UID: "baby1", Name: "Baby", CameraUID: "cam1"}})
-	app.SessionStore.SetRefreshToken("refresh")
+	app.Sessions.SetBabies([]baby.Baby{{UID: "baby1", Name: "Baby", CameraUID: "cam1"}})
+	app.Sessions.SetRefreshToken("refresh")
 	state := baby.NewState().SetTemperatureMilli(23500).SetHumidityMilli(51200).SetIsNight(false).
 		SetNightLight(true).SetStandby(false).SetWebsocketAlive(true).SetStreamState(baby.StreamState_Alive)
-	app.BabyStateManager.Update("baby1", *state)
+	app.State.Update("baby1", *state)
 
 	require.NoError(t, tracker.TrackSensorData("baby1", *state))
 	require.NoError(t, tracker.TrackEvent("baby1", "motion", 1_790_000_000))
-	return app, mux
+	return app, app.Handler()
 }
 
 func TestGoldenResponses(t *testing.T) {
@@ -107,7 +107,7 @@ func TestGoldenResponses(t *testing.T) {
 				return
 			}
 			want, err := os.ReadFile(file)
-			require.NoError(t, err, "run go test ./pkg/app -run Golden -update-golden to create it")
+			require.NoError(t, err, "run go test ./pkg/httpapi -run Golden -update-golden to create it")
 			assert.Equal(t, string(bytes.TrimSpace(want)), string(got))
 		})
 	}
