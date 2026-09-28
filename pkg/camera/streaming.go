@@ -117,17 +117,6 @@ func (c *Camera) runStream(ctx utils.GracefulContext) {
 		backoff    = c.streamRetryMin
 	)
 
-	request := func(why string) {
-		if conn == nil || requesting || publishing {
-			return
-		}
-		requesting = true
-		retry = nil
-		sublog.Info().Str("reason", why).Msg("Asking the camera to stream")
-		go func(conn requester) {
-			c.sendStreamEvent(requestFinished{requestLocalStreaming(uid, c.LocalStreamURL(), client.Streaming_STARTED, conn, c.deps.State)})
-		}(conn)
-	}
 	startTranscoding := func() {
 		if c.deps.HLS == nil || c.deps.HLS.IsTranscoding(uid) {
 			return
@@ -137,6 +126,29 @@ func (c *Camera) runStream(ctx utils.GracefulContext) {
 		} else {
 			sublog.Info().Msg("Started HLS transcoding")
 		}
+	}
+
+	request := func(why string) {
+		if conn == nil || requesting {
+			return
+		}
+		// The state is the authority on publishing. Its changes reach this
+		// loop from the subscription's goroutine, so a connect can arrive
+		// ahead of the stream coming up, and asking a camera that already
+		// publishes makes it open a second stream, cutting off every viewer.
+		if c.State().GetStreamState() == baby.StreamState_Alive {
+			publishing = true
+		}
+		if publishing {
+			startTranscoding()
+			return
+		}
+		requesting = true
+		retry = nil
+		sublog.Info().Str("reason", why).Msg("Asking the camera to stream")
+		go func(conn requester) {
+			c.sendStreamEvent(requestFinished{requestLocalStreaming(uid, c.LocalStreamURL(), client.Streaming_STARTED, conn, c.deps.State)})
+		}(conn)
 	}
 
 	for {
