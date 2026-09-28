@@ -4,6 +4,12 @@ export function cn(...inputs: ClassValue[]) {
   return clsx(inputs)
 }
 
+// Nanit leaves the name empty for a baby that was never named, and its app
+// shows "Baby" for it, so do the same
+export function displayName(baby: { name?: string | null }): string {
+  return baby.name?.trim() || 'Baby'
+}
+
 export function formatRelativeTime(date: Date): string {
   const now = new Date()
   const diffMs = now.getTime() - date.getTime()

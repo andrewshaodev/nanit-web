@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import StreamingLinks from '@/components/baby/StreamingLinks';
 import type { Baby } from '@/types/api';
+import { displayName } from '@/lib/utils';
 
 interface StreamingSettingsProps {
   babies: Baby[];
@@ -44,7 +45,7 @@ export default function StreamingSettings({ babies }: StreamingSettingsProps) {
                     : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
                 }`}
               >
-                {baby.name}
+                {displayName(baby)}
                 {baby.stream_state === 'streaming' && (
                   <span className="ml-2 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
                     Live
@@ -100,7 +101,7 @@ export default function StreamingSettings({ babies }: StreamingSettingsProps) {
               <div key={baby.uid} className="bg-white rounded-lg p-3 border border-gray-200">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="font-medium text-gray-900">{baby.name}</p>
+                    <p className="font-medium text-gray-900">{displayName(baby)}</p>
                     <p className="text-xs text-gray-500">
                       {baby.websocket_alive ? 'Connected' : 'Disconnected'}
                     </p>

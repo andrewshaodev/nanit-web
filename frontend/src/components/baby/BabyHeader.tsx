@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { api } from '@/lib/api'
 import { errorTooltipConfig } from '@/lib/tooltipSetup'
 import type { Baby, StreamStatusResponse, HealthResponse } from '@/types/api'
+import { displayName } from '@/lib/utils'
 
 interface BabyHeaderProps {
   baby: Baby
@@ -107,7 +108,7 @@ export default function BabyHeader({ baby }: BabyHeaderProps) {
   return (
     <div className="bg-gradient-nanit text-white p-6">
       <div className="flex justify-between items-center">
-        <h2 className="text-2xl font-bold">{baby.name}</h2>
+        <h2 className="text-2xl font-bold">{displayName(baby)}</h2>
         
         <div className="flex items-center">
           {/* Single Camera Status */}

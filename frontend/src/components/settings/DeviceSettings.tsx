@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import DeviceInfo from '@/components/baby/DeviceInfo';
 import type { Baby } from '@/types/api';
+import { displayName } from '@/lib/utils';
 
 interface DeviceSettingsProps {
   babies: Baby[];
@@ -33,7 +34,7 @@ export default function DeviceSettings({ babies }: DeviceSettingsProps) {
                     : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
                 }`}
               >
-                {baby.name}
+                {displayName(baby)}
               </button>
             ))}
           </nav>
@@ -64,7 +65,7 @@ export default function DeviceSettings({ babies }: DeviceSettingsProps) {
               <div key={baby.uid} className="bg-white rounded-lg p-3 border border-gray-200">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="font-medium text-gray-900">{baby.name}</p>
+                    <p className="font-medium text-gray-900">{displayName(baby)}</p>
                     <p className="text-xs text-gray-500">{baby.uid}</p>
                   </div>
                   <div className="flex items-center gap-2">
