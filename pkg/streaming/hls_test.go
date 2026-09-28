@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
 	"time"
@@ -116,4 +117,29 @@ func TestStartTranscodingRefusesUnsafeUID(t *testing.T) {
 		assert.Error(t, m.StartTranscoding(uid, "rtmp://127.0.0.1/local/x"), uid)
 	}
 	assert.FileExists(t, keep)
+}
+
+// Each ffmpeg run starts a goroutine that watches for the playlist. It used
+// to wait on a stopped ticker forever when ffmpeg failed before writing one,
+// so every failed attempt leaked a goroutine.
+func TestFailedRunsDontLeakGoroutines(t *testing.T) {
+	bin := filepath.Join(t.TempDir(), "ffmpeg")
+	require.NoError(t, os.WriteFile(bin, []byte("#!/bin/sh\nexit 1\n"), 0o755))
+
+	before := runtime.NumGoroutine()
+	h := NewHLSTranscoder("baby", "rtmp://127.0.0.1/local/baby", t.TempDir())
+	h.ffmpegBin = bin
+	h.retryDelay = 10 * time.Millisecond
+	h.maxRetries = 5
+	require.NoError(t, h.Start())
+	t.Cleanup(h.Stop)
+
+	require.Eventually(t, func() bool { return !h.IsRunning() }, 5*time.Second, 10*time.Millisecond,
+		"the transcoder should give up after its retries")
+	// Polled by hand: assert.Eventually runs its check on a goroutine of its own
+	deadline := time.Now().Add(2 * time.Second)
+	for runtime.NumGoroutine() > before && time.Now().Before(deadline) {
+		time.Sleep(10 * time.Millisecond)
+	}
+	assert.LessOrEqual(t, runtime.NumGoroutine(), before, "goroutines left behind by failed runs")
 }

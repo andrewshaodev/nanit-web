@@ -212,16 +212,24 @@ func (h *HLSTranscoder) monitor(cmd *exec.Cmd, exited chan struct{}) {
 	checkTicker := time.NewTicker(5 * time.Second)
 	defer checkTicker.Stop()
 
-	connected := false
+	// Until then, or until ffmpeg exits or is stopped. Stopping the ticker
+	// doesn't close its channel, so this used to wait on it forever whenever
+	// ffmpeg failed before writing a playlist, leaking a goroutine per try.
 	go func() {
-		for range checkTicker.C {
-			if h.hasHLSFiles() && !connected {
-				h.mutex.Lock()
-				h.status = StatusStreaming
-				connected = true
-				h.mutex.Unlock()
-				log.Info().Str("baby_uid", h.babyUID).Msg("HLS transcoding producing files successfully")
-				break
+		for {
+			select {
+			case <-exited:
+				return
+			case <-h.stopChan:
+				return
+			case <-checkTicker.C:
+				if h.hasHLSFiles() {
+					h.mutex.Lock()
+					h.status = StatusStreaming
+					h.mutex.Unlock()
+					log.Info().Str("baby_uid", h.babyUID).Msg("HLS transcoding producing files successfully")
+					return
+				}
 			}
 		}
 	}()
