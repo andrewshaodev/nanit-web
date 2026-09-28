@@ -34,6 +34,10 @@ const (
 	// connection surfaces as an error instead of blocking the sender forever
 	writeTimeout = 10 * time.Second
 
+	// handshakeTimeout - upper bound on opening the websocket, so a connect
+	// that stalls fails the attempt instead of hanging it
+	handshakeTimeout = 30 * time.Second
+
 	// minConnectionLifetime - floor on how long a connection is kept before it
 	// is retired for token renewal, so an unexpectedly old token cannot turn
 	// the renewal into a reconnect loop

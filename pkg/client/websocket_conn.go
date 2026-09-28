@@ -11,7 +11,6 @@ import (
 	"github.com/indiefan/home_assistant_nanit/pkg/utils"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
-	"github.com/sacOO7/gowebsocket"
 	"google.golang.org/protobuf/proto"
 )
 
@@ -20,7 +19,7 @@ type WebsocketMessageHandler func(*Message, *WebsocketConnection)
 
 // WebsocketConnection - ready websocket connection
 type WebsocketConnection struct {
-	socket *gowebsocket.Socket
+	ws *websocket.Conn
 
 	msgHandlersMu sync.RWMutex
 	msgHandlers   []WebsocketMessageHandler
@@ -40,9 +39,9 @@ type WebsocketConnection struct {
 }
 
 // NewWebsocketConnection - constructor
-func NewWebsocketConnection(socket *gowebsocket.Socket) *WebsocketConnection {
+func NewWebsocketConnection(ws *websocket.Conn) *WebsocketConnection {
 	conn := &WebsocketConnection{
-		socket:        socket,
+		ws:            ws,
 		resHandlers:   make(map[int32]unhandledRequest),
 		lastRequestID: 0,
 	}
@@ -64,45 +63,43 @@ func (conn *WebsocketConnection) LastReceived() time.Time {
 // Close - tears the connection down.
 //
 // Closing the underlying connection makes the read loop fail, which is what
-// reports the disconnect and lets the attempt reconnect. gowebsocket's own
-// Close is bypassed because it writes through a mutex we do not share.
+// reports the disconnect and lets the attempt reconnect.
 func (conn *WebsocketConnection) Close() error {
 	conn.writeMu.Lock()
 	defer conn.writeMu.Unlock()
 
-	if conn.socket == nil || conn.socket.Conn == nil {
+	if conn.ws == nil {
 		return nil
 	}
 
 	// Best effort: tell the server why we are going away, then drop the socket
 	// regardless of whether the courtesy frame made it out.
-	if err := conn.socket.Conn.SetWriteDeadline(time.Now().Add(writeTimeout)); err == nil {
-		if err := conn.socket.Conn.WriteMessage(websocket.CloseMessage, websocket.FormatCloseMessage(websocket.CloseNormalClosure, "")); err != nil {
+	if err := conn.ws.SetWriteDeadline(time.Now().Add(writeTimeout)); err == nil {
+		if err := conn.ws.WriteMessage(websocket.CloseMessage, websocket.FormatCloseMessage(websocket.CloseNormalClosure, "")); err != nil {
 			log.Debug().Err(err).Msg("Unable to send websocket close frame")
 		}
 	}
 
-	return conn.socket.Conn.Close()
+	return conn.ws.Close()
 }
 
 // write - sends a single frame, serialised against other writers.
 //
-// gowebsocket's SendBinary discards the write error into a logger which is off
-// by default, so the gorilla connection is written to directly: a failed write
-// is the earliest evidence that a connection has gone half-open.
+// The write error is returned rather than just logged: a failed write is the
+// earliest evidence that a connection has gone half-open.
 func (conn *WebsocketConnection) write(messageType int, data []byte) error {
 	conn.writeMu.Lock()
 	defer conn.writeMu.Unlock()
 
-	if conn.socket == nil || conn.socket.Conn == nil {
+	if conn.ws == nil {
 		return errors.New("websocket connection is not established")
 	}
 
-	if err := conn.socket.Conn.SetWriteDeadline(time.Now().Add(writeTimeout)); err != nil {
+	if err := conn.ws.SetWriteDeadline(time.Now().Add(writeTimeout)); err != nil {
 		return fmt.Errorf("failed to set write deadline: %w", err)
 	}
 
-	return conn.socket.Conn.WriteMessage(messageType, data)
+	return conn.ws.WriteMessage(messageType, data)
 }
 
 // RegisterMessageHandler - registers handler which will be called whenever new message is received

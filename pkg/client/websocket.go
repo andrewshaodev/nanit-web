@@ -3,11 +3,12 @@ package client
 import (
 	"errors"
 	"fmt"
+	"net/http"
 	sync "sync"
 	"time"
 
+	"github.com/gorilla/websocket"
 	"github.com/rs/zerolog/log"
-	"github.com/sacOO7/gowebsocket"
 	"github.com/indiefan/home_assistant_nanit/pkg/baby"
 	"github.com/indiefan/home_assistant_nanit/pkg/utils"
 	"google.golang.org/protobuf/proto"
@@ -191,8 +192,6 @@ func (manager *WebsocketConnectionManager) run(attempt utils.AttemptContext) {
 
 	// -------
 
-	var once sync.Once // Just because gowebsocket is buggy and can invoke OnDisconnect multiple times :-/
-
 	var connMu sync.Mutex
 	var conn *WebsocketConnection
 
@@ -202,61 +201,20 @@ func (manager *WebsocketConnectionManager) run(attempt utils.AttemptContext) {
 		return conn
 	}
 
-	socket := gowebsocket.New(url)
-	socket.RequestHeader.Set("Authorization", auth)
-
-	// Handle new connection
-	socket.OnConnected = func(socket gowebsocket.Socket) {
-		log.Info().Str("url", url).Msg("Connected to websocket")
-
-		// The connection is published before the read loop starts, so a frame
-		// arriving immediately cannot find a half-built state to dereference.
-		newConn := NewWebsocketConnection(&socket)
-		readyState := readyState{attempt, newConn}
-
-		connMu.Lock()
-		conn = newConn
-		connMu.Unlock()
-
-		manager.mu.Lock()
-		manager.readyState = &readyState
-		subscribedHandlers := make([]WebsocketConnectionHandler, len(manager.readySubscribers))
-		copy(subscribedHandlers, manager.readySubscribers)
-		manager.mu.Unlock()
-
-		go func() {
-			manager.BabyStateManager.Update(manager.BabyUID, *baby.NewState().SetWebsocketAlive(true))
-
-			log.Trace().Int("num_handlers", len(subscribedHandlers)).Msg("Notifying websocket ready handlers")
-
-			for _, handler := range subscribedHandlers {
-				notifyReadyHandler(handler, readyState)
-			}
-		}()
-	}
-
-	// Handle failed attempts for connection
-	socket.OnConnectError = func(err error, socket gowebsocket.Socket) {
-		log.Error().Str("url", url).Err(err).Msg("Unable to establish websocket connection")
-		attempt.Fail(err)
-	}
-
 	// Handle lost connection
-	socket.OnDisconnected = func(err error, socket gowebsocket.Socket) {
-		once.Do(func() {
-			manager.BabyStateManager.Update(manager.BabyUID, *baby.NewState().SetWebsocketAlive(false))
+	onDisconnected := func(err error) {
+		manager.BabyStateManager.Update(manager.BabyUID, *baby.NewState().SetWebsocketAlive(false))
 
-			if err != nil {
-				log.Error().Err(err).Msg("Disconnected from server")
-				attempt.Fail(err)
-			} else {
-				log.Warn().Msg("Disconnected from server")
-				attempt.Fail(errors.New("Server closed the connection"))
-			}
-		})
+		if websocket.IsCloseError(err, websocket.CloseNormalClosure, websocket.CloseGoingAway) {
+			log.Warn().Err(err).Msg("Disconnected from server")
+			attempt.Fail(errors.New("Server closed the connection"))
+		} else {
+			log.Error().Err(err).Msg("Disconnected from server")
+			attempt.Fail(err)
+		}
 	}
 
-	socket.OnBinaryMessage = func(data []byte, _ gowebsocket.Socket) {
+	onBinaryMessage := func(data []byte) {
 		activeConn := currentConnection()
 		if activeConn == nil {
 			log.Warn().Msg("Received a message before the connection was ready, dropping it")
@@ -279,8 +237,69 @@ func (manager *WebsocketConnectionManager) run(attempt utils.AttemptContext) {
 		go activeConn.handleMessage(m)
 	}
 
+	// The default TLS config verifies Nanit's certificate. gowebsocket, used
+	// here before, turned that off, which exposed the bearer token to anyone
+	// able to intercept the connection.
+	dialer := websocket.Dialer{
+		Proxy:            http.ProxyFromEnvironment,
+		HandshakeTimeout: handshakeTimeout,
+	}
+	header := http.Header{}
+	header.Set("Authorization", auth)
+
 	log.Trace().Msg("Connecting to websocket")
-	socket.Connect()
+	ws, resp, err := dialer.Dial(url, header)
+	if err != nil {
+		event := log.Error().Str("url", url).Err(err)
+		if resp != nil {
+			event = event.Int("status_code", resp.StatusCode)
+		}
+		event.Msg("Unable to establish websocket connection")
+		attempt.Fail(err)
+	} else {
+		log.Info().Str("url", url).Msg("Connected to websocket")
+
+		// The connection is published before the read loop starts, so a frame
+		// arriving immediately cannot find a half-built state to dereference.
+		newConn := NewWebsocketConnection(ws)
+		readyState := readyState{attempt, newConn}
+
+		connMu.Lock()
+		conn = newConn
+		connMu.Unlock()
+
+		manager.mu.Lock()
+		manager.readyState = &readyState
+		subscribedHandlers := make([]WebsocketConnectionHandler, len(manager.readySubscribers))
+		copy(subscribedHandlers, manager.readySubscribers)
+		manager.mu.Unlock()
+
+		go func() {
+			manager.BabyStateManager.Update(manager.BabyUID, *baby.NewState().SetWebsocketAlive(true))
+
+			log.Trace().Int("num_handlers", len(subscribedHandlers)).Msg("Notifying websocket ready handlers")
+
+			for _, handler := range subscribedHandlers {
+				notifyReadyHandler(handler, readyState)
+			}
+		}()
+
+		// Read loop. It is the only reader, and the only place a disconnect is
+		// reported: closing the connection, from either end, ends it with an
+		// error. Pings are answered by gorilla's default handler.
+		go func() {
+			for {
+				messageType, data, err := ws.ReadMessage()
+				if err != nil {
+					onDisconnected(err)
+					return
+				}
+				if messageType == websocket.BinaryMessage {
+					onBinaryMessage(data)
+				}
+			}
+		}()
+	}
 
 	// The Authorization header is fixed for the life of the connection and the
 	// camera stops answering once the token behind it expires, without ever

@@ -9,7 +9,6 @@ import (
 
 	"github.com/gorilla/websocket"
 	"github.com/indiefan/home_assistant_nanit/pkg/utils"
-	"github.com/sacOO7/gowebsocket"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -36,8 +35,7 @@ func newTestConnection(t *testing.T) (*WebsocketConnection, *httptest.Server) {
 	clientConn, _, err := websocket.DefaultDialer.Dial(strings.Replace(server.URL, "http://", "ws://", 1), nil)
 	require.NoError(t, err)
 
-	socket := gowebsocket.Socket{Conn: clientConn}
-	conn := NewWebsocketConnection(&socket)
+	conn := NewWebsocketConnection(clientConn)
 
 	t.Cleanup(func() {
 		clientConn.Close()
