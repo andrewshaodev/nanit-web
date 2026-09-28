@@ -23,7 +23,7 @@ func TestRoutesRequireAuthWhenPasswordSet(t *testing.T) {
 
 	app := &App{WebAuth: wa}
 	mux := http.NewServeMux()
-	setupAPIRoutes(mux, nil, baby.NewStateManager(), app)
+	setupAPIRoutes(mux, baby.NewStateManager(), app)
 
 	protected := []string{
 		"/api/status", "/api/babies", "/api/streaming/info",

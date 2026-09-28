@@ -13,11 +13,10 @@ import (
 )
 
 // ServeReact serves the React frontend instead of Go templates
-func ServeReact(babies []baby.Baby, stateManager *baby.StateManager, app *App) {
+func ServeReact(stateManager *baby.StateManager, app *App) {
 	port := app.Opts.HTTPPort
 
 	log.Info().Msg("=== Setting up HTTP server routes for React frontend ===")
-	log.Info().Int("babies_count", len(babies)).Msg("Number of babies available")
 
 	// Vite's build output. The file names under assets/ carry a content hash,
 	// so a changed file gets a new URL and each one can be cached for good
@@ -46,7 +45,7 @@ func ServeReact(babies []baby.Baby, stateManager *baby.StateManager, app *App) {
 	})
 
 	// API endpoints - keep existing API structure
-	setupAPIRoutes(mux, babies, stateManager, app)
+	setupAPIRoutes(mux, stateManager, app)
 
 	log.Info().Int("port", port).Msg("Starting HTTP server with React frontend")
 	http.ListenAndServe(fmt.Sprintf(":%v", port), mux)
@@ -85,14 +84,14 @@ func requireAuth(app *App, handler http.HandlerFunc) http.HandlerFunc {
 	}
 }
 
-func setupAPIRoutes(mux *http.ServeMux, babies []baby.Baby, stateManager *baby.StateManager, app *App) {
+func setupAPIRoutes(mux *http.ServeMux, stateManager *baby.StateManager, app *App) {
 	// Status and baby data - protected by auth if enabled
 	mux.HandleFunc("/api/status", requireAuth(app, func(w http.ResponseWriter, r *http.Request) {
-		handleStatusAPI(w, r, babies, stateManager)
+		handleStatusAPI(w, r, app.babies(), stateManager)
 	}))
 
 	mux.HandleFunc("/api/babies", requireAuth(app, func(w http.ResponseWriter, r *http.Request) {
-		handleBabiesAPI(w, r, babies, stateManager)
+		handleBabiesAPI(w, r, app.babies(), stateManager)
 	}))
 
 	// Streaming endpoint information (RTMP/HLS addresses)
@@ -102,11 +101,11 @@ func setupAPIRoutes(mux *http.ServeMux, babies []baby.Baby, stateManager *baby.S
 
 	// Control endpoints
 	mux.HandleFunc("/api/control/night-light", requireAuth(app, func(w http.ResponseWriter, r *http.Request) {
-		handleControlAPI(w, r, "night-light", babies, stateManager, app)
+		handleControlAPI(w, r, "night-light", app.babies(), stateManager, app)
 	}))
 
 	mux.HandleFunc("/api/control/standby", requireAuth(app, func(w http.ResponseWriter, r *http.Request) {
-		handleControlAPI(w, r, "standby", babies, stateManager, app)
+		handleControlAPI(w, r, "standby", app.babies(), stateManager, app)
 	}))
 
 	// The camera's built-in sounds and speaker volume
@@ -116,7 +115,7 @@ func setupAPIRoutes(mux *http.ServeMux, babies []baby.Baby, stateManager *baby.S
 
 	// Device info endpoint
 	mux.HandleFunc("/api/device-info/", requireAuth(app, func(w http.ResponseWriter, r *http.Request) {
-		handleDeviceInfoAPI(w, r, babies, stateManager)
+		handleDeviceInfoAPI(w, r, app.babies(), stateManager)
 	}))
 
 	// Authentication endpoints (Nanit API)

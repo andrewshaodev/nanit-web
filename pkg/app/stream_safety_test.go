@@ -38,3 +38,16 @@ func TestHLSServesOnlyStreamFiles(t *testing.T) {
 		assert.Equal(t, http.StatusBadRequest, w.Code, name)
 	}
 }
+
+// The routes used to be given the camera list once, at startup. When the
+// bridge started before signing in to Nanit, that list stayed empty, and so
+// did /api/babies, until a restart.
+func TestBabiesAreReadPerRequest(t *testing.T) {
+	app, mux := newTestServer(t)
+	app.SessionStore.SetBabies([]baby.Baby{{UID: "baby1", Name: "Baby"}})
+
+	w := httptest.NewRecorder()
+	mux.ServeHTTP(w, signedIn(t, app, httptest.NewRequest("GET", "/api/babies", nil)))
+	assert.Equal(t, http.StatusOK, w.Code)
+	assert.Contains(t, w.Body.String(), `"uid":"baby1"`)
+}

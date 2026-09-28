@@ -75,7 +75,7 @@ func newTestServer(t *testing.T) (*App, *http.ServeMux) {
 		WebAuth:          wa,
 	}
 	mux := http.NewServeMux()
-	setupAPIRoutes(mux, nil, app.BabyStateManager, app)
+	setupAPIRoutes(mux, app.BabyStateManager, app)
 	return app, mux
 }
 

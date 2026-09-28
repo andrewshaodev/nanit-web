@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/andrewshaodev/nanit-web/pkg/baby"
@@ -32,6 +33,10 @@ type App struct {
 	connections      map[string]*client.WebsocketConnection
 	connectionsMutex sync.RWMutex
 	mainContext      utils.GracefulContext // Store main application context
+
+	// Set once RTMP, MQTT and the cameras have been started. Signing in
+	// again used to start them all a second time.
+	servicesStarted atomic.Bool
 }
 
 // NewApp - constructor
@@ -79,6 +84,23 @@ func (app *App) Run(ctx utils.GracefulContext) {
 
 	// Set up historical data tracking callback
 	app.setupHistoryTracking()
+
+	// Close the history database and stop ffmpeg on shutdown, however the
+	// app started. This used to be set up only after a dashboard sign-in,
+	// so a normal boot never cleaned up.
+	ctx.RunAsChild(func(childCtx utils.GracefulContext) {
+		<-childCtx.Done()
+		log.Info().Msg("Shutting down application...")
+		if app.HLSManager != nil {
+			app.HLSManager.StopAll()
+		}
+		if app.HistoryTracker != nil {
+			if err := app.HistoryTracker.Close(); err != nil {
+				log.Error().Err(err).Msg("Failed to close history tracker")
+			}
+		}
+		log.Info().Msg("Application cleanup completed")
+	})
 	// Check if we have valid authentication
 	hasValidAuth := false
 	if app.SessionStore != nil && app.SessionStore.RefreshToken() != "" {
@@ -106,39 +128,11 @@ func (app *App) Run(ctx utils.GracefulContext) {
 	}
 
 	// Always start HTTP server for web UI (including setup)
-	var babies []baby.Baby
-	if hasValidAuth {
-		babies = app.SessionStore.Babies()
-	}
-
-	go ServeReact(babies, app.BabyStateManager, app)
+	go ServeReact(app.BabyStateManager, app)
 
 	// Only start RTMP/MQTT/WebSocket if we have valid auth
 	if hasValidAuth {
-		// RTMP
-		if app.Opts.RTMP != nil {
-			go func() {
-				if err := rtmpserver.StartRTMPServer(app.Opts.RTMP.ListenAddr, app.BabyStateManager); err != nil {
-					log.Error().Err(err).Msg("RTMP server failed to start or crashed")
-				}
-			}()
-		}
-
-		// MQTT
-		if app.MQTTConnection != nil {
-			ctx.RunAsChild(func(childCtx utils.GracefulContext) {
-				app.MQTTConnection.Run(app.BabyStateManager, childCtx)
-			})
-		}
-
-		// Start reading the data from the stream
-		for _, babyInfo := range app.SessionStore.Babies() {
-			_babyInfo := babyInfo
-			ctx.RunAsChild(func(childCtx utils.GracefulContext) {
-				app.handleBaby(_babyInfo, childCtx)
-			})
-		}
-
+		app.startServices(ctx, app.SessionStore.Babies())
 		log.Info().Msg("All services started with authentication")
 	} else {
 		log.Info().Msg("Web server started - visit http://localhost:8080/setup to configure authentication")
@@ -404,6 +398,10 @@ func (app *App) StartMonitoringServices() {
 		log.Error().Msg("Cannot start monitoring services: main context not available")
 		return
 	}
+	if app.servicesStarted.Load() {
+		log.Info().Msg("Signed in again; services are already running")
+		return
+	}
 	log.Info().Msg("Starting monitoring services after authentication...")
 
 	// Force refresh authorization and fetch babies (token may have expired since web auth)
@@ -423,52 +421,47 @@ func (app *App) StartMonitoringServices() {
 	}
 
 	log.Info().Int("babies_count", len(babies)).Msg("Found babies, starting services")
+	app.startServices(ctx, babies)
+	log.Info().Msg("All monitoring services started successfully")
+}
 
-	// Start RTMP server if configured
+// startServices starts the RTMP server, MQTT and a connection per camera,
+// at most once
+func (app *App) startServices(ctx utils.GracefulContext, babies []baby.Baby) {
+	if !app.servicesStarted.CompareAndSwap(false, true) {
+		return
+	}
+
 	if app.Opts.RTMP != nil {
 		go func() {
 			if err := rtmpserver.StartRTMPServer(app.Opts.RTMP.ListenAddr, app.BabyStateManager); err != nil {
 				log.Error().Err(err).Msg("RTMP server failed to start or crashed")
 			}
 		}()
-		log.Info().Msg("RTMP server startup initiated")
 	}
 
-	// Start MQTT if configured
 	if app.MQTTConnection != nil {
 		ctx.RunAsChild(func(childCtx utils.GracefulContext) {
 			app.MQTTConnection.Run(app.BabyStateManager, childCtx)
 		})
-		log.Info().Msg("MQTT connection started")
 	}
 
-	// Start baby monitoring for each baby (use same pattern as original Run method)
 	for _, babyInfo := range babies {
-		_babyInfo := babyInfo
 		ctx.RunAsChild(func(childCtx utils.GracefulContext) {
-			app.handleBaby(_babyInfo, childCtx)
+			app.handleBaby(babyInfo, childCtx)
 		})
-		log.Info().Str("baby_uid", _babyInfo.UID).Str("name", _babyInfo.Name).Msg("Started monitoring baby")
+		log.Info().Str("baby_uid", babyInfo.UID).Str("name", babyInfo.Name).Msg("Started monitoring baby")
 	}
+}
 
-	log.Info().Msg("All monitoring services started successfully")
-
-	// Set up cleanup handler for graceful shutdown
-	ctx.RunAsChild(func(childCtx utils.GracefulContext) {
-		<-childCtx.Done()
-
-		log.Info().Msg("Shutting down application...")
-
-		if app.HistoryTracker != nil {
-			if err := app.HistoryTracker.Close(); err != nil {
-				log.Error().Err(err).Msg("Failed to close history tracker")
-			}
-		}
-		if app.HLSManager != nil {
-			app.HLSManager.StopAll()
-		}
-		log.Info().Msg("Application cleanup completed")
-	})
+// babies is the account's cameras, as last fetched from Nanit. Handlers
+// read it per request: a list captured at startup stayed empty until a
+// restart when the bridge started before sign-in.
+func (app *App) babies() []baby.Baby {
+	if app.SessionStore == nil {
+		return nil
+	}
+	return app.SessionStore.Babies()
 }
 
 // shouldRequestStream - whether the cam still needs to be asked to publish.
