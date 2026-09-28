@@ -1,12 +1,10 @@
-'use client'
-
 import { useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useNavigate } from 'react-router'
 import { api } from '@/lib/api'
 import LoadingSpinner from '@/components/ui/LoadingSpinner'
 
 export default function SetupPage() {
-  const router = useRouter()
+  const navigate = useNavigate()
   const [step, setStep] = useState<'login' | '2fa'>('login')
   const [formData, setFormData] = useState({
     email: '',
@@ -53,7 +51,7 @@ export default function SetupPage() {
       
       if (response.success) {
         // Redirect to dashboard
-        router.push('/')
+        navigate('/')
       } else {
         setError(response.error || 'Verification failed')
       }

@@ -1,8 +1,5 @@
-'use client'
-
 import { useState, useEffect } from 'react'
-import Link from 'next/link'
-import { usePathname } from 'next/navigation'
+import { Link, useLocation } from 'react-router'
 import useSWR from 'swr'
 import { api } from '@/lib/api'
 import { errorTooltipConfig } from '@/lib/tooltipSetup'
@@ -41,7 +38,8 @@ function ConnectionStatus({ isConnected, lastUpdate }: ConnectionStatusProps) {
 
 export default function Header() {
   const [lastUpdate, setLastUpdate] = useState<Date>()
-  const pathname = usePathname()
+  // Links may arrive as /settings/ (Next's old trailing-slash URLs)
+  const pathname = useLocation().pathname.replace(/\/+$/, '') || '/'
   
   const { data, error, isLoading } = useSWR<StatusResponse>(
     '/status',
@@ -59,7 +57,7 @@ export default function Header() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center py-5">
           <div className="flex items-center gap-8">
-            <Link href="/">
+            <Link to="/">
               <h1 className="text-3xl font-bold text-white hover:text-white/90 transition-colors">
                 Nanit Dashboard
               </h1>
@@ -67,7 +65,7 @@ export default function Header() {
             
             <nav className="flex gap-6">
               <Link 
-                href="/"
+                to="/"
                 className={`text-white/90 hover:text-white transition-colors ${
                   pathname === '/' ? 'font-semibold text-white' : ''
                 }`}
@@ -75,7 +73,7 @@ export default function Header() {
                 Dashboard
               </Link>
               <Link 
-                href="/settings"
+                to="/settings"
                 className={`text-white/90 hover:text-white transition-colors ${
                   pathname === '/settings' ? 'font-semibold text-white' : ''
                 }`}

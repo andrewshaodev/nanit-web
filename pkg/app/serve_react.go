@@ -21,62 +21,27 @@ func ServeReact(babies []baby.Baby, dataDir DataDirectories, stateManager *baby.
 	log.Info().Msg("=== Setting up HTTP server routes for React frontend ===")
 	log.Info().Int("babies_count", len(babies)).Msg("Number of babies available")
 
-	// Serve React static files
-	fs := http.FileServer(http.Dir("web"))
-	
-	// Handle Next.js static assets (_next/static/*)
-	// Their file names carry a content hash, so a changed file gets a new URL
-	// and each one can be cached for good
-	http.Handle("/_next/static/", immutable(http.StripPrefix("/_next/static/", http.FileServer(http.Dir("web/_next/static")))))
-	
-	// Handle other static files (favicon, etc.)
-	http.Handle("/static/", http.StripPrefix("/static/", fs))
-	
-	// Handle Next.js app routes - serve appropriate HTML files
+	// Vite's build output. The file names under assets/ carry a content hash,
+	// so a changed file gets a new URL and each one can be cached for good
+	http.Handle("/assets/", immutable(http.StripPrefix("/assets/", http.FileServer(http.Dir("web/assets")))))
+
+	// Everything else is a client-side route: serve the app's single page
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		// API routes should not serve the React app
 		if strings.HasPrefix(r.URL.Path, "/api/") {
 			http.NotFound(w, r)
 			return
 		}
-		
-		// Handle Next.js static files directly
-		if strings.HasPrefix(r.URL.Path, "/_next/") {
-			// Try to serve the file directly
-			filePath := filepath.Join("web", r.URL.Path)
-			if _, err := os.Stat(filePath); err == nil {
-				http.ServeFile(w, r, filePath)
-				return
-			}
-		}
-		
-		// Try to serve Next.js route-specific HTML files first
-		var routePath string
-		if r.URL.Path == "/" {
-			routePath = "web/index.html"
-		} else {
-			// For other routes like /settings, look for /settings/index.html
-			routePath = filepath.Join("web", strings.TrimPrefix(r.URL.Path, "/"), "index.html")
-		}
-		
-		// Check if route-specific HTML exists
-		if _, err := os.Stat(routePath); err == nil {
-			w.Header().Set("Content-Type", "text/html")
-			// Revalidate every load so a new build's asset URLs are picked up
-			w.Header().Set("Cache-Control", "no-cache")
-			http.ServeFile(w, r, routePath)
-			return
-		}
-		
-		// Fallback to main index.html for client-side routing
+
 		indexPath := filepath.Join("web", "index.html")
 		if _, err := os.Stat(indexPath); err != nil {
-			log.Error().Err(err).Str("path", indexPath).Msg("Next.js index.html not found")
-			http.Error(w, "Frontend not built. Run 'npm run build' in frontend directory.", http.StatusNotFound)
+			log.Error().Err(err).Str("path", indexPath).Msg("Frontend index.html not found")
+			http.Error(w, "Frontend not built. Run 'bun run build' in the frontend directory.", http.StatusNotFound)
 			return
 		}
-		
+
 		w.Header().Set("Content-Type", "text/html")
+		// Revalidate every load so a new build's asset URLs are picked up
 		w.Header().Set("Cache-Control", "no-cache")
 		http.ServeFile(w, r, indexPath)
 	})

@@ -1,5 +1,3 @@
-'use client'
-
 import { Tooltip } from 'react-tooltip'
 import { tooltipConfig } from '@/lib/tooltipSetup'
 

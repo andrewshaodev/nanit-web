@@ -1,5 +1,3 @@
-'use client'
-
 import type { StreamError } from '@/types/api'
 
 interface StreamErrorAlertProps {

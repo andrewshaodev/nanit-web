@@ -1,5 +1,3 @@
-'use client';
-
 import { useState } from 'react';
 import StreamingLinks from '@/components/baby/StreamingLinks';
 import type { Baby } from '@/types/api';

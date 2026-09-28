@@ -1,5 +1,3 @@
-'use client';
-
 import { useState } from 'react';
 import DeviceInfo from '@/components/baby/DeviceInfo';
 import type { Baby } from '@/types/api';

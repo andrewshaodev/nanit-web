@@ -1,7 +1,5 @@
-'use client';
-
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useNavigate } from 'react-router';
 import type { AuthStatusResponse } from '@/types/api';
 import { api } from '@/lib/api';
 
@@ -26,7 +24,7 @@ export default function AuthenticationSettings({
   onWebAuthStatusUpdate,
   onMessage 
 }: AuthenticationSettingsProps) {
-  const router = useRouter();
+  const navigate = useNavigate();
   const [showResetConfirmation, setShowResetConfirmation] = useState(false);
   const [resetLoading, setResetLoading] = useState(false);
   
@@ -62,7 +60,7 @@ export default function AuthenticationSettings({
   };
 
   const handleReAuthenticate = () => {
-    router.push('/setup');
+    navigate('/setup');
   };
 
   const handlePasswordSubmit = async (e: React.FormEvent) => {

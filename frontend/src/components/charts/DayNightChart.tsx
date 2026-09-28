@@ -1,5 +1,3 @@
-'use client'
-
 import { timelineTooltipConfig } from '@/lib/tooltipSetup'
 import type { DayNightAnalytics } from '@/types/api'
 

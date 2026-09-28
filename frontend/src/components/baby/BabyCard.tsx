@@ -1,5 +1,3 @@
-'use client'
-
 import { useState } from 'react'
 import type { Baby } from '@/types/api'
 import BabyHeader from './BabyHeader'

@@ -1,12 +1,12 @@
 # Nanit Dashboard Frontend
 
-Modern React + Next.js frontend for the Nanit Home Assistant Bridge.
+React single-page app for the Nanit Home Assistant Bridge, built with Vite and served by the Go backend.
 
 ## Features
 
 - 🎯 **Real-time Dashboard** - Live sensor data with 5-second updates
 - 📹 **Video Streaming** - HLS video player with live controls
-- 📊 **Historical Data** - Charts and analytics (Chart.js integration ready)
+- 📊 **Historical Data** - Temperature, humidity and day/night charts (Chart.js)
 - 🎛️ **Device Controls** - Night light, standby mode controls
 - 🔧 **Device Information** - Detailed device status and diagnostics
 - 🔗 **Streaming Links** - RTMP and HLS URLs for external use
@@ -15,80 +15,66 @@ Modern React + Next.js frontend for the Nanit Home Assistant Bridge.
 
 ## Technology Stack
 
-- **Framework**: Next.js 14 with App Router
-- **Language**: TypeScript
-- **Styling**: Tailwind CSS
+- **Build**: Vite, run with Bun
+- **UI**: React 19 with React Router
+- **Language**: TypeScript 7
+- **Styling**: Tailwind CSS 4
 - **Data Fetching**: SWR for real-time updates
-- **Video**: HLS.js for browser video streaming
-- **Charts**: Ready for Chart.js integration
-- **Build**: Static export for Go server integration
+- **Video**: video.js and HLS.js
+- **Charts**: Chart.js
+- **Linting**: oxlint
 
 ## Development Setup
 
 ### Prerequisites
 
-- Node.js 18+
-- npm or yarn
+- [Bun](https://bun.sh) 1.3+
 
 ### Local Development
 
 ```bash
-# Install dependencies
-npm install
-
-# Start development server
-npm run dev
-
-# Build for production
-npm run build
-
-# Export static files
-npm run export
+bun install        # Install dependencies
+bun run dev        # Dev server with hot reload
+bun run build      # Production build into dist/
+bun run typecheck  # tsc --noEmit
+bun run lint       # oxlint
 ```
 
-The development server will start on http://localhost:3000 and proxy API requests to the Go backend on port 8080.
-
-## Docker Setup
-
-### Build Frontend Container
+The dev server proxies `/api` to a running Go backend at `http://localhost:8080`
+(the backend's default `NANIT_HTTP_PORT`). Set `NANIT_API_URL` to point it elsewhere:
 
 ```bash
-# Build the frontend container
-docker build -t nanit-frontend ./frontend
-
-# Or use docker-compose (recommended)
-docker-compose up --build frontend
+NANIT_API_URL=http://n100:8080 bun run dev
 ```
 
-### Integration with Go Backend
+## Integration with Go Backend
 
-The frontend builds to static files that can be served by the Go backend:
-
-1. **Development**: Next.js dev server proxies API calls to Go backend
-2. **Production**: Static files are served by Go server from `frontend/dist`
-
-### Environment Variables
-
-- `NODE_ENV` - Set to 'production' for production builds
-- API calls are proxied to the Go backend automatically
+The root `Dockerfile` builds this app with Bun and copies `dist/` into the Go
+image as `/app/web`. The Go server (`pkg/app/serve_react.go`) serves the
+content-hashed files under `/assets/` with immutable caching, and answers every
+other non-API path with `index.html` (revalidated on each load) so React Router
+can handle it.
 
 ## Project Structure
 
 ```
 frontend/
-├── src/
-│   ├── app/                 # Next.js App Router pages
-│   ├── components/          # React components
-│   │   ├── layout/         # Layout components
-│   │   ├── baby/           # Baby-specific components
-│   │   └── ui/             # Reusable UI components
-│   ├── hooks/              # Custom React hooks
-│   ├── lib/                # Utilities and API client
-│   └── types/              # TypeScript type definitions
-├── public/                 # Static assets
-├── Dockerfile             # Frontend container config
-├── nginx.conf             # Nginx config for production
-└── package.json           # Dependencies and scripts
+├── index.html              # Page shell; Vite injects the bundle
+├── vite.config.ts          # Build config and dev API proxy
+├── .oxlintrc.json          # Lint config
+└── src/
+    ├── main.tsx            # Entry point and routes
+    ├── index.css           # Tailwind theme and shared styles
+    ├── pages/              # Dashboard, Settings, Setup
+    ├── components/         # React components
+    │   ├── layout/         # Layout components
+    │   ├── baby/           # Baby-specific components
+    │   ├── charts/         # Chart.js charts
+    │   ├── settings/       # Settings tabs
+    │   └── ui/             # Reusable UI components
+    ├── hooks/              # Custom React hooks
+    ├── lib/                # Utilities and API client
+    └── types/              # TypeScript type definitions
 ```
 
 ## Key Components
@@ -107,6 +93,8 @@ TypeScript client for all backend API calls with proper error handling and type 
 ### Hooks (`hooks/`)
 - `useStatus.ts` - Real-time status updates with SWR
 - `useTemperatureUnit.ts` - Temperature unit conversion
+- `useHistoricalData.ts` - Historical sensor data and analytics
+- `useVideoPlayer.ts` - video.js player lifecycle
 
 ### Real-time Updates
 Uses SWR with 5-second polling for live data updates. Automatically handles connection states and error recovery.
@@ -120,38 +108,6 @@ The frontend communicates with the Go backend through REST APIs:
 - **History**: `/api/history/*` - Historical data
 - **Streaming**: `/api/stream/*` - Video streaming
 - **Auth**: `/api/auth/*` - Authentication
-
-## Deployment
-
-### Production Build
-
-```bash
-# Build and export static files
-npm run build
-npm run export
-```
-
-Static files are generated in `dist/` directory.
-
-### Go Server Integration
-
-Update your Go server to serve the frontend:
-
-```go
-// Serve frontend static files
-http.Handle("/", http.FileServer(http.Dir("frontend/dist")))
-```
-
-### Docker Production
-
-The included Dockerfile builds a production container with Nginx serving the static files.
-
-## Next Steps
-
-1. **Chart Integration** - Implement Chart.js for historical data visualization
-2. **Real-time WebSocket** - Add WebSocket for instant updates
-3. **PWA Support** - Add service worker for offline functionality
-4. **Mobile App** - Consider React Native for native mobile app
 
 ## Contributing
 

@@ -1,5 +1,3 @@
-'use client'
-
 import { Line } from 'react-chartjs-2'
 import { temperatureHumidityOptions } from '@/lib/chartSetup'
 import { useTemperatureUnit } from '@/hooks/useTemperatureUnit'

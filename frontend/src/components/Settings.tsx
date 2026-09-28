@@ -1,7 +1,5 @@
-'use client';
-
 import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useNavigate } from 'react-router';
 import { api } from '@/lib/api';
 import { useStatus } from '@/hooks/useStatus';
 import SettingsTabs, { SettingsTab } from '@/components/settings/SettingsTabs';
@@ -20,7 +18,7 @@ export default function Settings() {
   // Debug: Add console log to verify component is loading
   console.log('Settings component rendering');
   
-  const router = useRouter();
+  const navigate = useNavigate();
   const { babies, isLoading: statusLoading, isError: statusError } = useStatus();
   const [authStatus, setAuthStatus] = useState<WebAuthStatus | null>(null);
   const [nanitAuthStatus, setNanitAuthStatus] = useState<AuthStatusResponse | null>(null);

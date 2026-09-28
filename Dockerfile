@@ -1,19 +1,19 @@
 # Frontend build stage
-FROM --platform=$BUILDPLATFORM node:24-alpine AS frontend-build
+FROM --platform=$BUILDPLATFORM oven/bun:1.3-alpine AS frontend-build
 
 WORKDIR /app/frontend
 
 # Copy frontend package files
-COPY frontend/package.json frontend/package-lock.json* ./
+COPY frontend/package.json frontend/bun.lock ./
 
 # Install dependencies (including dev dependencies for build)
-RUN if [ -f package-lock.json ]; then npm ci; else npm install; fi
+RUN bun install --frozen-lockfile
 
 # Copy frontend source
 COPY frontend/ ./
 
 # Build the frontend
-RUN npm run build
+RUN bun run build
 
 # Backend build stage
 FROM --platform=$BUILDPLATFORM golang:1.27-trixie AS backend-build

@@ -6,3 +6,5 @@
 !./frontend
 !./go.mod
 !./go.sum
+frontend/node_modules
+frontend/dist

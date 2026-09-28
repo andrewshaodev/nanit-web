@@ -1,27 +1,14 @@
-'use client'
-
 import { useState } from 'react'
-import dynamic from 'next/dynamic'
 import { api } from '@/lib/api'
 import { useHistoricalData } from '@/hooks/useHistoricalData'
 import { useTemperatureUnit } from '@/hooks/useTemperatureUnit'
 import type { Baby } from '@/types/api'
 import LoadingSpinner from '@/components/ui/LoadingSpinner'
+import TemperatureHumidityChart from '@/components/charts/TemperatureHumidityChart'
+import DayNightChart from '@/components/charts/DayNightChart'
 
 // Import Chart.js setup
 import '@/lib/chartSetup'
-
-// Dynamically import chart components to avoid SSR issues
-const TemperatureHumidityChart = dynamic(
-  () => import('@/components/charts/TemperatureHumidityChart'),
-  { ssr: false }
-)
-
-
-const DayNightChart = dynamic(
-  () => import('@/components/charts/DayNightChart'),
-  { ssr: false }
-)
 
 interface HistoricalDataProps {
   baby: Baby

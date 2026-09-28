@@ -1,7 +1,5 @@
-'use client'
-
 import { useEffect, useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useNavigate } from 'react-router'
 import useSWR from 'swr'
 import MainLayout from '@/components/layout/MainLayout'
 import BabyCard from '@/components/baby/BabyCard'
@@ -12,7 +10,7 @@ import { useStatus } from '@/hooks/useStatus'
 import type { AuthStatusResponse, WebAuthStatusResponse } from '@/types/api'
 
 export default function Dashboard() {
-  const router = useRouter()
+  const navigate = useNavigate()
   const [showPasswordLogin, setShowPasswordLogin] = useState(false)
   const [password, setPassword] = useState('')
   const [loginError, setLoginError] = useState('')
@@ -53,10 +51,10 @@ export default function Dashboard() {
       
       // If web auth passes but Nanit auth fails, redirect to setup
       if (webAuthStatus.authenticated && authStatus && !authStatus.authenticated) {
-        router.push('/setup')
+        navigate('/setup')
       }
     }
-  }, [webAuthStatus, authStatus, router])
+  }, [webAuthStatus, authStatus, navigate])
 
   const handlePasswordLogin = async (e: React.FormEvent) => {
     e.preventDefault()

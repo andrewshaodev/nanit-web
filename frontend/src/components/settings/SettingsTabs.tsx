@@ -1,5 +1,3 @@
-'use client';
-
 import { useState, ReactNode } from 'react';
 
 export interface SettingsTab {

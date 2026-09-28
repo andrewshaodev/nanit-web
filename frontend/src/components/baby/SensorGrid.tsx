@@ -1,5 +1,3 @@
-'use client'
-
 import { useTemperatureUnit } from '@/hooks/useTemperatureUnit'
 import { formatRelativeTime } from '@/lib/utils'
 import { sensorTooltipConfig } from '@/lib/tooltipSetup'
