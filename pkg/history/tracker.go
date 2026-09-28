@@ -88,6 +88,8 @@ type DayNightAnalytics struct {
 	UnknownModePercentage float64                  `json:"unknown_mode_percentage"`
 	ModeTransitions      int64                     `json:"mode_transitions"`
 	DayNightChanges      []DayNightChange          `json:"day_night_changes"`
+	// Periods - the window as consecutive day, night and unknown stretches
+	Periods []DayNightPeriod `json:"periods"`
 }
 
 // DayNightChange represents a transition between day and night mode
@@ -544,149 +546,67 @@ func (t *Tracker) GetDayNightAnalytics(babyUID string, startTime, endTime int64)
 	}
 
 	analytics := &DayNightAnalytics{
-		BabyUID:   babyUID,
-		StartTime: startTime,
-		EndTime:   endTime,
+		BabyUID:      babyUID,
+		StartTime:    startTime,
+		EndTime:      endTime,
 		TotalMinutes: (endTime - startTime) / 60,
 	}
 
-	// Get all sensor readings with is_night data ordered by timestamp
-	query := `
+	// Every reading, not only those reporting a mode: the others show when
+	// the bridge was recording, which is what lets a mode carry forward
+	rows, err := t.db.Query(`
 		SELECT timestamp, is_night
 		FROM sensor_readings
-		WHERE baby_uid = ? AND timestamp BETWEEN ? AND ? AND is_night IS NOT NULL
+		WHERE baby_uid = ? AND timestamp BETWEEN ? AND ?
 		ORDER BY timestamp ASC
-	`
-
-	rows, err := t.db.Query(query, babyUID, startTime, endTime)
+	`, babyUID, startTime, endTime)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
 
-	var readings []struct {
-		timestamp int64
-		isNight   bool
-	}
-
+	var readings []modeReading
 	for rows.Next() {
-		var reading struct {
-			timestamp int64
-			isNight   bool
-		}
-		err := rows.Scan(&reading.timestamp, &reading.isNight)
-		if err != nil {
+		var r modeReading
+		if err := rows.Scan(&r.timestamp, &r.isNight); err != nil {
 			return nil, err
 		}
-		readings = append(readings, reading)
+		readings = append(readings, r)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
 	}
 
-	if len(readings) == 0 {
-		// No readings in this time period, check for last known state before this period
-		lastKnownQuery := `
-			SELECT is_night
-			FROM sensor_readings
-			WHERE baby_uid = ? AND timestamp < ? AND is_night IS NOT NULL
-			ORDER BY timestamp DESC
-			LIMIT 1
-		`
-		
-		var lastKnownState bool
-		err := t.db.QueryRow(lastKnownQuery, babyUID, startTime).Scan(&lastKnownState)
-		if err != nil {
-			// No previous state found, mark as unknown
-			analytics.UnknownModeMinutes = analytics.TotalMinutes
-			analytics.UnknownModePercentage = 100.0
-			return analytics, nil
-		}
-		
-		// Carry forward the last known state for the entire period
-		if lastKnownState {
-			analytics.NightModeMinutes = analytics.TotalMinutes
-			analytics.NightModePercentage = 100.0
-		} else {
-			analytics.DayModeMinutes = analytics.TotalMinutes
-			analytics.DayModePercentage = 100.0
-		}
-		
-		return analytics, nil
-	}
-
-	// Calculate time spent in each mode and transitions
-	var dayModeSeconds int64
-	var nightModeSeconds int64
-	var transitions int64
-	var changes []DayNightChange
-
-	// Determine initial mode - check for last known state before this period
-	var currentMode bool
-	
-	lastKnownQuery := `
+	// The mode the window opens in, if one was reported before it
+	var initial sql.NullBool
+	err = t.db.QueryRow(`
 		SELECT is_night
 		FROM sensor_readings
 		WHERE baby_uid = ? AND timestamp < ? AND is_night IS NOT NULL
 		ORDER BY timestamp DESC
 		LIMIT 1
-	`
-	
-	err = t.db.QueryRow(lastKnownQuery, babyUID, startTime).Scan(&currentMode)
-	if err != nil {
-		// No previous state, use the first reading's state
-		currentMode = readings[0].isNight
-	}
-	
-	currentModeStart := startTime
-
-	// Add time from startTime to first reading
-	firstReadingDuration := readings[0].timestamp - startTime
-	if currentMode {
-		nightModeSeconds += firstReadingDuration
-	} else {
-		dayModeSeconds += firstReadingDuration
+	`, babyUID, startTime).Scan(&initial)
+	if err != nil && err != sql.ErrNoRows {
+		return nil, err
 	}
 
-	// Process all readings
-	for i, reading := range readings {
-		// Check for mode transition
-		if reading.isNight != currentMode {
-			// Record the transition
-			change := DayNightChange{
-				Timestamp:    reading.timestamp,
-				FromNight:    currentMode,
-				ToNight:      reading.isNight,
-				DurationMins: (reading.timestamp - currentModeStart) / 60,
-			}
-			changes = append(changes, change)
-			
-			transitions++
-			currentMode = reading.isNight
-			currentModeStart = reading.timestamp
-		}
-
-		// Calculate duration until next reading (or end time)
-		var duration int64
-		if i < len(readings)-1 {
-			// Duration until next reading
-			duration = readings[i+1].timestamp - reading.timestamp
-		} else {
-			// Duration from last reading to end time
-			duration = endTime - reading.timestamp
-		}
-
-		// Attribute this duration to the current mode
-		if currentMode {
-			nightModeSeconds += duration
-		} else {
-			dayModeSeconds += duration
-		}
-	}
-
-	// Convert to minutes and calculate percentages
-	analytics.DayModeMinutes = dayModeSeconds / 60
-	analytics.NightModeMinutes = nightModeSeconds / 60
-	analytics.UnknownModeMinutes = analytics.TotalMinutes - analytics.DayModeMinutes - analytics.NightModeMinutes
-	analytics.ModeTransitions = transitions
+	periods, changes := buildDayNightTimeline(startTime, endTime, initial, readings, recordingGapLimit)
+	analytics.Periods = periods
 	analytics.DayNightChanges = changes
+	analytics.ModeTransitions = int64(len(changes))
+
+	var daySeconds, nightSeconds int64
+	for _, period := range periods {
+		switch period.Mode {
+		case ModeDay:
+			daySeconds += period.End - period.Start
+		case ModeNight:
+			nightSeconds += period.End - period.Start
+		}
+	}
+	analytics.DayModeMinutes = daySeconds / 60
+	analytics.NightModeMinutes = nightSeconds / 60
+	analytics.UnknownModeMinutes = analytics.TotalMinutes - analytics.DayModeMinutes - analytics.NightModeMinutes
 
 	if analytics.TotalMinutes > 0 {
 		analytics.DayModePercentage = float64(analytics.DayModeMinutes) / float64(analytics.TotalMinutes) * 100
