@@ -1,6 +1,6 @@
-# Nanit Dashboard Frontend
+# Nanit Web frontend
 
-React single-page app for the Nanit Home Assistant Bridge, built with Vite and served by the Go backend.
+The React dashboard for Nanit Web, built with Vite and served by the Go backend.
 
 ## Features
 
@@ -40,7 +40,7 @@ bun run typecheck  # tsc --noEmit
 bun run lint       # oxlint
 ```
 
-The dev server proxies `/api` to a running Go backend at `http://localhost:8080`
+The dev server proxies `/api` and `/health` to a running Go backend at `http://localhost:8080`
 (the backend's default `NANIT_HTTP_PORT`). Set `NANIT_API_URL` to point it elsewhere:
 
 ```bash
