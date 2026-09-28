@@ -1,12 +1,15 @@
 package session
 
 import (
+	"os"
+	"path/filepath"
 	"sync"
 	"testing"
 	"time"
 
 	"github.com/andrewshaodev/nanit-web/pkg/baby"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestStoreCredentialsRoundTrip(t *testing.T) {
@@ -82,4 +85,29 @@ func TestConcurrentAccess(t *testing.T) {
 
 	close(stop)
 	wg.Wait()
+}
+
+// The session holds the Nanit tokens. It used to be written in place with
+// mode 0644; now it replaces the old file whole, readable only by its owner.
+func TestSaveIsPrivateAndLoadsBack(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "session.json")
+	require.NoError(t, os.WriteFile(path, []byte("old"), 0644))
+
+	store := NewSessionStore()
+	store.Filename = path
+	store.StoreCredentials("access", "refresh", time.Now())
+	require.NoError(t, store.Save())
+
+	info, err := os.Stat(path)
+	require.NoError(t, err)
+	assert.Equal(t, os.FileMode(0600), info.Mode().Perm())
+
+	entries, err := os.ReadDir(dir)
+	require.NoError(t, err)
+	assert.Len(t, entries, 1, "no temp files left behind")
+
+	loaded, err := InitSessionStore(path)
+	require.NoError(t, err)
+	assert.Equal(t, "refresh", loaded.RefreshToken())
 }
