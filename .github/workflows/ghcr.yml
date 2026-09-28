@@ -39,18 +39,12 @@ jobs:
       with:
         bun-version: 1.3.14
 
-    - name: Typecheck the frontend
+    - name: Typecheck and lint the frontend
       working-directory: frontend
       run: |
         bun install --frozen-lockfile
         bun run typecheck
-
-    # Reported but not yet enforced: oxlint's React-compiler rules flag the
-    # video player hook, which needs its own careful pass
-    - name: Lint the frontend
-      working-directory: frontend
-      continue-on-error: true
-      run: bun run lint
+        bun run lint
 
   build-and-push:
     needs: test
