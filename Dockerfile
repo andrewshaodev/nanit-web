@@ -1,5 +1,5 @@
 # Frontend build stage
-FROM --platform=$BUILDPLATFORM node:18-alpine AS frontend-build
+FROM --platform=$BUILDPLATFORM node:24-alpine AS frontend-build
 
 WORKDIR /app/frontend
 
@@ -16,7 +16,7 @@ COPY frontend/ ./
 RUN npm run build
 
 # Backend build stage
-FROM --platform=$BUILDPLATFORM golang:1.24.0 AS backend-build
+FROM --platform=$BUILDPLATFORM golang:1.27-trixie AS backend-build
 
 # Install build dependencies for SQLite and cross-compilation
 RUN apt-get update && apt-get install -y \
@@ -48,7 +48,7 @@ RUN if [ "$TARGETARCH" = "arm64" ]; then \
     CGO_ENABLED=1 GOOS=$TARGETOS GOARCH=$TARGETARCH go build -ldflags "-X main.GitCommit=$CI_COMMIT_SHORT_SHA" -o ./bin/nanit ./cmd/nanit/*.go
 
 # Final production stage
-FROM debian:bookworm-slim
+FROM debian:trixie-slim
 
 COPY --from=backend-build /app/bin/nanit /app/bin/nanit
 COPY --from=backend-build /app/scripts /app/scripts
