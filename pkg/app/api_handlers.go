@@ -2,6 +2,7 @@ package app
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"os"
@@ -12,6 +13,7 @@ import (
 	"time"
 
 	"github.com/andrewshaodev/nanit-web/pkg/baby"
+	"github.com/andrewshaodev/nanit-web/pkg/client"
 	"github.com/andrewshaodev/nanit-web/pkg/streaming"
 	"github.com/rs/zerolog/log"
 )
@@ -350,11 +352,8 @@ func getStreamStateString(streamState *baby.StreamState) string {
 }
 
 // Authentication API handlers
-func handleAuthLoginAPI(w http.ResponseWriter, r *http.Request) {
-	log.Info().Msg("=== Starting login attempt ===")
-
+func handleAuthLoginAPI(w http.ResponseWriter, r *http.Request, app *App) {
 	if r.Method != "POST" {
-		log.Warn().Str("method", r.Method).Msg("Invalid HTTP method for login")
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
@@ -363,232 +362,95 @@ func handleAuthLoginAPI(w http.ResponseWriter, r *http.Request) {
 		Email    string `json:"email"`
 		Password string `json:"password"`
 	}
-
 	if err := json.NewDecoder(r.Body).Decode(&requestData); err != nil {
-		log.Error().Err(err).Msg("Failed to decode login request JSON")
 		http.Error(w, "Invalid JSON", http.StatusBadRequest)
 		return
 	}
-
 	if requestData.Email == "" || requestData.Password == "" {
-		log.Warn().Msg("Missing email or password in login request")
 		http.Error(w, "Email and password are required", http.StatusBadRequest)
 		return
 	}
 
-	log.Info().Str("email", requestData.Email).Msg("Processing login request")
-
-	// Call Nanit login API to get MFA token (matching original rest.go)
-	loginData := map[string]string{
-		"email":    requestData.Email,
-		"password": requestData.Password,
-	}
-
-	loginJSON, _ := json.Marshal(loginData)
-	// The payload carries the password, so it is never logged
-	log.Info().Msg("Sending login request to Nanit API")
-
-	req, err := http.NewRequest("POST", "https://api.nanit.com/login", strings.NewReader(string(loginJSON)))
+	challenge, err := app.RestClient.StartLogin(requestData.Email, requestData.Password)
 	if err != nil {
-		log.Error().Err(err).Msg("Failed to create login request")
-		http.Error(w, "Failed to create request", http.StatusInternalServerError)
+		writeLoginError(w, err)
 		return
 	}
 
-	// Add required headers (matching original rest.go)
-	req.Header.Add("Content-Type", "application/json")
-	req.Header.Add("nanit-api-version", "1")
-	log.Info().Msg("Added headers: Content-Type=application/json, nanit-api-version=1")
-
-	client := &http.Client{Timeout: 30 * time.Second}
-	log.Info().Msg("Making HTTP request to Nanit API...")
-	response, err := client.Do(req)
-	if err != nil {
-		log.Error().Err(err).Msg("Failed to connect to Nanit API")
-		http.Error(w, "Failed to connect to Nanit", http.StatusServiceUnavailable)
-		return
-	}
-	defer response.Body.Close()
-
-	log.Info().Int("status_code", response.StatusCode).Msg("Received response from Nanit API")
-
-	var nanitResponse map[string]interface{}
-	if err := json.NewDecoder(response.Body).Decode(&nanitResponse); err != nil {
-		log.Error().Err(err).Msg("Failed to decode Nanit API response")
-		http.Error(w, "Invalid response from Nanit", http.StatusInternalServerError)
+	// An account without 2FA is signed in already
+	if challenge == nil {
+		go app.StartMonitoringServices()
+		writeJSON(w, map[string]interface{}{
+			"success":   true,
+			"signed_in": true,
+			"message":   "Signed in to Nanit",
+		})
 		return
 	}
 
-	// Only the delivery details: the body also carries the MFA token
-	mfaChannel, _ := nanitResponse["channel"].(string)
-	phoneSuffix, _ := nanitResponse["phone_suffix"].(string)
-	log.Info().Str("channel", mfaChannel).Str("phone_suffix", phoneSuffix).Msg("Nanit API response")
-
-	// Status 201 = success without 2FA, Status 482 = 2FA required
-	if response.StatusCode != 201 && response.StatusCode != 482 {
-		errorMsg := "Login failed"
-		if errDetail, ok := nanitResponse["error"].(string); ok {
-			errorMsg = errDetail
-		}
-		log.Error().Int("status_code", response.StatusCode).Str("error", errorMsg).Msg("Login failed with error from Nanit API")
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusUnauthorized)
-		json.NewEncoder(w).Encode(map[string]string{"error": errorMsg})
-		return
-	}
-
-	log.Info().Msg("Login successful, received MFA token")
-
-	// Return MFA token to client
 	// Nanit picks the channel (sms or email). The client needs it to say
 	// where the code went, and to send it back with the code.
-	result := map[string]interface{}{
+	writeJSON(w, map[string]interface{}{
 		"success":      true,
-		"mfa_token":    nanitResponse["mfa_token"],
-		"channel":      mfaChannel,
-		"phone_suffix": phoneSuffix,
+		"mfa_token":    challenge.MFAToken,
+		"channel":      challenge.Channel,
+		"phone_suffix": challenge.PhoneSuffix,
 		"message":      "MFA token received. Enter the verification code Nanit sent.",
-	}
-
-	log.Info().Msg("=== Login completed successfully, returning MFA token ===")
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(result)
+	})
 }
 
 func handleAuthVerify2FAAPI(w http.ResponseWriter, r *http.Request, app *App) {
-	log.Info().Msg("=== Starting 2FA verification ===")
-
 	if r.Method != "POST" {
-		log.Warn().Str("method", r.Method).Msg("Invalid HTTP method for 2FA verification")
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
 
 	var requestData struct {
-		Email    string      `json:"email"`
-		Password string      `json:"password"`
-		MFAToken interface{} `json:"mfa_token"`
-		MFACode  string      `json:"mfa_code"`
-		Channel  string      `json:"channel"`
+		Email    string `json:"email"`
+		Password string `json:"password"`
+		MFAToken string `json:"mfa_token"`
+		MFACode  string `json:"mfa_code"`
+		Channel  string `json:"channel"`
 	}
-
 	if err := json.NewDecoder(r.Body).Decode(&requestData); err != nil {
 		http.Error(w, "Invalid JSON", http.StatusBadRequest)
 		return
 	}
-
 	if requestData.Email == "" || requestData.Password == "" || requestData.MFACode == "" {
 		http.Error(w, "All fields are required", http.StatusBadRequest)
 		return
 	}
 
-	// Call Nanit verification API
-	// MFA code must be sent as string to preserve leading zeros (like "0123")
-	verifyData := map[string]interface{}{
-		"email":     requestData.Email,
-		"password":  requestData.Password,
-		"mfa_token": requestData.MFAToken,
-		"mfa_code":  requestData.MFACode, // Already a string from JSON
-		"channel":   requestData.Channel,
-	}
-	// Clients from before the channel was passed through
-	if requestData.Channel == "" {
-		verifyData["channel"] = "email"
-	}
-
-	// The payload carries the password and the code, so neither is logged
-	log.Info().Interface("channel", verifyData["channel"]).Msg("Sending verification request to Nanit API")
-
-	verifyJSON, _ := json.Marshal(verifyData)
-
-	req, err := http.NewRequest("POST", "https://api.nanit.com/login", strings.NewReader(string(verifyJSON)))
+	err := app.RestClient.FinishLogin(requestData.Email, requestData.Password,
+		requestData.MFAToken, requestData.MFACode, requestData.Channel)
 	if err != nil {
-		log.Error().Err(err).Msg("Failed to create verification request")
-		http.Error(w, "Failed to create request", http.StatusInternalServerError)
+		writeLoginError(w, err)
 		return
 	}
 
-	// Add required headers (matching original)
-	req.Header.Add("Content-Type", "application/json")
-	req.Header.Add("nanit-api-version", "1")
-	log.Info().Msg("Added headers for verification: Content-Type=application/json, nanit-api-version=1")
+	// Start the cameras (only the first time: they keep running across a
+	// second sign-in, and pick up the new tokens from the session)
+	go app.StartMonitoringServices()
 
-	client := &http.Client{Timeout: 30 * time.Second}
-	log.Info().Msg("Making HTTP verification request to Nanit API...")
-	response, err := client.Do(req)
-	if err != nil {
-		log.Error().Err(err).Msg("Failed to connect to Nanit API for verification")
-		http.Error(w, "Failed to connect to Nanit", http.StatusServiceUnavailable)
-		return
-	}
-	defer response.Body.Close()
-
-	log.Info().Int("status_code", response.StatusCode).Msg("Received verification response from Nanit API")
-
-	var nanitResponse map[string]interface{}
-	if err := json.NewDecoder(response.Body).Decode(&nanitResponse); err != nil {
-		log.Error().Err(err).Msg("Failed to decode Nanit verification response")
-		http.Error(w, "Invalid response from Nanit", http.StatusInternalServerError)
-		return
-	}
-
-	// The body is not logged: on success it carries the access and refresh tokens
-
-	if response.StatusCode != 201 {
-		errorMsg := "Verification failed"
-		if errDetail, ok := nanitResponse["error"].(string); ok {
-			errorMsg = errDetail
-		}
-		log.Error().Int("status_code", response.StatusCode).Str("error", errorMsg).Msg("2FA verification failed with error from Nanit API")
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusUnauthorized)
-		json.NewEncoder(w).Encode(map[string]string{"error": errorMsg})
-		return
-	}
-
-	log.Info().Msg("2FA verification successful!")
-
-	// Extract refresh token
-	refreshToken, ok := nanitResponse["refresh_token"].(string)
-	if !ok {
-		http.Error(w, "No refresh token received", http.StatusInternalServerError)
-		return
-	}
-
-	// Save session data
-	sessionData := map[string]interface{}{
-		"revision":     3, // Keep in sync with session.go
-		"authToken":    requestData.MFAToken,
-		"refreshToken": refreshToken,
-	}
-
-	sessionJSON, _ := json.Marshal(sessionData)
-	sessionFile := app.Opts.SessionFile
-
-	if err := os.WriteFile(sessionFile, sessionJSON, 0600); err != nil {
-		log.Error().Err(err).Str("file", sessionFile).Msg("Failed to save session file")
-		http.Error(w, "Failed to save authentication", http.StatusInternalServerError)
-		return
-	}
-
-	log.Info().Str("file", sessionFile).Msg("Authentication saved successfully")
-
-	// Refresh app authentication and start services
-	if err := app.RefreshAuthentication(); err != nil {
-		log.Error().Err(err).Msg("Failed to refresh authentication")
-	} else {
-		// Start monitoring services now that we have authentication
-		go app.StartMonitoringServices()
-	}
-
-	// Return success
-	result := map[string]interface{}{
+	writeJSON(w, map[string]interface{}{
 		"success": true,
 		"message": "Authentication completed successfully",
-	}
+	})
+}
 
+// writeLoginError answers a failed Nanit sign-in: 401 with Nanit's reason
+// when it said no, 502 when it couldn't be reached or made no sense
+func writeLoginError(w http.ResponseWriter, err error) {
+	status := http.StatusBadGateway
+	var rejected *client.LoginError
+	if errors.As(err, &rejected) {
+		status = http.StatusUnauthorized
+	} else {
+		log.Error().Err(err).Msg("Nanit sign-in failed")
+	}
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(result)
+	w.WriteHeader(status)
+	json.NewEncoder(w).Encode(map[string]string{"error": err.Error(), "message": err.Error()})
 }
 
 func handleAuthStatusAPI(w http.ResponseWriter, r *http.Request, app *App) {

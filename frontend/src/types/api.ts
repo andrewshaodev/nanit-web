@@ -167,6 +167,8 @@ export interface LoginRequest {
 
 export interface LoginResponse {
   success: boolean;
+  // Set when Nanit signed in without asking for a code
+  signed_in?: boolean;
   mfa_token?: any;
   // Where Nanit sent the code: 'sms' or 'email'
   channel?: string;

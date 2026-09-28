@@ -29,15 +29,18 @@ export default function SetupPage() {
     try {
       const response = await api.login(formData.email, formData.password)
       
-      if (response.success && response.mfa_token) {
+      if (response.success && response.signed_in) {
+        // No 2FA on this account: Nanit signed in straight away
+        navigate('/')
+      } else if (response.success && response.mfa_token) {
         setMfaToken(response.mfa_token)
         setMfaDelivery({ channel: response.channel, phoneSuffix: response.phone_suffix })
         setStep('2fa')
       } else {
         setError(response.error || 'Login failed')
       }
-    } catch {
-      setError('Failed to connect to server')
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to connect to server')
     } finally {
       setIsLoading(false)
     }
@@ -63,8 +66,8 @@ export default function SetupPage() {
       } else {
         setError(response.error || 'Verification failed')
       }
-    } catch {
-      setError('Failed to verify code')
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to verify code')
     } finally {
       setIsLoading(false)
     }

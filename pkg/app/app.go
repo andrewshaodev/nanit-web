@@ -371,25 +371,6 @@ func (app *App) getConnection(babyUID string) *client.WebsocketConnection {
 	return app.connections[babyUID]
 }
 
-// RefreshAuthentication - reload session after successful web authentication.
-//
-// The store is reloaded in place rather than replaced: everything that holds a
-// reference to it, including websocket managers already running, would
-// otherwise keep reading the session this store had at startup and reconnect
-// forever with a token that is never renewed again.
-func (app *App) RefreshAuthentication() error {
-	if err := app.SessionStore.Load(); err != nil {
-		return fmt.Errorf("failed to reload session store: %w", err)
-	}
-
-	if refreshToken := app.SessionStore.RefreshToken(); refreshToken != "" {
-		app.RestClient.RefreshToken = refreshToken
-	}
-
-	log.Info().Msg("Authentication refreshed successfully")
-	return nil
-}
-
 // StartMonitoringServices - start all monitoring services after authentication
 func (app *App) StartMonitoringServices() {
 	// Use the main application context stored during Run()

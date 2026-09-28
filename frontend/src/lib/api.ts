@@ -43,7 +43,11 @@ class ApiClient {
     });
 
     if (!response.ok) {
-      throw new Error(`API Error: ${response.status} ${response.statusText}`);
+      // Use the server's reason when it sent one as JSON, e.g. Nanit
+      // rejecting a sign-in code
+      const body = await response.json().catch(() => null);
+      const reason = body?.message || body?.error;
+      throw new Error(reason || `API Error: ${response.status} ${response.statusText}`);
     }
 
     return response.json();

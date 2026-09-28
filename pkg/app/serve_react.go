@@ -121,7 +121,7 @@ func setupAPIRoutes(mux *http.ServeMux, stateManager *baby.StateManager, app *Ap
 	// Authentication endpoints (Nanit API)
 	log.Info().Msg("Registering Nanit authentication endpoints")
 	mux.HandleFunc("/api/auth/login", requireAuth(app, func(w http.ResponseWriter, r *http.Request) {
-		handleAuthLoginAPI(w, r)
+		handleAuthLoginAPI(w, r, app)
 	}))
 
 	mux.HandleFunc("/api/auth/verify-2fa", requireAuth(app, func(w http.ResponseWriter, r *http.Request) {

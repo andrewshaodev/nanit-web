@@ -96,7 +96,7 @@ func (c *NanitClient) RenewSession() error {
 		return fmt.Errorf("failed to marshal refresh token request: %w", requestBodyErr)
 	}
 
-	r, clientErr := myClient.Post("https://api.nanit.com/tokens/refresh", "application/json", bytes.NewBuffer(requestBody))
+	r, clientErr := myClient.Post(apiBaseURL+"/tokens/refresh", "application/json", bytes.NewBuffer(requestBody))
 	if clientErr != nil {
 		log.Error().Err(clientErr).Msg("Unable to renew session")
 		return fmt.Errorf("session renewal request failed: %w", clientErr)
@@ -142,7 +142,7 @@ func (c *NanitClient) Login() error {
 	}
 
 	//nanit-api-version: 1
-	req, reqErr := http.NewRequest("POST", "https://api.nanit.com/login", bytes.NewBuffer(requestBody))
+	req, reqErr := http.NewRequest("POST", apiBaseURL+"/login", bytes.NewBuffer(requestBody))
 	if reqErr != nil {
 		log.Error().Err(reqErr).Msg("Unable to create request")
 		return fmt.Errorf("failed to create login request: %w", reqErr)
@@ -251,7 +251,7 @@ func (c *NanitClient) FetchAuthorized(req *http.Request, data interface{}) error
 // FetchBabies - fetches baby list
 func (c *NanitClient) FetchBabies() ([]baby.Baby, error) {
 	log.Info().Msg("Fetching babies list")
-	req, reqErr := http.NewRequest("GET", "https://api.nanit.com/babies", nil)
+	req, reqErr := http.NewRequest("GET", apiBaseURL+"/babies", nil)
 
 	if reqErr != nil {
 		log.Error().Err(reqErr).Msg("Unable to create request")
@@ -272,7 +272,7 @@ func (c *NanitClient) FetchBabies() ([]baby.Baby, error) {
 
 // FetchMessages - fetches message list
 func (c *NanitClient) FetchMessages(babyUID string, limit int) ([]message.Message, error) {
-	req, reqErr := http.NewRequest("GET", fmt.Sprintf("https://api.nanit.com/babies/%s/messages?limit=%d", babyUID, limit), nil)
+	req, reqErr := http.NewRequest("GET", fmt.Sprintf("%s/babies/%s/messages?limit=%d", apiBaseURL, babyUID, limit), nil)
 
 	if reqErr != nil {
 		log.Error().Err(reqErr).Msg("Unable to create request")
