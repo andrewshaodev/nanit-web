@@ -202,6 +202,7 @@ func (s *Server) handleLiveness(w http.ResponseWriter, r *http.Request) {
 		Status:    "healthy",
 		Timestamp: time.Now().Unix(),
 		Uptime:    time.Since(s.StartedAt).Seconds(),
+		Version:   s.Config.Version,
 	})
 }
 

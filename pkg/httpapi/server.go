@@ -36,6 +36,8 @@ type Config struct {
 	SessionFile string
 	// WebDir - the built dashboard (index.html and assets/)
 	WebDir string
+	// Version - the commit the bridge was built from; "" for local builds
+	Version string
 }
 
 // Server - the dashboard and API, and the parts of the bridge they use

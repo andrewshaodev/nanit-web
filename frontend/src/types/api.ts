@@ -46,3 +46,4 @@ export type WebAuthResponse = api.MessageResponse
 
 export type HealthDetails = api.HealthDetails
 export type HealthResponse = api.HealthResponse
+export type LivenessResponse = api.LivenessResponse

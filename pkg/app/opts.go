@@ -11,6 +11,8 @@ type Opts struct {
 	SessionFile      string
 	DataDirectories  DataDirectories
 	HTTPPort         int
+	// Version - the commit the binary was built from, when CI stamped it
+	Version string
 	// WebDir - the built dashboard (index.html and assets/)
 	WebDir       string
 	MQTT         *mqtt.Opts

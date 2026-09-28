@@ -21,12 +21,20 @@ import type {
   WebAuthStatusResponse,
   WebAuthResponse,
   HealthResponse,
+  LivenessResponse,
 } from '@/types/api'
 
 // In production, API calls go directly to the same host since Go serves the frontend
 const API_BASE = '';
 
 class ApiClient {
+  // GET /health, outside /api: the bridge's liveness, and its build
+  async getLiveness(): Promise<LivenessResponse> {
+    const response = await fetch(`${API_BASE}/health`);
+    if (!response.ok) throw new Error(`API Error: ${response.status}`);
+    return response.json();
+  }
+
   private async request<T>(
     endpoint: string,
     options: RequestInit = {}

@@ -288,6 +288,8 @@ type LivenessResponse struct {
 	Status    string  `json:"status"`
 	Timestamp int64   `json:"timestamp"`
 	Uptime    float64 `json:"uptime"`
+	// The commit the bridge was built from, for builds CI made
+	Version string `json:"version,omitempty"`
 }
 
 // ServiceReadiness - one part of the bridge, for /ready

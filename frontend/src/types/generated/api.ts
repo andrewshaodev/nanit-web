@@ -329,6 +329,10 @@ export interface LivenessResponse {
   status: string;
   timestamp: number /* int64 */;
   uptime: number /* float64 */;
+  /**
+   * The commit the bridge was built from, for builds CI made
+   */
+  version?: string;
 }
 /**
  * ServiceReadiness - one part of the bridge, for /ready

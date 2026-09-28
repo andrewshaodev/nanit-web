@@ -48,6 +48,9 @@ func main() {
 		SessionFile:     utils.EnvVarStr("NANIT_SESSION_FILE", filepath.Join(dirs.BaseDir, "session.json")),
 		DataDirectories: dirs,
 		HTTPPort:        utils.EnvVarInt("NANIT_HTTP_PORT", 8080),
+		// The built dashboard. The image has it at /app/web, its working dir.
+		WebDir:  utils.EnvVarStr("NANIT_WEB_DIR", "web"),
+		Version: GitCommit,
 		EventPolling: app.EventPollingOpts{
 			// Event message polling disabled by default
 			Enabled: utils.EnvVarBool("NANIT_EVENTS_POLLING", false),

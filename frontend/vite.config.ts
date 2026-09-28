@@ -17,6 +17,6 @@ export default defineConfig({
     outDir: 'dist',
   },
   server: {
-    proxy: { '/api': apiTarget },
+    proxy: { '/api': apiTarget, '/health': apiTarget },
   },
 })

@@ -55,6 +55,7 @@ func (app *App) apiServer() *httpapi.Server {
 		MQTTEnabled: app.MQTTConnection != nil,
 		SessionFile: app.Opts.SessionFile,
 		WebDir:      app.Opts.WebDir,
+		Version:     app.Opts.Version,
 	}
 	if app.Opts.RTMP != nil {
 		config.RTMPPublicAddr = app.Opts.RTMP.PublicAddr
