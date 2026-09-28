@@ -159,13 +159,15 @@ class ApiClient {
     email: string,
     password: string,
     mfaToken: any,
-    mfaCode: string
+    mfaCode: string,
+    channel?: string
   ): Promise<Verify2FAResponse> {
     const payload: Verify2FARequest = {
       email,
       password,
       mfa_token: mfaToken,
       mfa_code: mfaCode,
+      channel,
     };
     return this.request<Verify2FAResponse>('/auth/verify-2fa', {
       method: 'POST',

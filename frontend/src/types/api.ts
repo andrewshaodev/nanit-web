@@ -147,6 +147,9 @@ export interface LoginRequest {
 export interface LoginResponse {
   success: boolean;
   mfa_token?: any;
+  // Where Nanit sent the code: 'sms' or 'email'
+  channel?: string;
+  phone_suffix?: string;
   message: string;
   error?: string;
 }
@@ -156,6 +159,7 @@ export interface Verify2FARequest {
   password: string;
   mfa_token: any;
   mfa_code: string;
+  channel?: string;
 }
 
 export interface Verify2FAResponse {

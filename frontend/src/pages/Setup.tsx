@@ -12,6 +12,7 @@ export default function SetupPage() {
     mfaCode: '',
   })
   const [mfaToken, setMfaToken] = useState<any>(null)
+  const [mfaDelivery, setMfaDelivery] = useState<{ channel?: string; phoneSuffix?: string }>({})
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState('')
 
@@ -25,6 +26,7 @@ export default function SetupPage() {
       
       if (response.success && response.mfa_token) {
         setMfaToken(response.mfa_token)
+        setMfaDelivery({ channel: response.channel, phoneSuffix: response.phone_suffix })
         setStep('2fa')
       } else {
         setError(response.error || 'Login failed')
@@ -46,7 +48,8 @@ export default function SetupPage() {
         formData.email,
         formData.password,
         mfaToken,
-        formData.mfaCode
+        formData.mfaCode,
+        mfaDelivery.channel
       )
       
       if (response.success) {
@@ -145,7 +148,9 @@ export default function SetupPage() {
               
               <div className="bg-blue-50 border-l-4 border-blue-500 p-3 rounded-sm mb-6">
                 <div className="text-sm text-blue-700">
-                  Check your email for a verification code from Nanit and enter it below.
+                  {mfaDelivery.channel === 'sms'
+                    ? `Nanit texted a verification code to the phone ending in ${mfaDelivery.phoneSuffix ?? '??'}. Enter it below.`
+                    : 'Check your email for a verification code from Nanit and enter it below.'}
                 </div>
               </div>
 

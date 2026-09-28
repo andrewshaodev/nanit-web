@@ -351,7 +351,8 @@ func handleAuthLoginAPI(w http.ResponseWriter, r *http.Request) {
 	}
 
 	loginJSON, _ := json.Marshal(loginData)
-	log.Info().Str("payload", string(loginJSON)).Msg("Sending login request to Nanit API")
+	// The payload carries the password, so it is never logged
+	log.Info().Msg("Sending login request to Nanit API")
 	
 	req, err := http.NewRequest("POST", "https://api.nanit.com/login", strings.NewReader(string(loginJSON)))
 	if err != nil {
@@ -384,7 +385,10 @@ func handleAuthLoginAPI(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	log.Info().Interface("response", nanitResponse).Msg("Nanit API response body")
+	// Only the delivery details: the body also carries the MFA token
+	mfaChannel, _ := nanitResponse["channel"].(string)
+	phoneSuffix, _ := nanitResponse["phone_suffix"].(string)
+	log.Info().Str("channel", mfaChannel).Str("phone_suffix", phoneSuffix).Msg("Nanit API response")
 
 	// Status 201 = success without 2FA, Status 482 = 2FA required
 	if response.StatusCode != 201 && response.StatusCode != 482 {
@@ -402,10 +406,14 @@ func handleAuthLoginAPI(w http.ResponseWriter, r *http.Request) {
 	log.Info().Msg("Login successful, received MFA token")
 
 	// Return MFA token to client
+	// Nanit picks the channel (sms or email). The client needs it to say
+	// where the code went, and to send it back with the code.
 	result := map[string]interface{}{
-		"success":   true,
-		"mfa_token": nanitResponse["mfa_token"],
-		"message":   "MFA token received. Please check your email for verification code.",
+		"success":      true,
+		"mfa_token":    nanitResponse["mfa_token"],
+		"channel":      mfaChannel,
+		"phone_suffix": phoneSuffix,
+		"message":      "MFA token received. Enter the verification code Nanit sent.",
 	}
 
 	log.Info().Msg("=== Login completed successfully, returning MFA token ===")
@@ -427,6 +435,7 @@ func handleAuthVerify2FAAPI(w http.ResponseWriter, r *http.Request, app *App) {
 		Password string      `json:"password"`
 		MFAToken interface{} `json:"mfa_token"`
 		MFACode  string      `json:"mfa_code"`
+		Channel  string      `json:"channel"`
 	}
 
 	if err := json.NewDecoder(r.Body).Decode(&requestData); err != nil {
@@ -446,13 +455,17 @@ func handleAuthVerify2FAAPI(w http.ResponseWriter, r *http.Request, app *App) {
 		"password":  requestData.Password,
 		"mfa_token": requestData.MFAToken,
 		"mfa_code":  requestData.MFACode, // Already a string from JSON
-		"channel":   "email",
+		"channel":   requestData.Channel,
 	}
-	
-	log.Info().Str("mfa_code", requestData.MFACode).Msg("Sending 2FA verification request")
+	// Clients from before the channel was passed through
+	if requestData.Channel == "" {
+		verifyData["channel"] = "email"
+	}
+
+	// The payload carries the password and the code, so neither is logged
+	log.Info().Interface("channel", verifyData["channel"]).Msg("Sending verification request to Nanit API")
 
 	verifyJSON, _ := json.Marshal(verifyData)
-	log.Info().Str("payload", string(verifyJSON)).Msg("Sending verification request to Nanit API")
 	
 	req, err := http.NewRequest("POST", "https://api.nanit.com/login", strings.NewReader(string(verifyJSON)))
 	if err != nil {
@@ -485,7 +498,7 @@ func handleAuthVerify2FAAPI(w http.ResponseWriter, r *http.Request, app *App) {
 		return
 	}
 
-	log.Info().Interface("response", nanitResponse).Msg("Nanit verification API response body")
+	// The body is not logged: on success it carries the access and refresh tokens
 
 	if response.StatusCode != 201 {
 		errorMsg := "Verification failed"
