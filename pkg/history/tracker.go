@@ -115,7 +115,9 @@ func NewTracker(dataDir string, enabled bool) (*Tracker, error) {
 	}
 
 	// Open database connection
-	db, err := sql.Open("sqlite3", dbPath+"?_journal_mode=WAL&_synchronous=NORMAL&_cache_size=1000")
+	// Writes come from a goroutine per state update, so a writer can find the
+	// database locked: wait up to 5 s for it instead of failing straight away
+	db, err := sql.Open("sqlite3", dbPath+"?_journal_mode=WAL&_synchronous=NORMAL&_cache_size=1000&_busy_timeout=5000")
 	if err != nil {
 		return nil, fmt.Errorf("failed to open database: %v", err)
 	}
