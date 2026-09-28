@@ -6,6 +6,7 @@ import (
 	"os"
 	"os/signal"
 	"regexp"
+	"syscall"
 	"time"
 
 	"github.com/andrewshaodev/nanit-web/pkg/app"
@@ -100,8 +101,11 @@ func main() {
 		log.Info().Msgf("Event polling enabled with an interval of %v", opts.EventPolling.PollingInterval)
 	}
 
+	// docker stop sends SIGTERM, then kills the process 10 s later. Only
+	// Ctrl-C was handled, so in a container the camera, ffmpeg and SQLite
+	// were never shut down cleanly.
 	interrupt := make(chan os.Signal, 1)
-	signal.Notify(interrupt, os.Interrupt)
+	signal.Notify(interrupt, os.Interrupt, syscall.SIGTERM)
 
 	instance, err := app.NewApp(opts)
 	if err != nil {
@@ -112,7 +116,7 @@ func main() {
 	runner := utils.RunWithGracefulCancel(instance.Run)
 
 	<-interrupt
-	log.Warn().Msg("Received interrupt signal, terminating")
+	log.Warn().Msg("Received a stop signal, shutting down")
 
 	waitForCleanup := make(chan struct{}, 1)
 
