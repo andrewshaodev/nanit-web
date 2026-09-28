@@ -194,6 +194,27 @@ message Playback {
   }
 
   required Status status = 1;
+
+  // duration - how long the camera keeps playing, in seconds: -1 plays forever
+  // (how the Nanit app loops a sound), a positive value plays that long, and
+  // leaving it out plays the clip once. From maddijoyce/nanit-web, who
+  // confirmed it by decompiling the Nanit Android app.
+  optional int32 duration = 2;
+
+  // The app calls field 3 `tracks` (repeated) and field 4 `currentTrack`. A
+  // play command sets field 3 to one track; GET_PLAYBACK replies fill both.
+  // One optional Soundtrack is wire-compatible with a one-element list.
+  optional Soundtrack soundtrack = 3;
+  optional Soundtrack selectedSoundtrack = 4;
+}
+
+// Soundtrack - a sound built into the camera, as GET_SOUNDTRACKS lists them.
+// The name (a filename such as "White Noise.wav") is its identifier.
+message Soundtrack {
+  // type - where the file lives: 0 = built into the camera, 1 = user storage
+  // (which the camera rejects as unsupported)
+  optional int32 type = 1;
+  optional string name = 2;
 }
 
 message Stream {
@@ -231,6 +252,12 @@ message GetStatus {
   optional bool all = 1;
 }
 
+// GetSettings - selector for GET_SETTINGS, which the camera rejects without
+// ("Bad Request: missed 'getsettings' field")
+message GetSettings {
+  optional bool all = 1;
+}
+
 message Request {
   required int32 id = 1;
   required RequestType type = 2;
@@ -244,6 +271,7 @@ message Request {
   optional Settings settings = 5;
   optional Status status = 7;
   optional GetStatus getStatus = 8;
+  optional GetSettings getSettings = 6;
   optional Playback playback = 16;
   optional GetLogs getLogs = 18;
 }
@@ -259,6 +287,9 @@ message Response {
   optional Settings settings = 6;
 
   optional Control control = 13;
+
+  repeated Soundtrack soundtracks = 12;
+  optional Playback playback = 11;
 }
 
 message Message {

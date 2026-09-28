@@ -110,6 +110,11 @@ func setupAPIRoutes(babies []baby.Baby, dataDir DataDirectories, stateManager *b
 		handleControlAPI(w, r, "standby", babies, stateManager, app)
 	})
 
+	// The camera's built-in sounds and speaker volume
+	http.HandleFunc("/api/sound/", requireAuth(app, func(w http.ResponseWriter, r *http.Request) {
+		handleSoundAPI(w, r, app)
+	}))
+
 	// Device info endpoint
 	http.HandleFunc("/api/device-info/", func(w http.ResponseWriter, r *http.Request) {
 		handleDeviceInfoAPI(w, r, babies, stateManager)
