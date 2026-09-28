@@ -2,16 +2,21 @@ import { useState, useEffect } from 'react'
 
 export type TemperatureUnit = 'celsius' | 'fahrenheit'
 
+// The unit this browser last chose, or Celsius
+function savedUnit(): TemperatureUnit {
+  try {
+    const saved = localStorage.getItem('temperatureUnit')
+    return saved === 'fahrenheit' ? 'fahrenheit' : 'celsius'
+  } catch {
+    // Storage can be unavailable (private windows, blocked site data)
+    return 'celsius'
+  }
+}
+
 export function useTemperatureUnit() {
-  const [unit, setUnit] = useState<TemperatureUnit>('celsius')
+  const [unit, setUnit] = useState<TemperatureUnit>(savedUnit)
 
   useEffect(() => {
-    // Load from localStorage on mount
-    const saved = localStorage.getItem('temperatureUnit') as TemperatureUnit
-    if (saved && (saved === 'celsius' || saved === 'fahrenheit')) {
-      setUnit(saved)
-    }
-
     // Listen for localStorage changes from other components
     const handleStorageChange = (e: StorageEvent) => {
       if (e.key === 'temperatureUnit' && e.newValue) {

@@ -33,7 +33,7 @@ export default function BabyHeader({ baby, collapsed, onToggleCollapsed, onMoveU
       try {
         const healthStatus = await api.getHealth(baby.uid)
         setHealth(healthStatus)
-      } catch (error) {
+      } catch {
         // Health status not available
         setHealth(null)
       }
@@ -43,7 +43,7 @@ export default function BabyHeader({ baby, collapsed, onToggleCollapsed, onMoveU
       try {
         const status = await api.getStreamStatus(baby.uid)
         setStreamStatus(status)
-      } catch (error) {
+      } catch {
         // Stream status not available
         setStreamStatus(null)
       }
@@ -70,7 +70,6 @@ export default function BabyHeader({ baby, collapsed, onToggleCollapsed, onMoveU
       return { text: 'Checking...', color: 'bg-ctp-overlay1', tooltip: 'Loading camera status...' }
     }
     
-    const details = health.details
     const isStreaming = streamStatus?.status === 'running'
     
     // Determine primary status based on health and streaming state

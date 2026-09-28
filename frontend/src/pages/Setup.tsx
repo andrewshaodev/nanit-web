@@ -36,7 +36,7 @@ export default function SetupPage() {
       } else {
         setError(response.error || 'Login failed')
       }
-    } catch (error) {
+    } catch {
       setError('Failed to connect to server')
     } finally {
       setIsLoading(false)
@@ -63,7 +63,7 @@ export default function SetupPage() {
       } else {
         setError(response.error || 'Verification failed')
       }
-    } catch (error) {
+    } catch {
       setError('Failed to verify code')
     } finally {
       setIsLoading(false)

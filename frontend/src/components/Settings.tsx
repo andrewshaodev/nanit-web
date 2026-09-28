@@ -1,5 +1,4 @@
-import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router';
+import { useState, useEffect, useCallback } from 'react';
 import { Camera, CircleAlert, CircleCheck, Radio, ShieldCheck } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { api } from '@/lib/api';
@@ -18,11 +17,7 @@ interface WebAuthStatus {
 }
 
 export default function Settings() {
-  // Debug: Add console log to verify component is loading
-  console.log('Settings component rendering');
-  
-  const navigate = useNavigate();
-  const { babies, isLoading: statusLoading, isError: statusError } = useStatus();
+  const { babies } = useStatus();
   const [authStatus, setAuthStatus] = useState<WebAuthStatus | null>(null);
   const [nanitAuthStatus, setNanitAuthStatus] = useState<AuthStatusResponse | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -34,12 +29,7 @@ export default function Settings() {
   const [isLoggingIn, setIsLoggingIn] = useState(false);
   const [loginError, setLoginError] = useState('');
 
-  useEffect(() => {
-    loadAuthStatus();
-    loadNanitAuthStatus();
-  }, []);
-
-  const loadAuthStatus = async () => {
+  const loadAuthStatus = useCallback(async () => {
     try {
       const status = await api.getWebAuthStatus();
       setAuthStatus(status);
@@ -54,16 +44,24 @@ export default function Settings() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, []);
 
-  const loadNanitAuthStatus = async () => {
+  const loadNanitAuthStatus = useCallback(async () => {
     try {
       const status = await api.getAuthStatus();
       setNanitAuthStatus(status);
     } catch (error) {
       console.error('Failed to load Nanit auth status:', error);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    // Fetching on mount: both loaders only set state once their request
+    // returns, which this rule can't see
+    // oxlint-disable-next-line react/set-state-in-effect
+    loadAuthStatus();
+    loadNanitAuthStatus();
+  }, [loadAuthStatus, loadNanitAuthStatus]);
 
   const handlePasswordLogin = async (e: React.FormEvent) => {
     e.preventDefault();

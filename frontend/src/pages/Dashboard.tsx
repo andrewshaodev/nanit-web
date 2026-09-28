@@ -14,7 +14,6 @@ import type { AuthStatusResponse, WebAuthStatusResponse } from '@/types/api'
 
 export default function Dashboard() {
   const navigate = useNavigate()
-  const [showPasswordLogin, setShowPasswordLogin] = useState(false)
   const [password, setPassword] = useState('')
   const [loginError, setLoginError] = useState('')
   const [isLoggingIn, setIsLoggingIn] = useState(false)
@@ -45,18 +44,14 @@ export default function Dashboard() {
   )
   const { sortBabies, isCollapsed, toggleCollapsed, move } = useCameraLayout()
 
+  // Password protection is on and this browser isn't signed in. Signing in
+  // refetches webAuthStatus, which hides the form again.
+  const showPasswordLogin = !!webAuthStatus?.password_protection_enabled && !webAuthStatus.authenticated
+
   useEffect(() => {
-    if (webAuthStatus) {
-      // If password protection is enabled but user not authenticated, show login
-      if (webAuthStatus.password_protection_enabled && !webAuthStatus.authenticated) {
-        setShowPasswordLogin(true)
-        return
-      }
-      
-      // If web auth passes but Nanit auth fails, redirect to setup
-      if (webAuthStatus.authenticated && authStatus && !authStatus.authenticated) {
-        navigate('/setup')
-      }
+    // If web auth passes but Nanit auth fails, redirect to setup
+    if (webAuthStatus?.authenticated && authStatus && !authStatus.authenticated) {
+      navigate('/setup')
     }
   }, [webAuthStatus, authStatus, navigate])
 
@@ -67,8 +62,7 @@ export default function Dashboard() {
 
     try {
       await api.loginWeb(password)
-      await mutateWebAuth() // Refresh auth status
-      setShowPasswordLogin(false)
+      await mutateWebAuth() // Refresh auth status, which hides the form
       setPassword('')
     } catch (error: any) {
       setLoginError(error.message || 'Login failed')

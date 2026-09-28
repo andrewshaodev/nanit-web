@@ -1,4 +1,3 @@
-import { useState } from 'react'
 import { api } from '@/lib/api'
 import type { Baby } from '@/types/api'
 import { useVideoPlayer } from '@/hooks/useVideoPlayer'
@@ -14,14 +13,7 @@ export default function VideoSection({ baby }: VideoSectionProps) {
   const hlsUrl = api.getHLSUrl(baby.uid)
   
   // Use Video.js player hook with integrated controls
-  const {
-    videoRef,
-    player,
-    isStreaming,
-    isLive,
-    isLoading,
-    error,
-  } = useVideoPlayer({ hlsUrl })
+  const { videoRef, error } = useVideoPlayer({ hlsUrl })
 
   return (
     <div className="space-y-2">
@@ -40,6 +32,8 @@ export default function VideoSection({ baby }: VideoSectionProps) {
           options (fluid/fill), leaving it small and off-centre */}
       {/* 16:9 box; the player fills it (fill: true in its options) */}
       <div className="aspect-video bg-black rounded-md border overflow-hidden">
+        {/* A live camera feed has no captions to offer */}
+        {/* oxlint-disable-next-line jsx-a11y/media-has-caption */}
         <video
           ref={videoRef}
           className="video-js vjs-default-skin w-full h-full"

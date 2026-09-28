@@ -84,7 +84,7 @@ function getErrorSolutions(errorType: string): string[] {
   }
 }
 
-export default function StreamErrorAlert({ error, baby_uid, onRetry, className = '' }: StreamErrorAlertProps) {
+export default function StreamErrorAlert({ error, onRetry, className = '' }: StreamErrorAlertProps) {
   if (!error) return null
 
   const title = getErrorTitle(error.type)

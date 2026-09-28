@@ -1,6 +1,5 @@
 import { Droplets, Lightbulb, LightbulbOff, Moon, Sun, Thermometer, type LucideIcon } from 'lucide-react'
 import { useTemperatureUnit } from '@/hooks/useTemperatureUnit'
-import { formatRelativeTime } from '@/lib/utils'
 import { sensorTooltipConfig } from '@/lib/tooltipSetup'
 import type { Baby } from '@/types/api'
 
@@ -32,44 +31,21 @@ function SensorRow({ icon: Icon, iconClass, title, value, tooltip, onClick }: Se
   )
 }
 
+const formatHumidity = (humidity: number | undefined): string =>
+  humidity === undefined || humidity === null || humidity <= 0 ? '--%' : `${humidity.toFixed(1)}%`
+
+const formatNightMode = (isNight: boolean | undefined): string =>
+  isNight === undefined || isNight === null ? '--' : isNight ? 'Night' : 'Day'
+
+const formatNightLight = (nightLight: boolean | undefined): string =>
+  nightLight === undefined || nightLight === null ? '--' : nightLight ? 'On' : 'Off'
+
 interface SensorGridProps {
   baby: Baby
 }
 
 export default function SensorGrid({ baby }: SensorGridProps) {
   const { formatTemperature, toggleUnit } = useTemperatureUnit()
-
-  // Debug logging to troubleshoot data issues
-  console.log('SensorGrid received baby data:', baby)
-  console.log('Temperature value:', baby.temperature, 'type:', typeof baby.temperature)
-  console.log('Humidity value:', baby.humidity, 'type:', typeof baby.humidity)
-
-  const formatHumidity = (humidity: number | undefined): string => {
-    console.log('formatHumidity called with:', humidity, 'type:', typeof humidity)
-    if (humidity === undefined || humidity === null || humidity <= 0) {
-      console.log('formatHumidity returning -- due to invalid value')
-      return '--%'
-    }
-    const result = `${humidity.toFixed(1)}%`
-    console.log('formatHumidity returning:', result)
-    return result
-  }
-
-  const formatNightMode = (isNight: boolean | undefined): string => {
-    console.log('formatNightMode called with:', isNight, 'type:', typeof isNight)
-    if (isNight === undefined || isNight === null) {
-      return '--'
-    }
-    return isNight ? 'Night' : 'Day'
-  }
-
-  const formatNightLight = (nightLight: boolean | undefined): string => {
-    console.log('formatNightLight called with:', nightLight, 'type:', typeof nightLight)
-    if (nightLight === undefined || nightLight === null) {
-      return '--'
-    }
-    return nightLight ? 'On' : 'Off'
-  }
 
   // Safety check: if baby object is completely undefined
   if (!baby) {

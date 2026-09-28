@@ -286,7 +286,7 @@ export const initializeVideoJS = () => {
 }
 
 // Add custom controls to Video.js player (matching working test HTML approach)
-export const addCustomControlsToPlayer = (player: VideoJSPlayer, hlsUrl: string) => {
+export const addCustomControlsToPlayer = (player: VideoJSPlayer) => {
   // Create status display overlay
   const statusDisplay = document.createElement('div')
   statusDisplay.className = 'vjs-stream-status-display vjs-status-info'
@@ -308,7 +308,7 @@ export const addCustomControlsToPlayer = (player: VideoJSPlayer, hlsUrl: string)
   player.on('pause', () => updateStatus('Paused', 'info'))
   player.on('error', () => updateStatus('Playback Error', 'error'))
   player.on('wentLive', () => updateStatus('Live Edge', 'live'))
-  player.on('snapshotTaken', (event: any, filename: string) => updateStatus('Snapshot Saved', 'success'))
+  player.on('snapshotTaken', () => updateStatus('Snapshot Saved', 'success'))
   player.on('snapshotFailed', (event: any, error: string) => updateStatus(`Snapshot Failed: ${error}`, 'error'))
   
   // Function to add buttons with retry
@@ -420,62 +420,4 @@ export const disposeVideoJS = (player: VideoJSPlayer | null) => {
       console.warn('Error disposing Video.js player:', error)
     }
   }
-}
-
-// Event handlers for live streaming
-export const setupLiveStreamHandlers = (player: VideoJSPlayer) => {
-  // Handle live edge seeking
-  player.on('seeked', () => {
-    try {
-      const liveTracker = (player as any).liveTracker
-      if (liveTracker && typeof liveTracker.atLiveEdge === 'function') {
-        if (liveTracker.isLive() && liveTracker.atLiveEdge()) {
-          // User is at live edge
-          player.addClass('vjs-at-live-edge')
-        } else {
-          player.removeClass('vjs-at-live-edge')
-        }
-      } else {
-        // Fallback live edge detection
-        const duration = player.duration()
-        const currentTime = player.currentTime()
-        const seekableEnd = player.seekable().end(0)
-        
-        if (duration === Infinity && seekableEnd > 0 && currentTime !== undefined) {
-          const atLiveEdge = Math.abs(currentTime - seekableEnd) < 5
-          if (atLiveEdge) {
-            player.addClass('vjs-at-live-edge')
-          } else {
-            player.removeClass('vjs-at-live-edge')
-          }
-        }
-      }
-    } catch (error) {
-      console.debug('Live edge detection failed:', error)
-    }
-  })
-  
-  // Handle errors
-  player.on('error', () => {
-    const error = player.error()
-    console.error('Video.js error:', error)
-    
-    // Custom error handling can be added here
-    // This integrates with the existing StreamErrorAlert component
-  })
-  
-  // Handle live tracking
-  player.on('liveresync', () => {
-    console.log('Live stream resynced')
-  })
-  
-  // Handle when stream goes live/offline
-  player.on('durationchange', () => {
-    const duration = player.duration()
-    if (duration === Infinity) {
-      player.addClass('vjs-live')
-    } else {
-      player.removeClass('vjs-live')
-    }
-  })
 }

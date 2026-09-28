@@ -27,7 +27,9 @@
       {
         "allow": [
           "**/*.css",
-          "@fontsource-variable/*"
+          "@fontsource-variable/*",
+          "@/lib/chartSetup",
+          "chartjs-adapter-date-fns"
         ]
       }
     ]
