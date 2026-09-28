@@ -110,33 +110,7 @@ func (h *HLSTranscoder) Start() error {
 	// Clean up any existing files
 	h.cleanupFiles()
 
-	// Build FFmpeg command
-	playlistPath := filepath.Join(h.hlsDir, "playlist.m3u8")
-	segmentPath := filepath.Join(h.hlsDir, "segment_%d.ts")
-
-	args := []string{
-		// Input: read straight through rather than filling a buffer first
-		"-fflags", "nobuffer",
-		"-analyzeduration", "1000000", // 1s, enough to detect the streams
-		"-probesize", "1000000",
-		"-i", h.rtmpURL, // Input RTMP stream
-		// Remux only. The cam's H.264/AAC is already what HLS wants, so
-		// re-encoding would only add CPU load, latency and quality loss.
-		"-c:v", "copy",
-		"-c:a", "copy",
-		"-f", "hls", // HLS format
-		"-hls_time", fmt.Sprintf("%d", hlsSegmentSeconds),
-		"-hls_list_size", fmt.Sprintf("%d", hlsPlaylistSize),
-		// Auto-delete old segments; every segment starts on a keyframe
-		"-hls_flags", "delete_segments+independent_segments",
-		"-hls_segment_filename", segmentPath,
-		"-muxdelay", "0",
-		"-muxpreload", "0",
-		"-y", // Overwrite output
-		playlistPath,
-	}
-
-	h.cmd = exec.Command("ffmpeg", args...)
+	h.cmd = exec.Command("ffmpeg", h.ffmpegArgs()...)
 	h.cmd.Dir = h.hlsDir
 
 	// Set up logging
@@ -593,31 +567,41 @@ func (h *HLSTranscoder) scheduleRetry() {
 	}()
 }
 
+// ffmpegArgs builds the FFmpeg command line. Start and restartFFmpeg both use
+// it, so a retry runs the same remux as the first attempt.
+func (h *HLSTranscoder) ffmpegArgs() []string {
+	playlistPath := filepath.Join(h.hlsDir, "playlist.m3u8")
+	segmentPath := filepath.Join(h.hlsDir, "segment_%d.ts")
+
+	return []string{
+		// Input: read straight through rather than filling a buffer first
+		"-fflags", "nobuffer",
+		"-analyzeduration", "1000000", // 1s, enough to detect the streams
+		"-probesize", "1000000",
+		"-i", h.rtmpURL, // Input RTMP stream
+		// Remux only. The cam's H.264/AAC is already what HLS wants, so
+		// re-encoding would only add CPU load, latency and quality loss.
+		"-c:v", "copy",
+		"-c:a", "copy",
+		"-f", "hls", // HLS format
+		"-hls_time", fmt.Sprintf("%d", hlsSegmentSeconds),
+		"-hls_list_size", fmt.Sprintf("%d", hlsPlaylistSize),
+		// Auto-delete old segments; every segment starts on a keyframe
+		"-hls_flags", "delete_segments+independent_segments",
+		"-hls_segment_filename", segmentPath,
+		"-muxdelay", "0",
+		"-muxpreload", "0",
+		"-y", // Overwrite output
+		playlistPath,
+	}
+}
+
 // restartFFmpeg restarts the FFmpeg process for retries
 func (h *HLSTranscoder) restartFFmpeg() error {
 	// Clean up any existing files
 	h.cleanupFiles()
 
-	// Build FFmpeg command
-	playlistPath := filepath.Join(h.hlsDir, "playlist.m3u8")
-	segmentPath := filepath.Join(h.hlsDir, "segment_%d.ts")
-
-	args := []string{
-		"-i", h.rtmpURL,                    // Input RTMP stream
-		"-c:v", "libx264",                  // Video codec
-		"-preset", "ultrafast",             // Fast encoding
-		"-tune", "zerolatency",             // Low latency
-		"-c:a", "aac",                      // Audio codec
-		"-f", "hls",                        // HLS format
-		"-hls_time", "2",                   // 2 second segments
-		"-hls_list_size", "5",              // Keep 5 segments in playlist
-		"-hls_flags", "delete_segments",    // Auto-delete old segments
-		"-hls_segment_filename", segmentPath,
-		"-y",                               // Overwrite output
-		playlistPath,
-	}
-
-	h.cmd = exec.Command("ffmpeg", args...)
+	h.cmd = exec.Command("ffmpeg", h.ffmpegArgs()...)
 	h.cmd.Dir = h.hlsDir
 
 	// Set up logging
