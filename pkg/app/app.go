@@ -240,13 +240,12 @@ func (app *App) runWebsocket(babyUID string, conn *client.WebsocketConnection, c
 		}
 	})
 
-	if app.Opts.MQTT != nil && app.MQTTConnection != nil {
-		app.MQTTConnection.RegisterLightHandler(func(enabled bool) {
-			sendLightCommand(enabled, conn)
+	if app.MQTTConnection != nil {
+		unregister := app.MQTTConnection.RegisterBaby(babyUID, mqtt.CommandHandlers{
+			NightLight: func(enabled bool) { sendLightCommand(enabled, conn) },
+			Standby:    func(enabled bool) { sendStandbyCommand(enabled, conn) },
 		})
-		app.MQTTConnection.RegisterStandyHandler(func(enabled bool) {
-			sendStandbyCommand(enabled, conn)
-		})
+		defer unregister()
 	}
 
 	// Get the initial state of the light

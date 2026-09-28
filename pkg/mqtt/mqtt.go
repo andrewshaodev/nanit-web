@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/url"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/andrewshaodev/nanit-web/pkg/baby"
@@ -12,22 +13,35 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-type SendLightCommandHandler func(nightLightState bool)
-type SendStandbyCommandHandler func(standbyState bool)
+// CommandHandlers - what a camera does with the switch commands sent to it
+type CommandHandlers struct {
+	NightLight func(on bool)
+	Standby    func(on bool)
+}
 
 // Connection - MQTT context
 type Connection struct {
-	Opts                      Opts
-	StateManager              *baby.StateManager
-	client                    MQTT.Client
-	sendLightCommandHandler   SendLightCommandHandler
-	sendStandbyCommandHandler SendStandbyCommandHandler
+	Opts         Opts
+	StateManager *baby.StateManager
+	client       MQTT.Client
+
+	// Each camera's handlers, by baby UID. A camera registers when its
+	// websocket connects and unregisters when it drops.
+	mu       sync.Mutex
+	handlers map[string]registration
+	nextID   int
+}
+
+type registration struct {
+	id int
+	CommandHandlers
 }
 
 // NewConnection - constructor
 func NewConnection(opts Opts) *Connection {
 	return &Connection{
-		Opts: opts,
+		Opts:     opts,
+		handlers: map[string]registration{},
 	}
 }
 
@@ -37,7 +51,7 @@ func (conn *Connection) Run(manager *baby.StateManager, ctx utils.GracefulContex
 
 	opts := MQTT.NewClientOptions()
 	opts.AddBroker(conn.Opts.BrokerURL)
-	opts.SetClientID(conn.Opts.TopicPrefix)
+	opts.SetClientID(conn.Opts.ClientID)
 	opts.SetUsername(conn.Opts.Username)
 	opts.SetPassword(conn.Opts.Password)
 	opts.SetCleanSession(false)
@@ -57,99 +71,86 @@ func (conn *Connection) Run(manager *baby.StateManager, ctx utils.GracefulContex
 	})
 }
 
-func (conn *Connection) RegisterLightHandler(sendLightCommandHandler SendLightCommandHandler) {
-	conn.sendLightCommandHandler = sendLightCommandHandler
-}
+// RegisterBaby routes the switch commands for babyUID to h, until the
+// returned function is called. There used to be one handler for all
+// cameras, so a command went to whichever camera connected last.
+func (conn *Connection) RegisterBaby(babyUID string, h CommandHandlers) (unregister func()) {
+	conn.mu.Lock()
+	defer conn.mu.Unlock()
+	conn.nextID++
+	id := conn.nextID
+	conn.handlers[babyUID] = registration{id: id, CommandHandlers: h}
 
-func (conn *Connection) subscribeToLightCommand() {
-	commandTopic := fmt.Sprintf("%v/babies/+/night_light/switch", conn.Opts.TopicPrefix)
-	log.Debug().
-		Str("topic", commandTopic).
-		Msg("Subscribing to command topic")
-
-	lightMessageHandler := func(mqttConn MQTT.Client, msg MQTT.Message) {
-		// Extract baby UID and command from topic
-		parts := strings.Split(msg.Topic(), "/")
-		if len(parts) < 4 {
-			log.Error().Str("topic", msg.Topic()).Msg("Invalid command topic format")
-			return
+	return func() {
+		conn.mu.Lock()
+		defer conn.mu.Unlock()
+		// A reconnect may have registered a newer connection meanwhile
+		if conn.handlers[babyUID].id == id {
+			delete(conn.handlers, babyUID)
 		}
-
-		babyUID := parts[2]
-		command := parts[4]
-
-		// Validate baby UID
-		if err := baby.EnsureValidBabyUID(babyUID); err != nil {
-			log.Error().Err(err).Str("topic", msg.Topic()).Msg("Invalid baby UID in MQTT light topic")
-			return
-		}
-
-		// Handle different commands
-		switch command {
-		case "switch":
-			enabled := string(msg.Payload()) == "true"
-			log.Debug().
-				Str("baby", babyUID).
-				Bool("enabled", enabled).
-				Str("payload", string(msg.Payload())).
-				Msg("Received light command")
-
-			conn.sendLightCommandHandler(enabled)
-		default:
-			log.Warn().Str("command", command).Msg("Unknown command received")
-		}
-	}
-
-	if token := conn.client.Subscribe(commandTopic, 0, lightMessageHandler); token.Wait() && token.Error() != nil {
-		log.Error().Err(token.Error()).Str("topic", commandTopic).Msg("Failed to subscribe to command topic")
 	}
 }
 
-func (conn *Connection) RegisterStandyHandler(sendStandbyCommandHandler SendStandbyCommandHandler) {
-	conn.sendStandbyCommandHandler = sendStandbyCommandHandler
+// commandTopic splits <prefix>/babies/<uid>/<control>/switch. The prefix
+// may itself contain slashes.
+func (conn *Connection) commandTopic(topic string) (babyUID, control string, ok bool) {
+	rest, found := strings.CutPrefix(topic, conn.Opts.TopicPrefix+"/babies/")
+	if !found {
+		return "", "", false
+	}
+	parts := strings.Split(rest, "/")
+	if len(parts) != 3 || parts[2] != "switch" || baby.EnsureValidBabyUID(parts[0]) != nil {
+		return "", "", false
+	}
+	return parts[0], parts[1], true
 }
 
-func (conn *Connection) subscribeToStandbyCommand() {
-	commandTopic := fmt.Sprintf("%v/babies/+/standby/switch", conn.Opts.TopicPrefix)
-	log.Debug().
-		Str("topic", commandTopic).
-		Msg("Subscribing to command topic")
-
-	standbyMessageHandler := func(mqttConn MQTT.Client, msg MQTT.Message) {
-		// Extract baby UID and command from topic
-		parts := strings.Split(msg.Topic(), "/")
-		if len(parts) < 4 {
-			log.Error().Str("topic", msg.Topic()).Msg("Invalid command topic format")
-			return
-		}
-
-		babyUID := parts[2]
-		command := parts[4]
-
-		// Validate baby UID
-		if err := baby.EnsureValidBabyUID(babyUID); err != nil {
-			log.Error().Err(err).Str("topic", msg.Topic()).Msg("Invalid baby UID in MQTT standby topic")
-			return
-		}
-
-		// Handle different commands
-		switch command {
-		case "switch":
-			enabled := string(msg.Payload()) == "true"
-			log.Debug().
-				Str("baby", babyUID).
-				Bool("enabled", enabled).
-				Str("payload", string(msg.Payload())).
-				Msg("Received standby command")
-
-			conn.sendStandbyCommandHandler(enabled)
-		default:
-			log.Warn().Str("command", command).Msg("Unknown command received")
-		}
+// handleCommand runs a switch command on the camera its topic names
+func (conn *Connection) handleCommand(topic string, payload []byte) {
+	babyUID, control, ok := conn.commandTopic(topic)
+	if !ok {
+		log.Warn().Str("topic", topic).Msg("Ignoring MQTT message on an unexpected topic")
+		return
 	}
 
-	if token := conn.client.Subscribe(commandTopic, 0, standbyMessageHandler); token.Wait() && token.Error() != nil {
-		log.Error().Err(token.Error()).Str("topic", commandTopic).Msg("Failed to subscribe to command topic")
+	conn.mu.Lock()
+	h, registered := conn.handlers[babyUID]
+	conn.mu.Unlock()
+
+	var handler func(bool)
+	switch control {
+	case "night_light":
+		handler = h.NightLight
+	case "standby":
+		handler = h.Standby
+	default:
+		log.Warn().Str("topic", topic).Msg("Unknown MQTT command")
+		return
+	}
+
+	enabled := string(payload) == "true"
+	sublog := log.With().Str("baby_uid", babyUID).Str("control", control).Bool("enabled", enabled).Logger()
+	// Commands can arrive before the camera connects, or after it drops:
+	// the broker keeps them for us (CleanSession is off)
+	if !registered || handler == nil {
+		sublog.Warn().Msg("Dropping MQTT command: camera not connected")
+		return
+	}
+	sublog.Debug().Msg("Received MQTT command")
+	handler(enabled)
+}
+
+func (conn *Connection) subscribeToCommands() {
+	for _, control := range []string{"night_light", "standby"} {
+		topic := fmt.Sprintf("%v/babies/+/%v/switch", conn.Opts.TopicPrefix, control)
+		log.Debug().Str("topic", topic).Msg("Subscribing to command topic")
+
+		token := conn.client.Subscribe(topic, 0, func(_ MQTT.Client, msg MQTT.Message) {
+			conn.handleCommand(msg.Topic(), msg.Payload())
+		})
+		if token.Wait() && token.Error() != nil {
+			log.Error().Err(token.Error()).Str("topic", topic).Msg("Failed to subscribe to command topic")
+		}
 	}
 }
 
@@ -194,9 +195,7 @@ func runMqtt(conn *Connection, attempt utils.AttemptContext) {
 		}
 	})
 
-	// Subscribe to accept light mqtt messages
-	conn.subscribeToLightCommand()
-	conn.subscribeToStandbyCommand()
+	conn.subscribeToCommands()
 
 	// Wait until interrupt signal is received
 	<-attempt.Done()
