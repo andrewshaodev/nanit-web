@@ -22,6 +22,14 @@ interface DeviceInfoProps {
   baby: Baby
 }
 
+// A stream's settings as the camera reports them. It sends a bitrate of 0
+// when it picks the bitrate itself, which used to blank the whole row.
+function formatStream(bitrate?: number, fps?: number): string {
+  if (!fps) return '--'
+  const rate = bitrate ? `${Math.round(bitrate / 1024)}KB/s` : 'Auto'
+  return `${rate} @ ${fps} fps`
+}
+
 export default function DeviceInfo({ baby }: DeviceInfoProps) {
   const [isExpanded, setIsExpanded] = useState(false)
 
@@ -239,10 +247,6 @@ export default function DeviceInfo({ baby }: DeviceInfoProps) {
                   </CardHeader>
                   <CardContent className="space-y-2 text-sm">
                     <div className="flex justify-between">
-                      <span className="text-muted-foreground">WiFi:</span>
-                      <span className="font-medium">{data.device_info?.wifi_network || '--'}</span>
-                    </div>
-                    <div className="flex justify-between">
                       <span className="text-muted-foreground">Band:</span>
                       <span className="font-medium">{data.device_info?.wifi_band || '--'}</span>
                     </div>
@@ -261,17 +265,13 @@ export default function DeviceInfo({ baby }: DeviceInfoProps) {
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">Mobile:</span>
                       <span className="font-medium">
-                        {data.device_info?.mobile_bitrate && data.device_info?.mobile_fps
-                          ? `${Math.round(data.device_info?.mobile_bitrate / 1024)}KB/s @ ${data.device_info?.mobile_fps}fps`
-                          : '--'}
+                        {formatStream(data.device_info?.mobile_bitrate, data.device_info?.mobile_fps)}
                       </span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">DVR:</span>
                       <span className="font-medium">
-                        {data.device_info?.dvr_bitrate && data.device_info?.dvr_fps
-                          ? `${Math.round(data.device_info?.dvr_bitrate / 1024)}KB/s @ ${data.device_info?.dvr_fps}fps`
-                          : '--'}
+                        {formatStream(data.device_info?.dvr_bitrate, data.device_info?.dvr_fps)}
                       </span>
                     </div>
                   </CardContent>
