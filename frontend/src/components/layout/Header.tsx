@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Link, useLocation } from 'react-router'
+import ThemeToggle from '@/components/layout/ThemeToggle'
 import useSWR from 'swr'
 import { api } from '@/lib/api'
 import { errorTooltipConfig } from '@/lib/tooltipSetup'
@@ -94,6 +95,8 @@ export default function Header() {
                 Last updated: {lastUpdate.toLocaleTimeString()}
               </div>
             )}
+
+            <ThemeToggle />
           </div>
         </div>
       </div>

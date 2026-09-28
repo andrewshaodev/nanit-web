@@ -15,14 +15,14 @@ export function useStatus(enabled: boolean = true) {
 
   // Debug logging to help troubleshoot motion/sound timestamp issues
   if (data) {
-    console.log('🔍 API Status Response:', data)
+    console.log('API Status Response:', data)
     data.babies?.forEach((baby, index) => {
-      console.log(`👶 Baby ${index} (${baby.name}):`, baby)
+      console.log(`Baby ${index} (${baby.name}):`, baby)
     })
   }
   
   if (error) {
-    console.error('❌ Status API Error:', error)
+    console.error('Status API Error:', error)
   }
 
   return {

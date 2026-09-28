@@ -35,9 +35,9 @@ export default function DeviceInfo({ baby }: DeviceInfoProps) {
 
   // Debug logging
   if (data) {
-    console.log('🔍 DeviceInfo API Response:', data)
-    console.log('🔍 device_info object:', data.device_info)
-    console.log('🔍 connection_status object:', data.connection_status)
+    console.log('DeviceInfo API Response:', data)
+    console.log('device_info object:', data.device_info)
+    console.log('connection_status object:', data.connection_status)
   }
 
   const alerts = data?.alerts || []

@@ -1,5 +1,12 @@
 import videojs from 'video.js'
 import 'video.js/dist/video-js.css'
+import { createElement, Camera, type IconNode } from 'lucide'
+
+// A Lucide icon for the custom control-bar buttons, which video.js builds
+// outside React
+function controlIcon(icon: IconNode): SVGElement {
+  return createElement(icon, { width: 18, height: 18, 'aria-hidden': 'true' })
+}
 
 // No external HLS plugin needed - Video.js 8.x has built-in HLS support
 
@@ -164,9 +171,10 @@ export const injectCustomStyles = () => {
     }
     
     /* Custom control buttons */
-    .vjs-check-stream-control,
-    .vjs-load-stream-control,
     .vjs-snapshot-control {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
       font-size: 1.2em;
       padding: 0 0.5em;
       cursor: pointer;
@@ -177,8 +185,6 @@ export const injectCustomStyles = () => {
       transition: opacity 0.3s ease;
     }
     
-    .vjs-check-stream-control:hover,
-    .vjs-load-stream-control:hover,
     .vjs-snapshot-control:hover {
       opacity: 1;
     }
@@ -292,7 +298,6 @@ export const addCustomControlsToPlayer = (player: VideoJSPlayer, hlsUrl: string)
   // Add event listeners for status updates
   player.on('streamAvailable', () => updateStatus('Stream Available', 'success'))
   player.on('streamUnavailable', (event: any, error: string) => updateStatus(`Stream Error: ${error}`, 'error'))
-  player.on('streamLoaded', () => updateStatus('Stream Loaded', 'success'))
   player.on('loadstart', () => updateStatus('Loading...', 'loading'))
   player.on('canplay', () => updateStatus('Ready to Play', 'success'))
   player.on('play', () => updateStatus('Playing', 'success'))
@@ -314,74 +319,11 @@ export const addCustomControlsToPlayer = (player: VideoJSPlayer, hlsUrl: string)
     
     console.log('Adding custom buttons to control bar')
     
-    // Create Check Stream button
-    const checkBtn = document.createElement('button')
-    checkBtn.className = 'vjs-check-stream-control vjs-control vjs-button'
-    checkBtn.innerHTML = '<span class="vjs-control-text">Check Stream</span>📡'
-    checkBtn.title = 'Check Stream'
-    checkBtn.style.fontSize = '1.2em'
-    checkBtn.style.padding = '0 0.5em'
-    checkBtn.addEventListener('click', function(e) {
-      e.preventDefault()
-      e.stopPropagation()
-      
-      if (!hlsUrl) return
-      
-      console.log('Checking stream availability...')
-      
-      fetch(hlsUrl, {
-        method: 'GET',
-        signal: AbortSignal.timeout(5000)
-      })
-      .then(response => {
-        if (response.ok) {
-          return response.text()
-        }
-        throw new Error(`${response.status} ${response.statusText}`)
-      })
-      .then(text => {
-        if (text.includes('#EXTM3U')) {
-          console.log('Stream is available (valid M3U8)')
-          player.trigger('streamAvailable')
-        } else {
-          console.log('Invalid M3U8 response')
-          player.trigger('streamUnavailable', 'Invalid M3U8')
-        }
-      })
-      .catch(error => {
-        console.log(`Stream check failed: ${error.message}`)
-        player.trigger('streamUnavailable', error.message)
-      })
-    })
-    
-    // Create Load Stream button
-    const loadBtn = document.createElement('button')
-    loadBtn.className = 'vjs-load-stream-control vjs-control vjs-button'
-    loadBtn.innerHTML = '<span class="vjs-control-text">Load Stream</span>📺'
-    loadBtn.title = 'Load Stream'
-    loadBtn.style.fontSize = '1.2em'
-    loadBtn.style.padding = '0 0.5em'
-    loadBtn.addEventListener('click', function(e) {
-      e.preventDefault()
-      e.stopPropagation()
-      
-      if (!hlsUrl) return
-      
-      console.log('Loading stream source:', hlsUrl)
-      
-      player.src({
-        src: hlsUrl,
-        type: 'application/x-mpegURL'
-      })
-      
-      player.load()
-      player.trigger('streamLoaded')
-    })
-    
     // Create Snapshot button
     const snapshotBtn = document.createElement('button')
     snapshotBtn.className = 'vjs-snapshot-control vjs-control vjs-button'
-    snapshotBtn.innerHTML = '<span class="vjs-control-text">Take Snapshot</span>📷'
+    snapshotBtn.innerHTML = '<span class="vjs-control-text">Take Snapshot</span>'
+    snapshotBtn.append(controlIcon(Camera))
     snapshotBtn.title = 'Take Snapshot'
     snapshotBtn.style.fontSize = '1.2em'
     snapshotBtn.style.padding = '0 0.5em'
@@ -449,15 +391,12 @@ export const addCustomControlsToPlayer = (player: VideoJSPlayer, hlsUrl: string)
       }
     }
     
-    // Add buttons to control bar (insert before fullscreen button)
+    // Add buttons to control bar (insert before fullscreen button). Buttons
+    // for later additions, such as the cam's sounds, go in alongside Snapshot.
     const fullscreenBtn = controlBar.querySelector('.vjs-fullscreen-control')
     if (fullscreenBtn) {
-      controlBar.insertBefore(checkBtn, fullscreenBtn)
-      controlBar.insertBefore(loadBtn, fullscreenBtn)
       controlBar.insertBefore(snapshotBtn, fullscreenBtn)
     } else {
-      controlBar.appendChild(checkBtn)
-      controlBar.appendChild(loadBtn)
       controlBar.appendChild(snapshotBtn)
     }
     

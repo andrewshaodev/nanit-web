@@ -40,23 +40,23 @@ export default function SensorGrid({ baby }: SensorGridProps) {
   const { formatTemperature, toggleUnit } = useTemperatureUnit()
 
   // Debug logging to troubleshoot data issues
-  console.log('🔧 SensorGrid received baby data:', baby)
-  console.log('🌡️ Temperature value:', baby.temperature, 'type:', typeof baby.temperature)
-  console.log('💧 Humidity value:', baby.humidity, 'type:', typeof baby.humidity)
+  console.log('SensorGrid received baby data:', baby)
+  console.log('Temperature value:', baby.temperature, 'type:', typeof baby.temperature)
+  console.log('Humidity value:', baby.humidity, 'type:', typeof baby.humidity)
 
   const formatHumidity = (humidity: number | undefined): string => {
-    console.log('🔧 formatHumidity called with:', humidity, 'type:', typeof humidity)
+    console.log('formatHumidity called with:', humidity, 'type:', typeof humidity)
     if (humidity === undefined || humidity === null || humidity <= 0) {
-      console.log('🔧 formatHumidity returning -- due to invalid value')
+      console.log('formatHumidity returning -- due to invalid value')
       return '--%'
     }
     const result = `${humidity.toFixed(1)}%`
-    console.log('🔧 formatHumidity returning:', result)
+    console.log('formatHumidity returning:', result)
     return result
   }
 
   const formatNightMode = (isNight: boolean | undefined): string => {
-    console.log('🔧 formatNightMode called with:', isNight, 'type:', typeof isNight)
+    console.log('formatNightMode called with:', isNight, 'type:', typeof isNight)
     if (isNight === undefined || isNight === null) {
       return '--'
     }
@@ -64,7 +64,7 @@ export default function SensorGrid({ baby }: SensorGridProps) {
   }
 
   const formatNightLight = (nightLight: boolean | undefined): string => {
-    console.log('🔧 formatNightLight called with:', nightLight, 'type:', typeof nightLight)
+    console.log('formatNightLight called with:', nightLight, 'type:', typeof nightLight)
     if (nightLight === undefined || nightLight === null) {
       return '--'
     }
@@ -73,7 +73,7 @@ export default function SensorGrid({ baby }: SensorGridProps) {
 
   // Safety check: if baby object is completely undefined
   if (!baby) {
-    console.error('❌ SensorGrid: baby object is undefined!')
+    console.error('SensorGrid: baby object is undefined!')
     return (
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <div className="text-ctp-red dark:text-ctp-red text-center col-span-full">
