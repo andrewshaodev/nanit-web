@@ -1,12 +1,12 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router'
 import { api } from '@/lib/api'
-import { CircleAlert, Loader2, MessageSquareText } from 'lucide-react'
+import { Baby, CircleAlert, Loader2, MessageSquareText } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Alert, AlertDescription } from '@/components/ui/alert'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent } from '@/components/ui/card'
 
 export default function SetupPage() {
   const navigate = useNavigate()
@@ -83,23 +83,17 @@ export default function SetupPage() {
   )
 
   return (
-    <div className="min-h-screen bg-background flex items-center justify-center px-4">
-      <div className="max-w-md w-full">
-        <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-gradient mb-2">
-            Nanit Dashboard
+    // GitHub's sign-in layout: logo and heading above a narrow, compact box
+    <div className="min-h-screen bg-background flex flex-col items-center px-4 pt-16">
+      <div className="w-full max-w-sm">
+        <div className="mb-4 flex flex-col items-center gap-3 text-center">
+          <Baby className="size-10 text-ctp-mauve" aria-hidden="true" />
+          <h1 className="text-2xl font-light">
+            {step === 'login' ? 'Sign in to Nanit' : 'Two-factor authentication'}
           </h1>
-          <p className="text-muted-foreground">
-            Set up your Nanit Home Assistant Bridge
-          </p>
         </div>
 
         <Card>
-          <CardHeader>
-            <CardTitle className="text-xl">
-              {step === 'login' ? 'Sign In to Nanit' : 'Two-Factor Authentication'}
-            </CardTitle>
-          </CardHeader>
           <CardContent>
             {step === 'login' ? (
               <form onSubmit={handleLogin} className="space-y-4">
@@ -190,8 +184,8 @@ export default function SetupPage() {
           </CardContent>
         </Card>
 
-        <div className="text-center mt-6 text-sm text-muted-foreground">
-          <p>This will securely store your authentication for the Nanit bridge.</p>
+        <div className="mt-4 rounded-md border p-4 text-center text-xs text-muted-foreground">
+          The bridge stores your Nanit session so it can stay connected to your cameras.
         </div>
       </div>
     </div>

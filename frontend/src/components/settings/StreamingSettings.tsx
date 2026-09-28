@@ -1,142 +1,65 @@
-import { useState } from 'react';
 import { House, Radio } from 'lucide-react';
 import StreamingLinks from '@/components/baby/StreamingLinks';
+import CameraBox from '@/components/CameraBox';
+import StatusLabel, { DOT } from '@/components/StatusLabel';
 import type { Baby } from '@/types/api';
-import { displayName } from '@/lib/utils';
+import { streamStatus } from '@/lib/utils';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Badge } from '@/components/ui/badge';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 interface StreamingSettingsProps {
   babies: Baby[];
 }
 
-export default function StreamingSettings({ babies }: StreamingSettingsProps) {
-  const [activeTab, setActiveTab] = useState(0);
+const haConfig = `camera:
+  - platform: ffmpeg
+    name: "Nanit Camera"
+    input: "rtmp://YOUR_SERVER_IP:1935/local/camera_uid"`;
 
+export default function StreamingSettings({ babies }: StreamingSettingsProps) {
   if (babies.length === 0) {
     return (
-      <div className="text-center py-8 text-muted-foreground">
+      <div className="rounded-md border border-dashed py-8 text-center text-muted-foreground">
         No devices found. Please ensure your Nanit account is authenticated and devices are connected.
       </div>
     );
   }
 
   return (
-    <div className="space-y-6">
-      {/* Global Streaming Information */}
+    <div className="space-y-4">
       <Alert variant="info">
         <Radio />
-        <AlertTitle>Streaming Overview</AlertTitle>
-        <AlertDescription className="[&_p:not(:last-child)]:mb-1">
-          <p>• <strong>RTMP:</strong> Best for Home Assistant, OBS, VLC, and other video software</p>
-          <p>• <strong>HLS:</strong> Best for web browsers and modern mobile applications</p>
-          <p>• Start video streaming on the device before using these URLs</p>
-          <p>• Streaming quality depends on your network connection and device settings</p>
+        <AlertTitle>Streaming overview</AlertTitle>
+        <AlertDescription>
+          <ul className="list-disc space-y-0.5 pl-4">
+            <li><strong>RTMP:</strong> best for Home Assistant, OBS, VLC and other video software</li>
+            <li><strong>HLS:</strong> best for web browsers and mobile apps</li>
+            <li>Start video streaming on the device before using these URLs</li>
+          </ul>
         </AlertDescription>
       </Alert>
 
-      {/* Device Tabs */}
-      {babies.length > 1 && (
-        <Tabs value={String(activeTab)} onValueChange={(value) => setActiveTab(Number(value))}>
-          <TabsList variant="line" className="overflow-x-auto">
-            {babies.map((baby, index) => (
-              <TabsTrigger key={baby.uid} value={String(index)}>
-                {displayName(baby)}
-                {baby.stream_state === 'streaming' && (
-                  <Badge className="ml-1 bg-ctp-green/20 text-ctp-green-900 dark:text-ctp-green">
-                    Live
-                  </Badge>
-                )}
-              </TabsTrigger>
-            ))}
-          </TabsList>
-        </Tabs>
-      )}
+      {babies.map((baby) => {
+        const { streaming, label } = streamStatus(baby);
+        return (
+          <CameraBox
+            key={baby.uid}
+            baby={baby}
+            flush
+            status={<StatusLabel dot={streaming ? DOT.good : DOT.idle}>{label}</StatusLabel>}
+          >
+            <StreamingLinks baby={baby} />
+          </CameraBox>
+        );
+      })}
 
-      {/* Streaming Links Content */}
-      <div className="space-y-4">
-        {babies.length === 1 ? (
-          <div>
-            <div className="flex items-center justify-between mb-4">
-              <h4 className="text-lg font-medium">{babies[0].name}</h4>
-              <div className="flex items-center gap-2">
-                <div className={`w-2 h-2 rounded-full ${
-                  babies[0].stream_state === 'streaming' ? 'bg-ctp-green-900 dark:bg-ctp-green' : 'bg-ctp-overlay0'
-                }`} />
-                <span className="text-sm text-muted-foreground">
-                  {babies[0].stream_state === 'streaming' ? 'Streaming' : 'Not streaming'}
-                </span>
-              </div>
-            </div>
-            <StreamingLinks baby={babies[0]} />
-          </div>
-        ) : (
-          <div>
-            <div className="flex items-center justify-between mb-4">
-              <h4 className="text-lg font-medium">{babies[activeTab]?.name}</h4>
-              <div className="flex items-center gap-2">
-                <div className={`w-2 h-2 rounded-full ${
-                  babies[activeTab]?.stream_state === 'streaming' ? 'bg-ctp-green-900 dark:bg-ctp-green' : 'bg-ctp-overlay0'
-                }`} />
-                <span className="text-sm text-muted-foreground">
-                  {babies[activeTab]?.stream_state === 'streaming' ? 'Streaming' : 'Not streaming'}
-                </span>
-              </div>
-            </div>
-            <StreamingLinks baby={babies[activeTab]} />
-          </div>
-        )}
-      </div>
-
-      {/* Streaming Status Summary for Multiple Devices */}
-      {babies.length > 1 && (
-        <Card size="sm" className="mt-8 bg-muted/50">
-          <CardHeader>
-            <CardTitle>Streaming Status</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {babies.map((baby) => (
-                <div key={baby.uid} className="bg-card rounded-lg p-3 border">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="font-medium">{displayName(baby)}</p>
-                      <p className="text-xs text-muted-foreground">
-                        {baby.websocket_alive ? 'Connected' : 'Disconnected'}
-                      </p>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <div className={`w-2 h-2 rounded-full ${
-                        baby.stream_state === 'streaming' ? 'bg-ctp-green-900 dark:bg-ctp-green' : 'bg-ctp-overlay0'
-                      }`} />
-                      <span className="text-xs text-muted-foreground">
-                        {baby.stream_state === 'streaming' ? 'Live' : 'Offline'}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Home Assistant Integration Help */}
       <Alert variant="success">
         <House />
-        <AlertTitle>Home Assistant Integration</AlertTitle>
+        <AlertTitle>Home Assistant integration</AlertTitle>
         <AlertDescription className="space-y-2">
           <p>To add these streams to Home Assistant, use the RTMP URLs in your camera configuration:</p>
-          <div className="bg-ctp-green/15 text-foreground p-3 rounded-sm font-mono text-xs overflow-x-auto">
-            <div>camera:</div>
-            <div>&nbsp;&nbsp;- platform: ffmpeg</div>
-            <div>&nbsp;&nbsp;&nbsp;&nbsp;name: &quot;Nanit Camera&quot;</div>
-            <div>&nbsp;&nbsp;&nbsp;&nbsp;input: &quot;rtmp://YOUR_SERVER_IP:1935/camera_uid&quot;</div>
-          </div>
+          <pre className="overflow-x-auto rounded-md border bg-muted p-3 font-mono text-xs text-foreground">{haConfig}</pre>
           <p className="text-xs">
-            Replace YOUR_SERVER_IP with the IP address of this server and camera_uid with your device&apos;s UID.
+            Replace YOUR_SERVER_IP with this server&apos;s address and camera_uid with the device&apos;s UID.
           </p>
         </AlertDescription>
       </Alert>

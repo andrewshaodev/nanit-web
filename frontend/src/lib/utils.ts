@@ -8,6 +8,22 @@ export function displayName(baby: { name?: string | null }): string {
   return baby.name?.trim() || 'Baby'
 }
 
+// The backend's baby.StreamState values, as /api/status sends them. The
+// streaming panel used to compare against the string 'streaming', which never
+// matched, so every camera read as offline.
+export const StreamState = { Unknown: 0, Unhealthy: 1, Alive: 2 } as const
+
+export function streamStatus(baby: { stream_state?: number }): { streaming: boolean; label: string } {
+  switch (baby.stream_state) {
+    case StreamState.Alive:
+      return { streaming: true, label: 'Streaming' }
+    case StreamState.Unhealthy:
+      return { streaming: false, label: 'Stream lost' }
+    default:
+      return { streaming: false, label: 'Not streaming' }
+  }
+}
+
 export function formatRelativeTime(date: Date): string {
   const now = new Date()
   const diffMs = now.getTime() - date.getTime()

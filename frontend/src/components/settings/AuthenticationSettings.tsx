@@ -3,7 +3,6 @@ import { useNavigate } from 'react-router';
 import type { AuthStatusResponse } from '@/types/api';
 import { api } from '@/lib/api';
 import { Info, Loader2 } from 'lucide-react';
-import { Alert, AlertDescription } from '@/components/ui/alert';
 import {
   AlertDialog,
   AlertDialogCancel,
@@ -29,6 +28,35 @@ interface AuthenticationSettingsProps {
   onAuthStatusUpdate: () => void;
   onWebAuthStatusUpdate: () => void;
   onMessage: (message: { type: 'success' | 'error'; text: string }) => void;
+}
+
+// A settings row: what it is on the left, its actions on the right
+function SettingRow({ title, description, meta, actions }: {
+  title: string
+  description: React.ReactNode
+  meta?: React.ReactNode
+  actions: React.ReactNode
+}) {
+  return (
+    <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-3">
+      <div className="min-w-0 space-y-0.5">
+        <p className="font-medium">{title}</p>
+        <div className="text-muted-foreground">{description}</div>
+        {meta && <p className="text-xs text-muted-foreground">{meta}</p>}
+      </div>
+      <div className="flex shrink-0 gap-2">{actions}</div>
+    </div>
+  )
+}
+
+// A quieter closing row for a note about the box above
+function NoteRow({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="flex items-start gap-2 bg-muted/40 px-4 py-2 text-xs text-muted-foreground">
+      <Info className="mt-0.5 size-3.5 shrink-0" aria-hidden="true" />
+      <p>{children}</p>
+    </div>
+  )
 }
 
 export default function AuthenticationSettings({ 
@@ -124,109 +152,88 @@ export default function AuthenticationSettings({
 
   return (
     <>
-      <div className="space-y-8">
-        {/* Nanit Authentication Section */}
-        <div>
-          <h3 className="text-lg font-medium mb-4">Nanit Account</h3>
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium">Status</p>
-                <div className="flex items-center gap-2 mt-1">
-                  <div className={`w-2 h-2 rounded-full ${
-                    authStatus.authenticated ? 'bg-ctp-green-900 dark:bg-ctp-green' : 'bg-ctp-red dark:bg-ctp-red'
-                  }`} />
-                  <p className="text-sm text-muted-foreground">
-                    {authStatus.authenticated 
-                      ? `Authenticated${authStatus.email ? ` as ${authStatus.email}` : ''}`
-                      : authStatus.message
-                    }
-                  </p>
-                </div>
-                {authStatus.authenticated && (
-                  <div className="mt-2 text-xs text-muted-foreground">
-                    {authStatus.babies_count && (
-                      <span>{authStatus.babies_count} device{authStatus.babies_count !== 1 ? 's' : ''} • </span>
-                    )}
-                    Services: {authStatus.services_running ? 'Running' : 'Stopped'}
-                    {authStatus.auth_time && (
-                      <span> • Authenticated: {new Date(authStatus.auth_time * 1000).toLocaleDateString()}</span>
-                    )}
-                  </div>
-                )}
-              </div>
-              <div className="flex gap-2">
-                {authStatus.authenticated ? (
-                  <Button variant="destructive" onClick={() => setShowResetConfirmation(true)}>
+      <div className="space-y-6">
+        {/* Nanit account: a GitHub-style box of rows */}
+        <section className="space-y-2">
+          <h3 className="font-semibold">Nanit account</h3>
+          <div className="divide-y rounded-md border bg-card">
+            <SettingRow
+              title="Status"
+              description={
+                <span className="flex items-center gap-2">
+                  <span
+                    className={`size-2 rounded-full ${authStatus.authenticated ? 'bg-ctp-green-900 dark:bg-ctp-green' : 'bg-ctp-red'}`}
+                    aria-hidden="true"
+                  />
+                  {authStatus.authenticated
+                    ? `Authenticated${authStatus.email ? ` as ${authStatus.email}` : ''}`
+                    : authStatus.message}
+                </span>
+              }
+              meta={
+                authStatus.authenticated && (
+                  <>
+                    {authStatus.babies_count ? `${authStatus.babies_count} device${authStatus.babies_count !== 1 ? 's' : ''} · ` : ''}
+                    Services {authStatus.services_running ? 'running' : 'stopped'}
+                    {authStatus.auth_time ? ` · Signed in ${new Date(authStatus.auth_time * 1000).toLocaleDateString()}` : ''}
+                  </>
+                )
+              }
+              actions={
+                authStatus.authenticated ? (
+                  <Button variant="destructive" size="sm" onClick={() => setShowResetConfirmation(true)}>
                     Reset Authentication
                   </Button>
                 ) : (
-                  <Button onClick={handleReAuthenticate}>
+                  <Button size="sm" onClick={handleReAuthenticate}>
                     Authenticate
                   </Button>
-                )}
-              </div>
-            </div>
-
+                )
+              }
+            />
             {authStatus.authenticated && (
-              <Alert variant="info">
-                <Info />
-                <AlertDescription>
-                  <strong className="text-foreground">Note:</strong> Resetting authentication will stop all monitoring services and require you to re-authenticate with your Nanit account.
-                </AlertDescription>
-              </Alert>
+              <NoteRow>
+                Resetting authentication stops all monitoring services until you sign in to Nanit again.
+              </NoteRow>
             )}
           </div>
-        </div>
+        </section>
 
-        {/* Web Dashboard Password Protection Section */}
+        {/* Web dashboard password */}
         {webAuthStatus?.password_protection_enabled && (
-          <div>
-            <h3 className="text-lg font-medium mb-4">Web Dashboard Security</h3>
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium">Password Protection</p>
-                  <p className="text-sm text-muted-foreground">
-                    {webAuthStatus.password_set 
-                      ? 'Password protection is enabled' 
-                      : 'No password set'}
-                  </p>
-                </div>
-                <div className="flex gap-2">
-                  {!webAuthStatus.password_set ? (
-                    <Button onClick={() => openPasswordForm('set')}>
+          <section className="space-y-2">
+            <h3 className="font-semibold">Web dashboard security</h3>
+            <div className="divide-y rounded-md border bg-card">
+              <SettingRow
+                title="Password protection"
+                description={webAuthStatus.password_set ? 'Password protection is enabled' : 'No password set'}
+                actions={
+                  !webAuthStatus.password_set ? (
+                    <Button size="sm" onClick={() => openPasswordForm('set')}>
                       Set Password
                     </Button>
                   ) : (
                     <>
-                      <Button onClick={() => openPasswordForm('change')}>
+                      <Button variant="outline" size="sm" onClick={() => openPasswordForm('change')}>
                         Change Password
                       </Button>
-                      <Button variant="destructive" onClick={() => openPasswordForm('remove')}>
+                      <Button variant="destructive" size="sm" onClick={() => openPasswordForm('remove')}>
                         Remove Password
                       </Button>
                     </>
-                  )}
-                </div>
-              </div>
-
+                  )
+                }
+              />
               {webAuthStatus.password_set && (
-                <Alert variant="info">
-                  <Info />
-                  <AlertDescription>
-                    <p>
-                      <strong className="text-foreground">Forgot your password?</strong> You can reset it using the CLI command inside the Docker container:
-                      <br />
-                      <code className="bg-muted text-foreground px-1 rounded-sm text-xs mt-1 inline-block">
-                        docker exec -it YOUR_CONTAINER_NAME /app/bin/nanit --reset-password
-                      </code>
-                    </p>
-                  </AlertDescription>
-                </Alert>
+                <NoteRow>
+                  Forgot it? Reset it from inside the Docker container:{' '}
+                  <code className="rounded-sm bg-muted px-1 py-0.5 font-mono text-xs text-foreground">
+                    docker exec -it YOUR_CONTAINER_NAME /app/bin/nanit --reset-password
+                  </code>
+                </NoteRow>
               )}
             </div>
-          </div>
+          </section>
         )}
       </div>
 

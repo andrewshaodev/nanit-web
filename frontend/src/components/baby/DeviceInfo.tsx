@@ -44,13 +44,15 @@ export default function DeviceInfo({ baby }: DeviceInfoProps) {
   const hasAlerts = alerts.length > 0
 
   return (
-    <div className="border rounded-lg overflow-hidden">
+    // A disclosure row, flush inside its CameraBox
+    <div>
       <Button
         variant="ghost"
         onClick={() => setIsExpanded(!isExpanded)}
-        className="w-full h-auto px-4 py-3 rounded-none bg-muted justify-between text-left"
+        aria-expanded={isExpanded}
+        className="w-full h-auto px-4 py-2 rounded-none justify-between text-left font-normal hover:bg-accent aria-expanded:bg-transparent aria-expanded:hover:bg-accent"
       >
-        <h3 className="font-semibold flex items-center gap-2">
+        <h3 className="font-medium flex items-center gap-2 text-muted-foreground">
           <Wrench />
           Device Details & Troubleshooting
           {hasAlerts && (
@@ -63,7 +65,7 @@ export default function DeviceInfo({ baby }: DeviceInfoProps) {
       </Button>
 
       {isExpanded && (
-        <div className="p-4">
+        <div className="border-t p-4">
           {isLoading ? (
             <div className="flex items-center justify-center py-8">
               <LoadingSpinner size="md" />

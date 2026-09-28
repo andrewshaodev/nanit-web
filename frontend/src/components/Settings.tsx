@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router';
-import { Camera, Radio, ShieldCheck } from 'lucide-react';
+import { Camera, CircleAlert, CircleCheck, Radio, ShieldCheck } from 'lucide-react';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { api } from '@/lib/api';
 import { useStatus } from '@/hooks/useStatus';
 import SettingsTabs, { SettingsTab } from '@/components/settings/SettingsTabs';
@@ -97,13 +98,11 @@ export default function Settings() {
 
   if (isLoading) {
     return (
-      <div className="p-6">
-        <div className="bg-ctp-base rounded-lg shadow-sm p-6">
-          <h2 className="text-2xl font-bold text-ctp-text mb-4">Settings</h2>
-          <div className="animate-pulse">
-            <div className="h-4 bg-ctp-surface0 rounded-sm w-1/4 mb-4"></div>
-            <div className="h-8 bg-ctp-surface0 rounded-sm w-1/3"></div>
-          </div>
+      <div className="space-y-4">
+        <h1 className="text-xl font-semibold">Settings</h1>
+        <div className="animate-pulse space-y-3">
+          <div className="h-4 bg-muted rounded-md w-1/4"></div>
+          <div className="h-8 bg-muted rounded-md w-1/3"></div>
         </div>
       </div>
     );
@@ -111,11 +110,12 @@ export default function Settings() {
 
   if (!authStatus) {
     return (
-      <div className="p-6">
-        <div className="bg-ctp-base rounded-lg shadow-sm p-6">
-          <h2 className="text-2xl font-bold text-ctp-text mb-4">Settings</h2>
-          <div className="text-ctp-red dark:text-ctp-red">Failed to load settings</div>
-        </div>
+      <div className="space-y-4">
+        <h1 className="text-xl font-semibold">Settings</h1>
+        <Alert variant="destructive">
+          <CircleAlert />
+          <AlertDescription>Failed to load settings</AlertDescription>
+        </Alert>
       </div>
     );
   }
@@ -157,20 +157,17 @@ export default function Settings() {
   ];
 
   return (
-    <div className="p-6">
-      <div className="mb-6">
-        <h2 className="text-2xl font-bold text-ctp-text">Settings</h2>
-        <p className="text-ctp-subtext1 mt-1">Manage your Nanit device configuration and preferences</p>
+    <div className="space-y-4">
+      <div>
+        <h1 className="text-xl font-semibold">Settings</h1>
+        <p className="text-muted-foreground">Manage your Nanit device configuration and preferences</p>
       </div>
-      
+
       {message && (
-        <div className={`mb-6 p-4 rounded-md ${
-          message.type === 'success' 
-            ? 'bg-ctp-green/10 text-ctp-green-900 dark:text-ctp-green border border-ctp-green/30' 
-            : 'bg-ctp-red/10 text-ctp-red dark:text-ctp-red border border-ctp-red/30'
-        }`}>
-          {message.text}
-        </div>
+        <Alert variant={message.type === 'success' ? 'success' : 'destructive'}>
+          {message.type === 'success' ? <CircleCheck /> : <CircleAlert />}
+          <AlertDescription>{message.text}</AlertDescription>
+        </Alert>
       )}
 
       <SettingsTabs tabs={settingsTabs} defaultTab="authentication" />

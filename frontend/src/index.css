@@ -18,70 +18,6 @@
   --animate-pulse-slow: pulse 2s infinite;
 }
 
-@utility sensor-card {
-  @apply bg-ctp-mantle p-5 rounded-lg border-l-4 transition-colors duration-200 hover:bg-ctp-surface0;
-
-  &.temperature {
-    @apply border-l-ctp-peach;
-  }
-
-  &.humidity {
-    @apply border-l-ctp-teal;
-  }
-
-  &.night-mode {
-    @apply border-l-ctp-mauve;
-  }
-
-  /* Motion/sound sensor cards - disabled for now
-  .sensor-card.motion {
-    @apply border-l-ctp-pink;
-  }
-
-  .sensor-card.sound {
-    @apply border-l-ctp-yellow;
-  }
-  */
-
-  &.night-light {
-    @apply border-l-ctp-sky;
-  }
-}
-
-@utility temperature {
-  &.sensor-card {
-    @apply border-l-ctp-peach;
-  }
-}
-
-@utility humidity {
-  &.sensor-card {
-    @apply border-l-ctp-teal;
-  }
-}
-
-@utility night-mode {
-  &.sensor-card {
-    @apply border-l-ctp-mauve;
-  }
-}
-
-@utility night-light {
-  /* Motion/sound sensor cards - disabled for now
-  .sensor-card.motion {
-    @apply border-l-ctp-pink;
-  }
-
-  .sensor-card.sound {
-    @apply border-l-ctp-yellow;
-  }
-  */
-
-  &.sensor-card {
-    @apply border-l-ctp-sky;
-  }
-}
-
 @utility status-dot {
   @apply w-2 h-2 rounded-full;
 
@@ -108,23 +44,6 @@
   &.status-dot {
     @apply bg-ctp-red dark:bg-ctp-red;
   }
-}
-
-@utility connecting {
-  &.status-dot {
-    @apply bg-ctp-yellow-900 dark:bg-ctp-yellow animate-pulse;
-  }
-}
-
-@utility text-gradient {
-  background: linear-gradient(135deg, var(--color-ctp-mauve) 0%, var(--color-ctp-blue) 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-}
-
-@utility bg-gradient-nanit {
-  background: linear-gradient(135deg, var(--color-ctp-mauve) 0%, var(--color-ctp-blue) 100%);
 }
 
 @theme inline {

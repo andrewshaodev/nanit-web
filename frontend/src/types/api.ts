@@ -9,7 +9,8 @@ export interface Baby {
   night_light?: boolean;
   standby?: boolean;
   websocket_alive: boolean;
-  stream_state?: string;
+  // /api/status sends the backend's StreamState number; see streamStatus()
+  stream_state?: number;
 }
 
 export interface StatusResponse {
