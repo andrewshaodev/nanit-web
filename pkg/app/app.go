@@ -288,10 +288,15 @@ func (app *App) runWebsocket(babyUID string, conn *client.WebsocketConnection, c
 			requestLocalStreaming(babyUID, app.getLocalStreamURL(babyUID), client.Streaming_STARTED, conn, app.BabyStateManager)
 		}
 
+		// Asking the cam to stream on its own is what NANIT_RTMP_AUTO_START
+		// controls. These two requests used to ignore it, so setting it to false
+		// still pointed the cam's stream at this bridge on every connect.
+		autoStart := app.Opts.RTMP.AutoStart
+
 		// Watch for stream liveness change
 		unsubscribe := app.BabyStateManager.Subscribe(func(updatedBabyUID string, stateUpdate baby.State) {
 			// Do another streaming request if stream just turned unhealthy
-			if updatedBabyUID == babyUID && stateUpdate.StreamState != nil && *stateUpdate.StreamState == baby.StreamState_Unhealthy {
+			if autoStart && updatedBabyUID == babyUID && stateUpdate.StreamState != nil && *stateUpdate.StreamState == baby.StreamState_Unhealthy {
 				// Prevent duplicate request if we already received failure
 				if app.BabyStateManager.GetBabyState(babyUID).GetStreamRequestState() != baby.StreamRequestState_RequestFailed {
 					go initializeLocalStreaming()
@@ -312,7 +317,7 @@ func (app *App) runWebsocket(babyUID string, conn *client.WebsocketConnection, c
 
 		// Initialize local streaming upon connection if we know that the stream is not alive
 		babyState := app.BabyStateManager.GetBabyState(babyUID)
-		if babyState.GetStreamState() != baby.StreamState_Alive {
+		if autoStart && babyState.GetStreamState() != baby.StreamState_Alive {
 			if babyState.GetStreamRequestState() != baby.StreamRequestState_Requested || babyState.GetStreamState() == baby.StreamState_Unhealthy {
 				go initializeLocalStreaming()
 			}
