@@ -21,9 +21,9 @@ func TestRoutesRequireAuthWhenPasswordSet(t *testing.T) {
 	wa := webauth.NewWebAuth(filepath.Join(dir, "password.json"))
 	require.NoError(t, wa.SetPassword("correct horse battery staple"))
 
-	app := &App{Opts: Opts{WebAuth: WebAuthOpts{Enabled: true}}, WebAuth: wa}
+	app := &App{WebAuth: wa}
 	// setupAPIRoutes registers on the default mux, so it can only run once
-	setupAPIRoutes(nil, DataDirectories{VideoDir: dir, LogDir: dir}, baby.NewStateManager(), app)
+	setupAPIRoutes(nil, baby.NewStateManager(), app)
 
 	protected := []string{
 		"/api/status", "/api/babies", "/api/streaming/info",
@@ -35,7 +35,6 @@ func TestRoutesRequireAuthWhenPasswordSet(t *testing.T) {
 		"/api/history/sensor/baby1", "/api/history/events/baby1", "/api/history/summary/baby1",
 		"/api/history/day-night/baby1", "/api/history/reset/baby1",
 		"/api/health/baby1",
-		"/video/anything.mp4",
 	}
 	for _, path := range protected {
 		for _, method := range []string{"GET", "POST"} {

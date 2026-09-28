@@ -111,9 +111,7 @@ func (app *App) Run(ctx utils.GracefulContext) {
 		babies = app.SessionStore.Babies()
 	}
 
-	if app.Opts.HTTPEnabled {
-		go ServeReact(babies, app.Opts.DataDirectories, app.BabyStateManager, app)
-	}
+	go ServeReact(babies, app.BabyStateManager, app)
 
 	// Only start RTMP/MQTT/WebSocket if we have valid auth
 	if hasValidAuth {
@@ -328,10 +326,6 @@ func (app *App) runWebsocket(babyUID string, conn *client.WebsocketConnection, c
 	if cleanup != nil {
 		cleanup()
 	}
-}
-
-func (app *App) getRemoteStreamURL(babyUID string) string {
-	return fmt.Sprintf("rtmps://media-secured.nanit.com/nanit/%v.%v", babyUID, app.SessionStore.AuthToken())
 }
 
 // localStreamURLTemplate - shape of the RTMP URL served by the built-in RTMP

@@ -13,7 +13,7 @@ import (
 )
 
 // ServeReact serves the React frontend instead of Go templates
-func ServeReact(babies []baby.Baby, dataDir DataDirectories, stateManager *baby.StateManager, app *App) {
+func ServeReact(babies []baby.Baby, stateManager *baby.StateManager, app *App) {
 	port := app.Opts.HTTPPort
 
 	log.Info().Msg("=== Setting up HTTP server routes for React frontend ===")
@@ -45,7 +45,7 @@ func ServeReact(babies []baby.Baby, dataDir DataDirectories, stateManager *baby.
 	})
 
 	// API endpoints - keep existing API structure
-	setupAPIRoutes(babies, dataDir, stateManager, app)
+	setupAPIRoutes(babies, stateManager, app)
 
 	log.Info().Int("port", port).Msg("Starting HTTP server with React frontend")
 	http.ListenAndServe(fmt.Sprintf(":%v", port), nil)
@@ -63,7 +63,7 @@ func immutable(h http.Handler) http.Handler {
 func requireAuth(app *App, handler http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		// Skip auth if password protection is disabled
-		if !app.Opts.WebAuth.Enabled || !app.WebAuth.IsPasswordSet() {
+		if !app.WebAuth.IsPasswordSet() {
 			handler(w, r)
 			return
 		}
@@ -84,7 +84,7 @@ func requireAuth(app *App, handler http.HandlerFunc) http.HandlerFunc {
 	}
 }
 
-func setupAPIRoutes(babies []baby.Baby, dataDir DataDirectories, stateManager *baby.StateManager, app *App) {
+func setupAPIRoutes(babies []baby.Baby, stateManager *baby.StateManager, app *App) {
 	// Status and baby data - protected by auth if enabled
 	http.HandleFunc("/api/status", requireAuth(app, func(w http.ResponseWriter, r *http.Request) {
 		handleStatusAPI(w, r, babies, stateManager)
@@ -215,10 +215,6 @@ func setupAPIRoutes(babies []baby.Baby, dataDir DataDirectories, stateManager *b
 		handleReadinessAPI(w, r, app)
 	})
 
-	// Video files
-	videoFiles := http.StripPrefix("/video/", http.FileServer(http.Dir(dataDir.VideoDir)))
-	http.HandleFunc("/video/", requireAuth(app, videoFiles.ServeHTTP))
-
 	// (There used to be an unauthenticated /log endpoint here that saved any
 	// POST body to disk, for the cam's GET_LOGS upload. Nothing sends there,
 	// and anyone who could reach it could fill the disk, so it's gone.)
@@ -233,13 +229,13 @@ func handleWebAuthStatusAPI(w http.ResponseWriter, r *http.Request, app *App) {
 	}
 
 	response := map[string]interface{}{
-		"password_protection_enabled": app.Opts.WebAuth.Enabled,
+		"password_protection_enabled": true,
 		"password_set":                app.WebAuth.IsPasswordSet(),
 		"authenticated":               false,
 	}
 
 	// Check if user is authenticated
-	if app.Opts.WebAuth.Enabled && app.WebAuth.IsPasswordSet() {
+	if app.WebAuth.IsPasswordSet() {
 		cookie, err := r.Cookie("nanit_session")
 		if err == nil && app.WebAuth.ValidateSession(cookie.Value) {
 			response["authenticated"] = true
@@ -265,11 +261,6 @@ func handleWebAuthLoginAPI(w http.ResponseWriter, r *http.Request, app *App) {
 
 	if err := json.NewDecoder(r.Body).Decode(&requestData); err != nil {
 		http.Error(w, "Invalid JSON", http.StatusBadRequest)
-		return
-	}
-
-	if !app.Opts.WebAuth.Enabled {
-		http.Error(w, "Password protection is disabled", http.StatusBadRequest)
 		return
 	}
 
@@ -357,11 +348,6 @@ func handleSetPasswordAPI(w http.ResponseWriter, r *http.Request, app *App) {
 		return
 	}
 
-	if !app.Opts.WebAuth.Enabled {
-		http.Error(w, "Password protection is disabled", http.StatusBadRequest)
-		return
-	}
-
 	if app.WebAuth.IsPasswordSet() {
 		http.Error(w, "Password is already set. Use change-password instead.", http.StatusBadRequest)
 		return
@@ -399,11 +385,6 @@ func handleChangePasswordAPI(w http.ResponseWriter, r *http.Request, app *App) {
 
 	if err := json.NewDecoder(r.Body).Decode(&requestData); err != nil {
 		http.Error(w, "Invalid JSON", http.StatusBadRequest)
-		return
-	}
-
-	if !app.Opts.WebAuth.Enabled {
-		http.Error(w, "Password protection is disabled", http.StatusBadRequest)
 		return
 	}
 
@@ -455,11 +436,6 @@ func handleRemovePasswordAPI(w http.ResponseWriter, r *http.Request, app *App) {
 
 	if err := json.NewDecoder(r.Body).Decode(&requestData); err != nil {
 		http.Error(w, "Invalid JSON", http.StatusBadRequest)
-		return
-	}
-
-	if !app.Opts.WebAuth.Enabled {
-		http.Error(w, "Password protection is disabled", http.StatusBadRequest)
 		return
 	}
 

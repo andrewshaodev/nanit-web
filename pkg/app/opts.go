@@ -10,7 +10,6 @@ type Opts struct {
 	NanitCredentials NanitCredentials
 	SessionFile      string
 	DataDirectories  DataDirectories
-	HTTPEnabled      bool
 	HTTPPort         int
 	MQTT             *mqtt.Opts
 	RTMP             *RTMPOpts
@@ -29,8 +28,6 @@ type NanitCredentials struct {
 // DataDirectories - dictionary of dir paths
 type DataDirectories struct {
 	BaseDir    string
-	VideoDir   string
-	LogDir     string
 	HistoryDir string
 }
 
@@ -61,6 +58,5 @@ type HistoryOpts struct {
 
 // WebAuthOpts - options for web interface authentication
 type WebAuthOpts struct {
-	Enabled      bool
 	PasswordFile string
 }

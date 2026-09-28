@@ -30,7 +30,7 @@ func ensureDataDirectories() (app.DataDirectories, error) {
 	}
 
 	// Create data dir skeleton
-	for _, subdirName := range []string{"video", "log", "history"} {
+	for _, subdirName := range []string{"history"} {
 		absSubdir := filepath.Join(absDataDir, subdirName)
 
 		if _, err := os.Stat(absSubdir); os.IsNotExist(err) {
@@ -46,8 +46,6 @@ func ensureDataDirectories() (app.DataDirectories, error) {
 
 	return app.DataDirectories{
 		BaseDir:    absDataDir,
-		VideoDir:   filepath.Join(absDataDir, "video"),
-		LogDir:     filepath.Join(absDataDir, "log"),
 		HistoryDir: filepath.Join(absDataDir, "history"),
 	}, nil
 }

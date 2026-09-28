@@ -46,8 +46,7 @@ func main() {
 			}
 			return dirs
 		}(),
-		HTTPEnabled: true,
-		HTTPPort:    utils.EnvVarInt("NANIT_HTTP_PORT", 8080),
+		HTTPPort: utils.EnvVarInt("NANIT_HTTP_PORT", 8080),
 		EventPolling: app.EventPollingOpts{
 			// Event message polling disabled by default
 			Enabled: utils.EnvVarBool("NANIT_EVENTS_POLLING", false),
@@ -65,8 +64,6 @@ func main() {
 			CleanupEnabled: utils.EnvVarBool("NANIT_HISTORY_CLEANUP_ENABLED", true),
 		},
 		WebAuth: app.WebAuthOpts{
-			// Web password protection always available
-			Enabled: true,
 			// Password file always in data directory
 			PasswordFile: "/data/web_password.json",
 		},
