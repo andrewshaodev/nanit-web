@@ -2,96 +2,135 @@ package rtmpserver
 
 import (
 	"sync"
+	"sync/atomic"
+	"time"
 
-	"github.com/notedit/rtmp/av"
+	"github.com/bluenviron/gortmplib"
 )
 
-// Packet types carrying stream configuration rather than media. At most one of
-// each is current at any moment - a repeat from the cam replaces the previous
-// one - and they are replayed in this order to every subscriber before its
-// first media packet, so clients joining mid-stream can decode.
-//
-// Together with the media types below this covers every type the RTMP library
-// produces, so no packet goes unclassified.
-var headerPktTypes = []int{
-	av.Metadata,
-	av.H264DecoderConfig,
-	av.H264SPSPPSNALU,
-	av.AACDecoderConfig,
+// subscriberQueueSize - frames a subscriber may fall behind by before it is
+// dropped. The cam sends roughly 30 video and 45 audio frames a second, so
+// this is a few seconds of slack.
+const subscriberQueueSize = 256
+
+// frame - one access unit from the publisher, ready to be written to any
+// subscriber. Exactly one of video and audio is set, and the slices are
+// shared between subscribers, so nobody may modify them.
+type frame struct {
+	track    *gortmplib.Track
+	pts      time.Duration
+	dts      time.Duration
+	video    [][]byte // H264 access unit
+	audio    []byte   // AAC access unit
+	keyframe bool
 }
 
-func isMediaPkt(pkt av.Packet) bool {
-	switch pkt.Type {
-	case av.H264, av.AAC, av.OPUS:
-		return true
-	default:
-		return false
+func (f frame) writeTo(w *gortmplib.Writer) error {
+	if f.video != nil {
+		return w.WriteH264(f.track, f.pts, f.dts, f.video)
 	}
+	return w.WriteMPEG4Audio(f.track, f.pts, f.audio)
 }
 
 type subscriber struct {
-	initialized bool
-	pktC        chan av.Packet
+	frames chan frame
+
+	// started - whether the subscriber has had its first keyframe. Frames
+	// before it cannot be decoded, so none are sent until then.
+	started bool
+
+	// fellBehind - set when the subscriber was dropped for not keeping up
+	fellBehind atomic.Bool
 }
 
+// broadcaster fans one publisher's frames out to its subscribers. Each
+// subscriber has its own queue, drained by its own connection, so a slow or
+// stalled one is dropped instead of holding up the publisher and everyone
+// else.
 type broadcaster struct {
-	headerPkts  map[int]av.Packet
-	subscribers sync.Map
+	tracks   []*gortmplib.Track
+	hasVideo bool
+
+	mu          sync.Mutex
+	subscribers map[*subscriber]struct{}
+	closed      bool
 }
 
-func newBroadcaster() *broadcaster {
-	return &broadcaster{
-		headerPkts: make(map[int]av.Packet, len(headerPktTypes)),
+func newBroadcaster(tracks []*gortmplib.Track) *broadcaster {
+	b := &broadcaster{
+		tracks:      tracks,
+		subscribers: make(map[*subscriber]struct{}),
 	}
+	for _, track := range tracks {
+		if track.Codec.IsVideo() {
+			b.hasVideo = true
+		}
+	}
+	return b
 }
 
-func (b *broadcaster) newSubscriber() *subscriber {
+// subscribe - adds a subscriber, or returns nil once the publisher is gone
+func (b *broadcaster) subscribe() *subscriber {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+
+	if b.closed {
+		return nil
+	}
+
 	sub := &subscriber{
-		initialized: false,
-		pktC:        make(chan av.Packet, 10),
+		frames: make(chan frame, subscriberQueueSize),
+		// With no video there is no keyframe to wait for
+		started: !b.hasVideo,
 	}
-
-	b.subscribers.Store(sub, sub)
+	b.subscribers[sub] = struct{}{}
 	return sub
 }
 
 func (b *broadcaster) unsubscribe(sub *subscriber) {
-	b.subscribers.Delete(sub)
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	b.remove(sub)
 }
 
-func (b *broadcaster) broadcast(pkt av.Packet) {
-	if !isMediaPkt(pkt) {
-		// Keep only the latest of each configuration type. Accumulating every
-		// one the cam ever sends grows without bound and eventually exceeds a
-		// new subscriber's channel buffer during replay, which blocks the
-		// publisher that is doing the replaying.
-		b.headerPkts[pkt.Type] = pkt
-		return
+// remove - drops a subscriber and closes its queue. The caller holds b.mu,
+// which is also held for every send, so a queue is never sent to after it is
+// closed.
+func (b *broadcaster) remove(sub *subscriber) {
+	if _, ok := b.subscribers[sub]; ok {
+		delete(b.subscribers, sub)
+		close(sub.frames)
 	}
+}
 
-	b.subscribers.Range(func(key, value interface{}) bool {
-		sub := value.(*subscriber)
+func (b *broadcaster) broadcast(f frame) {
+	b.mu.Lock()
+	defer b.mu.Unlock()
 
-		// Send header packets before sending any data
-		if !sub.initialized {
-			sub.initialized = true
-			for _, pktType := range headerPktTypes {
-				if headerPkt, ok := b.headerPkts[pktType]; ok {
-					sub.pktC <- headerPkt
-				}
+	for sub := range b.subscribers {
+		if !sub.started {
+			if !f.keyframe {
+				continue
 			}
+			sub.started = true
 		}
 
-		sub.pktC <- pkt
-
-		return true
-	})
+		select {
+		case sub.frames <- f:
+		default:
+			sub.fellBehind.Store(true)
+			b.remove(sub)
+		}
+	}
 }
 
-func (b *broadcaster) closeSubscribers() {
-	b.subscribers.Range(func(key, value interface{}) bool {
-		sub := value.(*subscriber)
-		close(sub.pktC)
-		return true
-	})
+// close - ends every subscription, once the publisher is gone or replaced
+func (b *broadcaster) close() {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+
+	b.closed = true
+	for sub := range b.subscribers {
+		b.remove(sub)
+	}
 }
