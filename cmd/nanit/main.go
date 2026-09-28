@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"regexp"
 	"syscall"
 	"time"
@@ -32,22 +33,21 @@ func main() {
 		return
 	}
 
+	dirs, err := ensureDataDirectories()
+	if err != nil {
+		log.Error().Err(err).Msg("Failed to ensure data directories")
+		os.Exit(1)
+	}
+
 	opts := app.Opts{
 		NanitCredentials: app.NanitCredentials{
 			Email:        utils.EnvVarStr("NANIT_EMAIL", ""),
 			Password:     utils.EnvVarStr("NANIT_PASSWORD", ""),
 			RefreshToken: utils.EnvVarStr("NANIT_REFRESH_TOKEN", ""),
 		},
-		SessionFile: utils.EnvVarStr("NANIT_SESSION_FILE", "/data/session.json"),
-		DataDirectories: func() app.DataDirectories {
-			dirs, err := ensureDataDirectories()
-			if err != nil {
-				log.Error().Err(err).Msg("Failed to ensure data directories")
-				os.Exit(1)
-			}
-			return dirs
-		}(),
-		HTTPPort: utils.EnvVarInt("NANIT_HTTP_PORT", 8080),
+		SessionFile:     utils.EnvVarStr("NANIT_SESSION_FILE", filepath.Join(dirs.BaseDir, "session.json")),
+		DataDirectories: dirs,
+		HTTPPort:        utils.EnvVarInt("NANIT_HTTP_PORT", 8080),
 		EventPolling: app.EventPollingOpts{
 			// Event message polling disabled by default
 			Enabled: utils.EnvVarBool("NANIT_EVENTS_POLLING", false),
@@ -65,8 +65,7 @@ func main() {
 			CleanupEnabled: utils.EnvVarBool("NANIT_HISTORY_CLEANUP_ENABLED", true),
 		},
 		WebAuth: app.WebAuthOpts{
-			// Password file always in data directory
-			PasswordFile: "/data/web_password.json",
+			PasswordFile: passwordFile(dirs.BaseDir),
 		},
 	}
 
@@ -134,11 +133,15 @@ func main() {
 	}
 }
 
+// passwordFile is where the dashboard password is kept. It was always
+// /data/web_password.json, whatever NANIT_DATA_DIR said.
+func passwordFile(dataDir string) string {
+	return filepath.Join(dataDir, "web_password.json")
+}
+
 // handleResetPassword removes the web password file (CLI command)
 func handleResetPassword() {
-	passwordFile := "/data/web_password.json"
-
-	webAuth := webauth.NewWebAuth(passwordFile)
+	webAuth := webauth.NewWebAuth(passwordFile(utils.EnvVarStr("NANIT_DATA_DIR", "/data")))
 
 	if !webAuth.IsPasswordSet() {
 		fmt.Println("No password is currently set.")

@@ -47,7 +47,7 @@ All settings are environment variables. [.env.sample](.env.sample) has the same 
 | `NANIT_RTMP_AUTO_START` | `true` | Ask the camera to start streaming when it comes online, and again if the stream drops |
 | `NANIT_HTTP_PORT` | `8080` | Dashboard and API port |
 | `NANIT_DATA_DIR` | `/data` | Where the session, history database and other files are kept |
-| `NANIT_SESSION_FILE` | `/data/session.json` | Saved Nanit session (contains tokens, so keep it private) |
+| `NANIT_SESSION_FILE` | `session.json` in the data dir | Saved Nanit session (contains tokens, so keep it private) |
 | `NANIT_LOG_LEVEL` | `info` | `trace`, `debug`, `info`, `warn` or `error` |
 | `NANIT_HISTORY_ENABLED` | `true` | Record readings for the history charts |
 | `NANIT_HISTORY_RETENTION_DAYS` | `30` | How long history is kept |
@@ -140,7 +140,7 @@ Requirements: Go 1.27, [Bun](https://bun.sh) 1.3, and ffmpeg for HLS.
 # Backend (serves ./web as the dashboard, so build the frontend into it first)
 cd frontend && bun install && bun run build && cd ..
 mkdir -p web && cp -R frontend/dist/* web/
-NANIT_RTMP_ADDR=<your LAN IP>:1935 NANIT_DATA_DIR=./data NANIT_SESSION_FILE=./data/session.json go run ./cmd/nanit
+NANIT_RTMP_ADDR=<your LAN IP>:1935 NANIT_DATA_DIR=./data go run ./cmd/nanit
 
 # Frontend with hot reload, proxying /api to the backend above
 cd frontend && bun run dev
