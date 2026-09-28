@@ -46,7 +46,7 @@ export default function SetupPage() {
         setMfaDelivery({ channel: response.channel, phoneSuffix: response.phone_suffix })
         setStep('2fa')
       } else {
-        setError(response.error || 'Login failed')
+        setError(response.message || 'Login failed')
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to connect to server')
@@ -72,7 +72,7 @@ export default function SetupPage() {
       if (response.success) {
         await goToDashboard()
       } else {
-        setError(response.error || 'Verification failed')
+        setError(response.message || 'Verification failed')
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to verify code')

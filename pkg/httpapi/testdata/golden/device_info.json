@@ -1,6 +1,6 @@
 {
   "body": {
-    "alerts": null,
+    "alerts": [],
     "baby_name": "Baby",
     "baby_uid": "baby1",
     "camera_uid": "cam1",

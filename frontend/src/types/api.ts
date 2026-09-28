@@ -1,274 +1,48 @@
-// API Response Types
-export interface Baby {
-  uid: string;
-  name: string;
-  camera_uid: string;
-  temperature?: number;
-  humidity?: number;
-  is_night?: boolean;
-  night_light?: boolean;
-  standby?: boolean;
-  websocket_alive: boolean;
-  // /api/status sends the backend's StreamState number; see streamStatus()
-  stream_state?: number;
-}
+// The API's types are generated from the Go structs it sends (see
+// tygo.yaml, and run `go generate ./pkg/httpapi/apitypes` after changing
+// them). This file gives them the names the dashboard uses.
+import type * as api from './generated/api'
+import type * as baby from './generated/baby'
+import type * as camera from './generated/camera'
+import type * as history from './generated/history'
 
-export interface StatusResponse {
-  timestamp: number;
-  babies: Baby[];
-}
+// A camera's live readings, as /api/status sends them. stream_state is the
+// backend's number; see streamStatus()
+export type Baby = api.BabyStatus
+export type StatusResponse = api.StatusResponse
 
-export interface DeviceInfo {
-  firmware_version?: string;
-  hardware_version?: string;
-  device_mode?: string;
-  volume?: number;
-  night_vision?: boolean;
-  sleep_mode?: boolean;
-  mic_mute?: boolean;
-  wifi_network?: string;
-  wifi_band?: string;
-  anti_flicker?: string;
-  temp_low_threshold?: number;
-  temp_high_threshold?: number;
-  humidity_low_threshold?: number;
-  humidity_high_threshold?: number;
-  mobile_bitrate?: number;
-  mobile_fps?: number;
-  dvr_bitrate?: number;
-  dvr_fps?: number;
-  analytics_bitrate?: number;
-  analytics_fps?: number;
-  streaming_error?: string;
-  last_updated?: number;
-}
-
-export interface DeviceAlert {
-  type: 'error' | 'warning';
-  message: string;
-  category: string;
-}
-
-export interface DeviceInfoResponse {
-  baby_uid: string;
-  baby_name: string;
-  camera_uid: string;
-  timestamp: number;
-  device_info: DeviceInfo;
-  connection_status: {
-    websocket_alive: boolean;
-    stream_state: string;
-  };
-  alerts: DeviceAlert[];
-}
+export type DeviceInfo = baby.DeviceInfo
+export type DeviceAlert = api.DeviceAlert
+export type DeviceInfoResponse = api.DeviceInfoResponse
 
 // The camera's built-in sounds, from /api/sound/{baby_uid}
-export interface SoundStatus {
-  tracks: string[];
-  playback: { playing: boolean; track?: string } | null;
-  volume: number | null;
-  errors?: string[];
-}
+export type SoundStatus = camera.SoundStatus
 
-export interface SensorReading {
-  timestamp: number;
-  temperature_celsius?: number;
-  humidity_percent?: number;
-  is_night?: boolean;
-}
+export type SensorReading = history.SensorReading
+export type SensorDataResponse = api.SensorHistoryResponse
+export type HistorySummary = history.HistoricalSummary
+export type DayNightChange = history.DayNightChange
+export type DayNightAnalytics = history.DayNightAnalytics
+export type DayNightPeriod = history.DayNightPeriod
 
-export interface SensorDataResponse {
-  baby_uid: string;
-  start_time: number;
-  end_time: number;
-  readings: SensorReading[];
-  count: number;
-}
+export type ControlRequest = api.ControlRequest
+export type ControlResponse = api.ControlResponse
 
-// Motion/Sound activity interfaces - disabled for now
-// export interface ActivityEvent {
-//   timestamp: number;
-//   event_type: 'motion' | 'sound';
-//   value?: number;
-// }
+export type LoginRequest = api.LoginRequest
+export type LoginResponse = api.LoginResponse
+export type Verify2FARequest = api.Verify2FARequest
+export type Verify2FAResponse = api.MessageResponse
+export type AuthStatusResponse = api.AuthStatusResponse
+export type AuthResetResponse = api.MessageResponse
 
-// export interface EventsDataResponse {
-//   baby_uid: string;
-//   start_time: number;
-//   end_time: number;
-//   event_type?: string;
-//   events: ActivityEvent[];
-//   count: number;
-// }
+export type StreamStartRequest = api.StreamRequest
+export type StreamStartResponse = api.StreamResponse
+export type StreamStatusResponse = api.StreamStatusResponse
+export type StreamError = api.StreamErrorInfo
+export type StreamingInfoResponse = api.StreamingInfoResponse
 
-export interface HistorySummary {
-  baby_uid: string;
-  start_time: number;
-  end_time: number;
-  avg_temperature?: number;
-  min_temperature?: number;
-  max_temperature?: number;
-  avg_humidity?: number;
-  min_humidity?: number;
-  max_humidity?: number;
-  // motion_event_count: number;  // Disabled motion/sound activity
-  // sound_event_count: number;   // Disabled motion/sound activity
-  day_mode_percentage: number;
-  night_mode_percentage: number;
-}
+export type WebAuthStatusResponse = api.WebAuthStatusResponse
+export type WebAuthResponse = api.MessageResponse
 
-export interface DayNightChange {
-  timestamp: number;
-  from_night: boolean;
-  to_night: boolean;
-}
-
-export interface DayNightAnalytics {
-  baby_uid: string;
-  start_time: number;
-  end_time: number;
-  day_mode_minutes: number;
-  night_mode_minutes: number;
-  unknown_mode_minutes: number;
-  day_mode_percentage: number;
-  night_mode_percentage: number;
-  unknown_mode_percentage: number;
-  mode_transitions: number;
-  day_night_changes: DayNightChange[] | null;
-  // The window as consecutive stretches; "unknown" where nothing was recorded
-  periods: DayNightPeriod[] | null;
-}
-
-export interface DayNightPeriod {
-  start: number;
-  end: number;
-  mode: 'day' | 'night' | 'unknown';
-}
-
-// Control Request Types
-export interface ControlRequest {
-  baby_uid: string;
-  action: 'toggle';
-}
-
-export interface ControlResponse {
-  success: boolean;
-  baby_uid: string;
-  control: string;
-  action: string;
-  timestamp: number;
-}
-
-// Authentication Types
-export interface LoginRequest {
-  email: string;
-  password: string;
-}
-
-export interface LoginResponse {
-  success: boolean;
-  // Set when Nanit signed in without asking for a code
-  signed_in?: boolean;
-  mfa_token?: any;
-  // Where Nanit sent the code: 'sms' or 'email'
-  channel?: string;
-  phone_suffix?: string;
-  message: string;
-  error?: string;
-}
-
-export interface Verify2FARequest {
-  email: string;
-  password: string;
-  mfa_token: any;
-  mfa_code: string;
-  channel?: string;
-}
-
-export interface Verify2FAResponse {
-  success: boolean;
-  message: string;
-  error?: string;
-}
-
-export interface AuthStatusResponse {
-  authenticated: boolean;
-  message: string;
-  email?: string;
-  babies_count?: number;
-  services_running?: boolean;
-  auth_time?: number;
-}
-
-export interface AuthResetResponse {
-  success: boolean;
-  message: string;
-}
-
-// Stream Types
-export interface StreamStartRequest {
-  baby_uid: string;
-}
-
-export interface StreamStartResponse {
-  success: boolean;
-  baby_uid: string;
-  hls_url: string;
-  message: string;
-}
-
-export interface StreamError {
-  type: string;
-  message: string;
-}
-
-export interface StreamStatusResponse {
-  baby_uid: string;
-  status: string;
-  message: string;
-  stream_error?: StreamError;
-}
-
-// Streaming Info Types
-export interface StreamingEndpointInfo {
-  enabled: boolean;
-  public_addr?: string;
-  url_template?: string;
-}
-
-export interface StreamingInfoResponse {
-  rtmp: StreamingEndpointInfo;
-  hls: StreamingEndpointInfo;
-}
-
-// Web Authentication Types
-export interface WebAuthStatusResponse {
-  password_protection_enabled: boolean;
-  password_set: boolean;
-  authenticated: boolean;
-}
-
-export interface WebAuthResponse {
-  success: boolean;
-  message: string;
-  error?: string;
-}
-
-// Health Types
-export interface HealthComponentStatus {
-  status: string;
-  [key: string]: any;
-}
-
-export interface HealthDetails {
-  websocket: HealthComponentStatus;
-  rtmp: HealthComponentStatus;
-  hls: HealthComponentStatus;
-}
-
-export interface HealthResponse {
-  baby_uid: string;
-  overall_health: 'healthy' | 'degraded' | 'unhealthy' | 'starting';
-  details: HealthDetails;
-  timestamp: number;
-}
+export type HealthDetails = api.HealthDetails
+export type HealthResponse = api.HealthResponse

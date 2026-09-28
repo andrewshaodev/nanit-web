@@ -64,7 +64,8 @@ func (s *Server) handleDeviceInfo(w http.ResponseWriter, r *http.Request, b baby
 	state := s.State.GetBabyState(b.UID)
 	deviceInfo := state.GetDeviceInfo()
 
-	var alerts []apitypes.DeviceAlert
+	// Empty rather than nil, so the JSON is [] rather than null
+	alerts := []apitypes.DeviceAlert{}
 	alert := func(kind, category, message string) {
 		alerts = append(alerts, apitypes.DeviceAlert{Type: kind, Message: message, Category: category})
 	}

@@ -173,7 +173,8 @@ class ApiClient {
       password,
       mfa_token: mfaToken,
       mfa_code: mfaCode,
-      channel,
+      // The backend takes an empty channel as email
+      channel: channel ?? '',
     };
     return this.request<Verify2FAResponse>('/auth/verify-2fa', {
       method: 'POST',

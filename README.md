@@ -154,6 +154,8 @@ cd frontend && bun run typecheck && bun run lint
 docker build -t nanit-web .
 ```
 
+The frontend's API types in `frontend/src/types/generated/` are generated from the Go structs the API sends (`pkg/httpapi/apitypes` and the `types.go` files it uses). Change the Go types, then run `go generate ./pkg/httpapi/apitypes`; CI fails if the generated files are out of date.
+
 Only one bridge should be connected to your cameras at a time. Stop any other instance before running one locally.
 
 The frontend is React 19 with Vite, Tailwind CSS 4, shadcn/ui on the Catppuccin theme, and Lucide icons. See [frontend/README.md](frontend/README.md).

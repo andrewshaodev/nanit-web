@@ -1,0 +1,28 @@
+# Generates the dashboard's API types from the Go structs the API sends:
+#   go generate ./pkg/httpapi/apitypes
+# CI checks the output is up to date, so edit the Go types, not these files.
+packages:
+  - path: "github.com/andrewshaodev/nanit-web/pkg/httpapi/apitypes"
+    output_path: "frontend/src/types/generated/api.ts"
+    frontmatter: |
+      import type * as baby from "./baby";
+      import type * as history from "./history";
+      import type * as streaming from "./streaming";
+    type_mappings:
+      baby.DeviceInfo: "baby.DeviceInfo"
+      history.SensorReading: "history.SensorReading"
+      history.Event: "history.Event"
+      history.DayNightAnalytics: "history.DayNightAnalytics"
+      streaming.StreamError: "streaming.StreamError"
+  - path: "github.com/andrewshaodev/nanit-web/pkg/baby"
+    output_path: "frontend/src/types/generated/baby.ts"
+    include_files: ["types.go"]
+  - path: "github.com/andrewshaodev/nanit-web/pkg/camera"
+    output_path: "frontend/src/types/generated/camera.ts"
+    include_files: ["types.go"]
+  - path: "github.com/andrewshaodev/nanit-web/pkg/history"
+    output_path: "frontend/src/types/generated/history.ts"
+    include_files: ["types.go"]
+  - path: "github.com/andrewshaodev/nanit-web/pkg/streaming"
+    output_path: "frontend/src/types/generated/streaming.ts"
+    include_files: ["types.go"]

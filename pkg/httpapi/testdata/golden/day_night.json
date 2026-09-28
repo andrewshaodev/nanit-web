@@ -5,7 +5,7 @@
       "baby_uid": "baby1",
       "day_mode_minutes": 0,
       "day_mode_percentage": 0,
-      "day_night_changes": null,
+      "day_night_changes": [],
       "end_time": 4000000000,
       "mode_transitions": 0,
       "night_mode_minutes": 0,

@@ -14,24 +14,6 @@ import (
 	"github.com/andrewshaodev/nanit-web/pkg/baby"
 )
 
-// StreamStatus represents the current state of the transcoder
-type StreamStatus string
-
-const (
-	StatusStarting   StreamStatus = "starting"
-	StatusConnecting StreamStatus = "connecting"
-	StatusStreaming  StreamStatus = "streaming"
-	StatusError      StreamStatus = "error"
-	StatusStopped    StreamStatus = "stopped"
-)
-
-// StreamError represents different types of streaming errors
-type StreamError struct {
-	Type    string `json:"type"`
-	Message string `json:"message"`
-	Code    string `json:"code"`
-}
-
 // HLS tuning. The cam publishes H.264 Main at 1080p10 with a keyframe every
 // second, and AAC-LC audio, so both streams are remuxed into HLS as-is - no
 // transcoding at all. Segments can only be cut on a keyframe, and with one

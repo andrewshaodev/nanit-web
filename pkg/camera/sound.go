@@ -29,19 +29,6 @@ const (
 	maxVolume int32 = 100
 )
 
-type SoundPlayback struct {
-	Playing bool   `json:"playing"`
-	Track   string `json:"track,omitempty"`
-}
-
-type SoundStatus struct {
-	Tracks   []string       `json:"tracks"`
-	Playback *SoundPlayback `json:"playback"`
-	Volume   *int32         `json:"volume"`
-	// Errors - reads that failed, so a partial answer is still useful
-	Errors []string `json:"errors,omitempty"`
-}
-
 // sound request helpers, all against a live camera connection
 
 func requestSound(conn requester, reqType client.RequestType, req *client.Request) (*client.Response, error) {

@@ -36,7 +36,7 @@ type BabyStatus struct {
 	CameraUID      string  `json:"camera_uid"`
 	Temperature    float64 `json:"temperature"`
 	Humidity       float64 `json:"humidity"`
-	IsNight        *bool   `json:"is_night"`
+	IsNight        *bool   `json:"is_night" tstype:"boolean | null"`
 	NightLight     bool    `json:"night_light"`
 	Standby        bool    `json:"standby"`
 	WebsocketAlive bool    `json:"websocket_alive"`
@@ -78,7 +78,7 @@ type StreamingInfoResponse struct {
 // ControlRequest - POST /api/control/night-light and /api/control/standby
 type ControlRequest struct {
 	BabyUID string `json:"baby_uid"`
-	Action  string `json:"action"` // "toggle"
+	Action  string `json:"action" tstype:"'toggle'"`
 }
 
 // ControlResponse - a control command that was sent
@@ -92,7 +92,7 @@ type ControlResponse struct {
 
 // DeviceAlert - an error or warning about a camera
 type DeviceAlert struct {
-	Type     string `json:"type"` // "error" or "warning"
+	Type     string `json:"type" tstype:"'error' | 'warning'"`
 	Message  string `json:"message"`
 	Category string `json:"category"`
 }
@@ -100,7 +100,7 @@ type DeviceAlert struct {
 // ConnectionStatus - a camera's connection, for its device page
 type ConnectionStatus struct {
 	WebsocketAlive bool   `json:"websocket_alive"`
-	StreamState    string `json:"stream_state"` // "connected", "unhealthy" or "unknown"
+	StreamState    string `json:"stream_state" tstype:"'connected' | 'unhealthy' | 'unknown'"`
 }
 
 // DeviceInfoResponse - GET /api/device-info/{uid}
@@ -109,7 +109,7 @@ type DeviceInfoResponse struct {
 	BabyName         string           `json:"baby_name"`
 	CameraUID        string           `json:"camera_uid"`
 	Timestamp        int64            `json:"timestamp"`
-	DeviceInfo       *baby.DeviceInfo `json:"device_info"`
+	DeviceInfo       *baby.DeviceInfo `json:"device_info" tstype:"baby.DeviceInfo"`
 	ConnectionStatus ConnectionStatus `json:"connection_status"`
 	Alerts           []DeviceAlert    `json:"alerts"`
 }
@@ -126,7 +126,7 @@ type LoginResponse struct {
 	Success     bool   `json:"success"`
 	SignedIn    bool   `json:"signed_in,omitempty"`
 	MFAToken    string `json:"mfa_token,omitempty"`
-	Channel     string `json:"channel,omitempty"` // "sms" or "email"
+	Channel     string `json:"channel,omitempty"` // "sms" or "email", as Nanit says
 	PhoneSuffix string `json:"phone_suffix,omitempty"`
 	Message     string `json:"message"`
 }
@@ -237,7 +237,7 @@ type DayNightResponse struct {
 	BabyUID   string                     `json:"baby_uid"`
 	StartTime int64                      `json:"start_time"`
 	EndTime   int64                      `json:"end_time"`
-	DayNight  *history.DayNightAnalytics `json:"day_night"`
+	DayNight  *history.DayNightAnalytics `json:"day_night" tstype:"history.DayNightAnalytics"`
 }
 
 // HistoryResetResponse - DELETE /api/history/reset/{uid}
@@ -249,23 +249,21 @@ type HistoryResetResponse struct {
 
 // WebsocketHealth - the camera's connection to Nanit
 type WebsocketHealth struct {
-	Status string `json:"status"` // "connected" or "disconnected"
+	Status string `json:"status" tstype:"'connected' | 'disconnected'"`
 	Alive  bool   `json:"alive"`
 }
 
 // RTMPHealth - the camera's stream to the bridge
 type RTMPHealth struct {
-	// "active", "connected_no_video", "unhealthy" or "inactive"
-	Status              string `json:"status"`
-	StreamState         string `json:"stream_state"` // "alive", "unhealthy" or "unknown"
+	Status              string `json:"status" tstype:"'active' | 'connected_no_video' | 'unhealthy' | 'inactive'"`
+	StreamState         string `json:"stream_state" tstype:"'alive' | 'unhealthy' | 'unknown'"`
 	ActivelyStreaming   bool   `json:"actively_streaming"`
-	LastVideoPacketTime *int64 `json:"last_video_packet_time"`
+	LastVideoPacketTime *int64 `json:"last_video_packet_time" tstype:"number | null"`
 }
 
 // HLSHealth - the transcoder feeding the dashboard
 type HLSHealth struct {
-	// "streaming", "connecting", "starting", "error", "stopped" or "unknown"
-	Status    string                 `json:"status"`
+	Status    string                 `json:"status" tstype:"'streaming' | 'connecting' | 'starting' | 'error' | 'stopped' | 'unknown'"`
 	IsRunning bool                   `json:"is_running"`
 	Error     *streaming.StreamError `json:"error,omitempty"`
 }
@@ -279,9 +277,8 @@ type HealthDetails struct {
 
 // HealthResponse - GET /api/health/{uid}
 type HealthResponse struct {
-	BabyUID string `json:"baby_uid"`
-	// "healthy", "degraded", "connected_no_video", "starting" or "unhealthy"
-	OverallHealth string        `json:"overall_health"`
+	BabyUID       string        `json:"baby_uid"`
+	OverallHealth string        `json:"overall_health" tstype:"'healthy' | 'degraded' | 'connected_no_video' | 'starting' | 'unhealthy'"`
 	Details       HealthDetails `json:"details"`
 	Timestamp     int64         `json:"timestamp"`
 }
@@ -302,7 +299,7 @@ type ServiceReadiness struct {
 
 // ReadinessResponse - GET /ready
 type ReadinessResponse struct {
-	Status    string                      `json:"status"` // "ready" or "not_ready"
+	Status    string                      `json:"status" tstype:"'ready' | 'not_ready'"`
 	Timestamp int64                       `json:"timestamp"`
 	Services  map[string]ServiceReadiness `json:"services"`
 }

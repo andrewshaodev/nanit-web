@@ -34,7 +34,7 @@ function SensorRow({ icon: Icon, iconClass, title, value, tooltip, onClick }: Se
 const formatHumidity = (humidity: number | undefined): string =>
   humidity === undefined || humidity === null || humidity <= 0 ? '--%' : `${humidity.toFixed(1)}%`
 
-const formatNightMode = (isNight: boolean | undefined): string =>
+const formatNightMode = (isNight: boolean | null | undefined): string =>
   isNight === undefined || isNight === null ? '--' : isNight ? 'Night' : 'Day'
 
 const formatNightLight = (nightLight: boolean | undefined): string =>

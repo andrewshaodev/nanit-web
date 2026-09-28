@@ -8,20 +8,6 @@ import "database/sql"
 // be carried forward across time the bridge was actually listening.
 const recordingGapLimit int64 = 10 * 60
 
-// Day/night timeline modes
-const (
-	ModeDay     = "day"
-	ModeNight   = "night"
-	ModeUnknown = "unknown"
-)
-
-// DayNightPeriod - a stretch of the timeline in one mode
-type DayNightPeriod struct {
-	Start int64  `json:"start"`
-	End   int64  `json:"end"`
-	Mode  string `json:"mode"` // ModeDay, ModeNight or ModeUnknown
-}
-
 // modeReading - a sensor reading's time, and the day/night mode it reported
 // if it reported one
 type modeReading struct {
@@ -48,8 +34,9 @@ func modeName(isNight sql.NullBool) string {
 // gapLimit, which is unknown: nothing was being recorded. Time before any
 // mode is known is unknown too, rather than borrowing the first mode seen.
 func buildDayNightTimeline(start, end int64, initial sql.NullBool, readings []modeReading, gapLimit int64) ([]DayNightPeriod, []DayNightChange) {
-	var periods []DayNightPeriod
-	var changes []DayNightChange
+	// Empty rather than nil, so the JSON is [] rather than null
+	periods := []DayNightPeriod{}
+	changes := []DayNightChange{}
 
 	add := func(from, to int64, mode string) {
 		if to <= from {
