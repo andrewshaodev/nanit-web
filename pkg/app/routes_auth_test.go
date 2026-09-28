@@ -22,8 +22,8 @@ func TestRoutesRequireAuthWhenPasswordSet(t *testing.T) {
 	require.NoError(t, wa.SetPassword("correct horse battery staple"))
 
 	app := &App{WebAuth: wa}
-	// setupAPIRoutes registers on the default mux, so it can only run once
-	setupAPIRoutes(nil, baby.NewStateManager(), app)
+	mux := http.NewServeMux()
+	setupAPIRoutes(mux, nil, baby.NewStateManager(), app)
 
 	protected := []string{
 		"/api/status", "/api/babies", "/api/streaming/info",
@@ -39,20 +39,20 @@ func TestRoutesRequireAuthWhenPasswordSet(t *testing.T) {
 	for _, path := range protected {
 		for _, method := range []string{"GET", "POST"} {
 			w := httptest.NewRecorder()
-			http.DefaultServeMux.ServeHTTP(w, httptest.NewRequest(method, path, nil))
+			mux.ServeHTTP(w, httptest.NewRequest(method, path, nil))
 			assert.Equal(t, http.StatusUnauthorized, w.Code, "%s %s should need a session", method, path)
 		}
 	}
 
 	for _, path := range []string{"/health", "/api/webauth/status"} {
 		w := httptest.NewRecorder()
-		http.DefaultServeMux.ServeHTTP(w, httptest.NewRequest("GET", path, nil))
+		mux.ServeHTTP(w, httptest.NewRequest("GET", path, nil))
 		assert.NotEqual(t, http.StatusUnauthorized, w.Code, "%s should be reachable signed out", path)
 	}
 
 	// /log wrote any POST body to disk; it's gone
 	w := httptest.NewRecorder()
-	http.DefaultServeMux.ServeHTTP(w, httptest.NewRequest("POST", "/log", nil))
+	mux.ServeHTTP(w, httptest.NewRequest("POST", "/log", nil))
 	assert.NotEqual(t, http.StatusNoContent, w.Code)
 
 	// And a signed-in session gets through
@@ -61,6 +61,6 @@ func TestRoutesRequireAuthWhenPasswordSet(t *testing.T) {
 	req := httptest.NewRequest("GET", "/api/streaming/info", nil)
 	req.AddCookie(&http.Cookie{Name: "nanit_session", Value: session})
 	w = httptest.NewRecorder()
-	http.DefaultServeMux.ServeHTTP(w, req)
+	mux.ServeHTTP(w, req)
 	assert.Equal(t, http.StatusOK, w.Code)
 }

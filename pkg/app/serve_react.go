@@ -21,10 +21,11 @@ func ServeReact(babies []baby.Baby, stateManager *baby.StateManager, app *App) {
 
 	// Vite's build output. The file names under assets/ carry a content hash,
 	// so a changed file gets a new URL and each one can be cached for good
-	http.Handle("/assets/", immutable(http.StripPrefix("/assets/", http.FileServer(http.Dir("web/assets")))))
+	mux := http.NewServeMux()
+	mux.Handle("/assets/", immutable(http.StripPrefix("/assets/", http.FileServer(http.Dir("web/assets")))))
 
 	// Everything else is a client-side route: serve the app's single page
-	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		// API routes should not serve the React app
 		if strings.HasPrefix(r.URL.Path, "/api/") {
 			http.NotFound(w, r)
@@ -45,10 +46,10 @@ func ServeReact(babies []baby.Baby, stateManager *baby.StateManager, app *App) {
 	})
 
 	// API endpoints - keep existing API structure
-	setupAPIRoutes(babies, stateManager, app)
+	setupAPIRoutes(mux, babies, stateManager, app)
 
 	log.Info().Int("port", port).Msg("Starting HTTP server with React frontend")
-	http.ListenAndServe(fmt.Sprintf(":%v", port), nil)
+	http.ListenAndServe(fmt.Sprintf(":%v", port), mux)
 }
 
 // immutable marks responses as safe to cache forever
@@ -84,134 +85,134 @@ func requireAuth(app *App, handler http.HandlerFunc) http.HandlerFunc {
 	}
 }
 
-func setupAPIRoutes(babies []baby.Baby, stateManager *baby.StateManager, app *App) {
+func setupAPIRoutes(mux *http.ServeMux, babies []baby.Baby, stateManager *baby.StateManager, app *App) {
 	// Status and baby data - protected by auth if enabled
-	http.HandleFunc("/api/status", requireAuth(app, func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("/api/status", requireAuth(app, func(w http.ResponseWriter, r *http.Request) {
 		handleStatusAPI(w, r, babies, stateManager)
 	}))
 
-	http.HandleFunc("/api/babies", requireAuth(app, func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("/api/babies", requireAuth(app, func(w http.ResponseWriter, r *http.Request) {
 		handleBabiesAPI(w, r, babies, stateManager)
 	}))
 
 	// Streaming endpoint information (RTMP/HLS addresses)
-	http.HandleFunc("/api/streaming/info", requireAuth(app, func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("/api/streaming/info", requireAuth(app, func(w http.ResponseWriter, r *http.Request) {
 		handleStreamingInfoAPI(w, r, app)
 	}))
 
 	// Control endpoints
-	http.HandleFunc("/api/control/night-light", requireAuth(app, func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("/api/control/night-light", requireAuth(app, func(w http.ResponseWriter, r *http.Request) {
 		handleControlAPI(w, r, "night-light", babies, stateManager, app)
 	}))
 
-	http.HandleFunc("/api/control/standby", requireAuth(app, func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("/api/control/standby", requireAuth(app, func(w http.ResponseWriter, r *http.Request) {
 		handleControlAPI(w, r, "standby", babies, stateManager, app)
 	}))
 
 	// The camera's built-in sounds and speaker volume
-	http.HandleFunc("/api/sound/", requireAuth(app, func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("/api/sound/", requireAuth(app, func(w http.ResponseWriter, r *http.Request) {
 		handleSoundAPI(w, r, app)
 	}))
 
 	// Device info endpoint
-	http.HandleFunc("/api/device-info/", requireAuth(app, func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("/api/device-info/", requireAuth(app, func(w http.ResponseWriter, r *http.Request) {
 		handleDeviceInfoAPI(w, r, babies, stateManager)
 	}))
 
 	// Authentication endpoints (Nanit API)
 	log.Info().Msg("Registering Nanit authentication endpoints")
-	http.HandleFunc("/api/auth/login", requireAuth(app, func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("/api/auth/login", requireAuth(app, func(w http.ResponseWriter, r *http.Request) {
 		handleAuthLoginAPI(w, r)
 	}))
 
-	http.HandleFunc("/api/auth/verify-2fa", requireAuth(app, func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("/api/auth/verify-2fa", requireAuth(app, func(w http.ResponseWriter, r *http.Request) {
 		handleAuthVerify2FAAPI(w, r, app)
 	}))
 
-	http.HandleFunc("/api/auth/status", requireAuth(app, func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("/api/auth/status", requireAuth(app, func(w http.ResponseWriter, r *http.Request) {
 		handleAuthStatusAPI(w, r, app)
 	}))
 
-	http.HandleFunc("/api/auth/reset", requireAuth(app, func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("/api/auth/reset", requireAuth(app, func(w http.ResponseWriter, r *http.Request) {
 		handleAuthResetAPI(w, r, app)
 	}))
 
 	// Web password authentication endpoints
 	log.Info().Msg("Registering web password authentication endpoints")
-	http.HandleFunc("/api/webauth/status", func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("/api/webauth/status", func(w http.ResponseWriter, r *http.Request) {
 		handleWebAuthStatusAPI(w, r, app)
 	})
 
-	http.HandleFunc("/api/webauth/login", func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("/api/webauth/login", func(w http.ResponseWriter, r *http.Request) {
 		handleWebAuthLoginAPI(w, r, app)
 	})
 
-	http.HandleFunc("/api/webauth/logout", func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("/api/webauth/logout", func(w http.ResponseWriter, r *http.Request) {
 		handleWebAuthLogoutAPI(w, r, app)
 	})
 
-	http.HandleFunc("/api/webauth/set-password", requireAuth(app, func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("/api/webauth/set-password", requireAuth(app, func(w http.ResponseWriter, r *http.Request) {
 		handleSetPasswordAPI(w, r, app)
 	}))
 
-	http.HandleFunc("/api/webauth/change-password", requireAuth(app, func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("/api/webauth/change-password", requireAuth(app, func(w http.ResponseWriter, r *http.Request) {
 		handleChangePasswordAPI(w, r, app)
 	}))
 
-	http.HandleFunc("/api/webauth/remove-password", requireAuth(app, func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("/api/webauth/remove-password", requireAuth(app, func(w http.ResponseWriter, r *http.Request) {
 		handleRemovePasswordAPI(w, r, app)
 	}))
 
 	// HLS streaming endpoints
-	http.HandleFunc("/api/stream/hls/", requireAuth(app, func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("/api/stream/hls/", requireAuth(app, func(w http.ResponseWriter, r *http.Request) {
 		handleHLSStreamAPI(w, r, app)
 	}))
 
-	http.HandleFunc("/api/stream/start/", requireAuth(app, func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("/api/stream/start/", requireAuth(app, func(w http.ResponseWriter, r *http.Request) {
 		handleStreamStartAPI(w, r, app)
 	}))
 
-	http.HandleFunc("/api/stream/stop/", requireAuth(app, func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("/api/stream/stop/", requireAuth(app, func(w http.ResponseWriter, r *http.Request) {
 		handleStreamStopAPI(w, r, app)
 	}))
 
-	http.HandleFunc("/api/stream/status/", requireAuth(app, func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("/api/stream/status/", requireAuth(app, func(w http.ResponseWriter, r *http.Request) {
 		handleStreamStatusAPI(w, r, app)
 	}))
 
 	// Historical data endpoints
-	http.HandleFunc("/api/history/sensor/", requireAuth(app, func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("/api/history/sensor/", requireAuth(app, func(w http.ResponseWriter, r *http.Request) {
 		handleHistorySensorAPI(w, r, app)
 	}))
 
-	http.HandleFunc("/api/history/events/", requireAuth(app, func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("/api/history/events/", requireAuth(app, func(w http.ResponseWriter, r *http.Request) {
 		handleHistoryEventsAPI(w, r, app)
 	}))
 
-	http.HandleFunc("/api/history/summary/", requireAuth(app, func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("/api/history/summary/", requireAuth(app, func(w http.ResponseWriter, r *http.Request) {
 		handleHistorySummaryAPI(w, r, app)
 	}))
 
-	http.HandleFunc("/api/history/day-night/", requireAuth(app, func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("/api/history/day-night/", requireAuth(app, func(w http.ResponseWriter, r *http.Request) {
 		handleHistoryDayNightAPI(w, r, app)
 	}))
 
-	http.HandleFunc("/api/history/reset/", requireAuth(app, func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("/api/history/reset/", requireAuth(app, func(w http.ResponseWriter, r *http.Request) {
 		handleHistoryResetAPI(w, r, app)
 	}))
 
 	// Health endpoints
-	http.HandleFunc("/api/health/", requireAuth(app, func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("/api/health/", requireAuth(app, func(w http.ResponseWriter, r *http.Request) {
 		handleHealthAPI(w, r, app)
 	}))
 
 	// Basic liveness check (no authentication required)
-	http.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
 		handleLivenessAPI(w, r)
 	})
 
 	// Readiness check with detailed service status (no authentication required)
-	http.HandleFunc("/ready", func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("/ready", func(w http.ResponseWriter, r *http.Request) {
 		handleReadinessAPI(w, r, app)
 	})
 
