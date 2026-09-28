@@ -22,6 +22,22 @@ interface DeviceInfoProps {
   baby: Baby
 }
 
+// WiFi signal strength, in dBm, with a rough reading of it
+function formatSignal(dbm?: number): string {
+  if (dbm === undefined) return '--'
+  const quality = dbm >= -60 ? 'good' : dbm >= -70 ? 'fair' : 'weak'
+  return `${dbm} dBm (${quality})`
+}
+
+// The WiFi frequency, in MHz, as its band and channel
+function formatFrequency(mhz?: number): string {
+  if (!mhz) return '--'
+  const channel =
+    mhz >= 5955 ? (mhz - 5950) / 5 : mhz >= 5000 ? (mhz - 5000) / 5 : mhz === 2484 ? 14 : (mhz - 2407) / 5
+  const band = mhz >= 5925 ? '6 GHz' : mhz >= 5000 ? '5 GHz' : '2.4 GHz'
+  return `${band}, channel ${channel}`
+}
+
 // A stream's settings as the camera reports them. It sends a bitrate of 0
 // when it picks the bitrate itself, which used to blank the whole row.
 function formatStream(bitrate?: number, fps?: number): string {
@@ -246,6 +262,18 @@ export default function DeviceInfo({ baby }: DeviceInfoProps) {
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-2 text-sm">
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">WiFi:</span>
+                      <span className="font-medium">{data.device_info?.wifi_network || '--'}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Signal:</span>
+                      <span className="font-medium">{formatSignal(data.device_info?.wifi_signal)}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Frequency:</span>
+                      <span className="font-medium">{formatFrequency(data.device_info?.wifi_frequency)}</span>
+                    </div>
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">Band:</span>
                       <span className="font-medium">{data.device_info?.wifi_band || '--'}</span>

@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Baby } from 'lucide-react'
+import { Baby, LayoutDashboard, Settings, type LucideIcon } from 'lucide-react'
 import { Link, useLocation } from 'react-router'
 import ThemeToggle from '@/components/layout/ThemeToggle'
 import useSWR from 'swr'
@@ -35,7 +35,7 @@ function ConnectionStatus({ isConnected, lastUpdate }: ConnectionStatusProps) {
 
 // GitHub-style underline tabs: the active one is marked in mauve along the
 // header's bottom edge
-function NavLink({ to, active, children }: { to: string; active: boolean; children: React.ReactNode }) {
+function NavLink({ to, active, icon: Icon, children }: { to: string; active: boolean; icon: LucideIcon; children: React.ReactNode }) {
   return (
     <Link
       to={to}
@@ -44,7 +44,10 @@ function NavLink({ to, active, children }: { to: string; active: boolean; childr
         active ? 'font-semibold text-foreground' : 'text-muted-foreground hover:text-foreground'
       }`}
     >
-      <span className="rounded-md px-2 py-1 hover:bg-accent">{children}</span>
+      <span className="flex items-center gap-1.5 rounded-md px-2 py-1 hover:bg-accent">
+        <Icon className="size-4" aria-hidden="true" />
+        {children}
+      </span>
       {active && <span className="absolute inset-x-1 bottom-0 h-0.5 rounded-full bg-ctp-mauve" aria-hidden="true" />}
     </Link>
   )
@@ -72,12 +75,12 @@ export default function Header() {
         <div className="flex items-center gap-4">
           <Link to="/" className="flex items-center gap-2 font-semibold text-foreground">
             <Baby className="size-5 text-ctp-mauve" />
-            <span>Nanit</span>
+            <span>Nanit Web</span>
           </Link>
 
           <nav className="flex items-center self-stretch">
-            <NavLink to="/" active={pathname === '/'}>Dashboard</NavLink>
-            <NavLink to="/settings" active={pathname === '/settings'}>Settings</NavLink>
+            <NavLink to="/" active={pathname === '/'} icon={LayoutDashboard}>Dashboard</NavLink>
+            <NavLink to="/settings" active={pathname === '/settings'} icon={Settings}>Settings</NavLink>
           </nav>
         </div>
 

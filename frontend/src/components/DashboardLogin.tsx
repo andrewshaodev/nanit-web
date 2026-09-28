@@ -24,7 +24,7 @@ export default function DashboardLogin({ purpose, password, onPasswordChange, er
       <div className="w-full max-w-sm">
         <div className="mb-4 flex flex-col items-center gap-3 text-center">
           <Baby className="size-10 text-ctp-mauve" aria-hidden="true" />
-          <h1 className="text-2xl font-light">Nanit Dashboard</h1>
+          <h1 className="text-2xl font-light">Nanit Web</h1>
           <p className="text-muted-foreground">Enter your password to access {purpose}</p>
         </div>
         <Card>

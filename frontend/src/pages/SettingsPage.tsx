@@ -7,7 +7,7 @@ export default function SettingsPage() {
   // index.html's, and the browser shows the first
   useEffect(() => {
     const previous = document.title
-    document.title = 'Settings - Nanit Dashboard'
+    document.title = 'Settings - Nanit Web'
     return () => {
       document.title = previous
     }
