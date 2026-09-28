@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/andrewshaodev/nanit-web/pkg/baby"
+	"github.com/andrewshaodev/nanit-web/pkg/camera"
 	"github.com/andrewshaodev/nanit-web/pkg/client"
 	"github.com/andrewshaodev/nanit-web/pkg/streaming"
 	"github.com/rs/zerolog/log"
@@ -136,50 +137,41 @@ func handleControlAPI(w http.ResponseWriter, r *http.Request, controlType string
 		return
 	}
 
-	// Get WebSocket connection
-	conn := app.getConnection(requestData.BabyUID)
-	if conn == nil {
+	cam, ok := app.Cameras.Get(requestData.BabyUID)
+	if !ok {
 		http.Error(w, "WebSocket not connected", http.StatusServiceUnavailable)
 		return
 	}
 
-	// Get current state
-	currentState := stateManager.GetBabyState(requestData.BabyUID)
-
 	// Execute control command
+	var toggle func() (bool, error)
 	switch controlType {
 	case "night-light":
-		if requestData.Action == "toggle" {
-			newState := !currentState.GetNightLight()
-			sendLightCommand(newState, conn)
-
-			log.Info().
-				Str("baby_uid", requestData.BabyUID).
-				Bool("new_state", newState).
-				Msg("Night light toggle command sent")
-		} else {
-			http.Error(w, "Invalid action for night-light", http.StatusBadRequest)
-			return
-		}
-
+		toggle = cam.ToggleNightLight
 	case "standby":
-		if requestData.Action == "toggle" {
-			newState := !currentState.GetStandby()
-			sendStandbyCommand(newState, conn)
-
-			log.Info().
-				Str("baby_uid", requestData.BabyUID).
-				Bool("new_state", newState).
-				Msg("Standby toggle command sent")
-		} else {
-			http.Error(w, "Invalid action for standby", http.StatusBadRequest)
-			return
-		}
-
+		toggle = cam.ToggleStandby
 	default:
 		http.Error(w, "Unknown control type", http.StatusBadRequest)
 		return
 	}
+	if requestData.Action != "toggle" {
+		http.Error(w, "Invalid action for "+controlType, http.StatusBadRequest)
+		return
+	}
+
+	newState, err := toggle()
+	if errors.Is(err, camera.ErrNotConnected) {
+		http.Error(w, "WebSocket not connected", http.StatusServiceUnavailable)
+		return
+	} else if err != nil {
+		http.Error(w, err.Error(), http.StatusBadGateway)
+		return
+	}
+	log.Info().
+		Str("baby_uid", requestData.BabyUID).
+		Str("control", controlType).
+		Bool("new_state", newState).
+		Msg("Toggle command sent")
 
 	// Return success response
 	response := map[string]interface{}{
@@ -543,6 +535,13 @@ func handleAuthResetAPI(w http.ResponseWriter, r *http.Request, app *App) {
 
 	// Stop all monitoring services first
 	log.Info().Msg("Stopping monitoring services for authentication reset")
+
+	// Disconnect the cameras while the session can still tell them to stop
+	// streaming. They used to keep running, reconnecting without a token.
+	if app.Cameras != nil {
+		app.Cameras.StopAll()
+		log.Info().Msg("Stopped all cameras")
+	}
 
 	// Stop HLS transcoding for all babies
 	if app.HLSManager != nil {
