@@ -176,7 +176,9 @@ func (app *App) handleBaby(baby baby.Baby, ctx utils.GracefulContext) {
 		})
 
 		if app.Opts.EventPolling.Enabled {
-			go app.pollMessages(baby.UID, app.BabyStateManager)
+			ctx.RunAsChild(func(childCtx utils.GracefulContext) {
+				app.pollMessages(baby.UID, app.BabyStateManager, childCtx)
+			})
 		}
 
 		ctx.RunAsChild(func(childCtx utils.GracefulContext) {
@@ -187,7 +189,21 @@ func (app *App) handleBaby(baby baby.Baby, ctx utils.GracefulContext) {
 	<-ctx.Done()
 }
 
-func (app *App) pollMessages(babyUID string, babyStateManager *baby.StateManager) {
+// pollMessages checks Nanit for new motion and sound events until ctx ends.
+// It used to call itself after each wait, forever, ignoring shutdown.
+func (app *App) pollMessages(babyUID string, babyStateManager *baby.StateManager, ctx utils.GracefulContext) {
+	for {
+		app.pollMessagesOnce(babyUID, babyStateManager)
+
+		select {
+		case <-ctx.Done():
+			return
+		case <-time.After(app.Opts.EventPolling.PollingInterval):
+		}
+	}
+}
+
+func (app *App) pollMessagesOnce(babyUID string, babyStateManager *baby.StateManager) {
 	newMessages, err := app.RestClient.FetchNewMessages(babyUID, app.Opts.EventPolling.MessageTimeout)
 	if err != nil {
 		log.Error().Err(err).Str("baby_uid", babyUID).Msg("Failed to fetch new messages")
@@ -205,10 +221,6 @@ func (app *App) pollMessages(babyUID string, babyStateManager *baby.StateManager
 			break
 		}
 	}
-
-	// wait for the specified interval
-	time.Sleep(app.Opts.EventPolling.PollingInterval)
-	app.pollMessages(babyUID, babyStateManager)
 }
 
 func (app *App) runWebsocket(babyUID string, conn *client.WebsocketConnection, childCtx utils.GracefulContext) {
