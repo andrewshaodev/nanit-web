@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/andrewshaodev/nanit-web/pkg/baby"
+	"github.com/andrewshaodev/nanit-web/pkg/utils"
 	"github.com/bluenviron/gortmplib"
 	"github.com/bluenviron/gortmplib/pkg/codecs"
 	"github.com/bluenviron/mediacommon/v2/pkg/codecs/h264"
@@ -263,4 +264,30 @@ func containsNALU(aus [][][]byte, want []byte) bool {
 		}
 	}
 	return false
+}
+
+// The RTMP listener used to stay open for the life of the process. Serve
+// closes it when its context ends, and returns without an error.
+func TestServeClosesItsListener(t *testing.T) {
+	lis, err := net.Listen("tcp", "127.0.0.1:0")
+	require.NoError(t, err)
+	addr := lis.Addr().String()
+	lis.Close()
+
+	served := make(chan error, 1)
+	runner := utils.RunWithGracefulCancel(func(ctx utils.GracefulContext) {
+		served <- Serve(ctx, addr, baby.NewStateManager())
+	})
+	require.Eventually(t, func() bool {
+		conn, err := net.Dial("tcp", addr)
+		if err == nil {
+			conn.Close()
+		}
+		return err == nil
+	}, 5*time.Second, 20*time.Millisecond)
+
+	runner.Cancel()
+	assert.NoError(t, <-served)
+	_, err = net.Dial("tcp", addr)
+	assert.Error(t, err, "the port should be free again")
 }

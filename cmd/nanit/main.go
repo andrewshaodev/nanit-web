@@ -114,7 +114,20 @@ func main() {
 
 	runner := utils.RunWithGracefulCancel(instance.Run)
 
-	<-interrupt
+	// The app can also stop itself, if the dashboard's server can't start.
+	// main used to keep waiting for a signal after that, doing nothing.
+	stopped := make(chan error, 1)
+	go func() {
+		_, err := runner.Wait()
+		stopped <- err
+	}()
+
+	select {
+	case err := <-stopped:
+		log.Error().Err(err).Msg("Stopped")
+		os.Exit(1)
+	case <-interrupt:
+	}
 	log.Warn().Msg("Received a stop signal, shutting down")
 
 	waitForCleanup := make(chan struct{}, 1)

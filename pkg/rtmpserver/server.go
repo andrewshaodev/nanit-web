@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/andrewshaodev/nanit-web/pkg/baby"
+	"github.com/andrewshaodev/nanit-web/pkg/utils"
 	"github.com/bluenviron/gortmplib"
 	"github.com/bluenviron/gortmplib/pkg/codecs"
 	"github.com/bluenviron/mediacommon/v2/pkg/codecs/h264"
@@ -36,17 +37,27 @@ type rtmpHandler struct {
 	broadcastersByUID map[string]*broadcaster
 }
 
-// StartRTMPServer - Blocking server
-func StartRTMPServer(addr string, babyStateManager *baby.StateManager) error {
+// Serve runs the RTMP server on addr until ctx ends, then closes its
+// listener. The listener used to stay open for the life of the process.
+func Serve(ctx utils.GracefulContext, addr string, babyStateManager *baby.StateManager) error {
 	lis, err := net.Listen("tcp", addr)
 	if err != nil {
-		log.Error().Str("addr", addr).Err(err).Msg("Unable to start RTMP server")
 		return fmt.Errorf("failed to start RTMP server on %s: %w", addr, err)
 	}
 
 	log.Info().Str("addr", addr).Msg("RTMP server started")
 
-	return newRtmpHandler(babyStateManager).serve(lis)
+	go func() {
+		<-ctx.Done()
+		lis.Close()
+	}()
+
+	err = newRtmpHandler(babyStateManager).serve(lis)
+	if errors.Is(err, net.ErrClosed) {
+		log.Info().Msg("RTMP server stopped")
+		return nil
+	}
+	return err
 }
 
 func newRtmpHandler(babyStateManager *baby.StateManager) *rtmpHandler {

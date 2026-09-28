@@ -37,6 +37,12 @@ type App struct {
 	// Set once RTMP, MQTT and the cameras have been started. Signing in
 	// again used to start them all a second time.
 	servicesStarted atomic.Bool
+
+	// fail stops the app with an error (set by Run)
+	fail func(error)
+
+	// State changes waiting to be written to the history database
+	historyQueue chan historyUpdate
 }
 
 // NewApp - constructor
@@ -77,68 +83,68 @@ func NewApp(opts Opts) (*App, error) {
 	return instance, nil
 }
 
-// Run - application main loop
+// Run - application main loop. It returns once ctx is cancelled and
+// everything it started has shut down.
 func (app *App) Run(ctx utils.GracefulContext) {
-	// Store main context for later use
-	app.mainContext = ctx
+	// Failing the root context stops the whole app, and main then exits
+	app.fail = ctx.Fail
 
-	// Set up historical data tracking callback
-	app.setupHistoryTracking()
+	// Everything but the final cleanup runs under services, so shutdown can
+	// wait for all of it before closing the history database
+	services := ctx.RunAsChild(func(servicesCtx utils.GracefulContext) {
+		// Signing in from the dashboard starts the cameras under this too
+		app.mainContext = servicesCtx
 
-	// Close the history database and stop ffmpeg on shutdown, however the
-	// app started. This used to be set up only after a dashboard sign-in,
-	// so a normal boot never cleaned up.
-	ctx.RunAsChild(func(childCtx utils.GracefulContext) {
-		<-childCtx.Done()
-		log.Info().Msg("Shutting down application...")
-		if app.HLSManager != nil {
-			app.HLSManager.StopAll()
-		}
-		if app.HistoryTracker != nil {
-			if err := app.HistoryTracker.Close(); err != nil {
-				log.Error().Err(err).Msg("Failed to close history tracker")
-			}
-		}
-		log.Info().Msg("Application cleanup completed")
-	})
-	// Check if we have valid authentication
-	hasValidAuth := false
-	if app.SessionStore != nil && app.SessionStore.RefreshToken() != "" {
-		// Try to authorize - if it fails, we'll run in web-only mode
-		defer func() {
-			if r := recover(); r != nil {
-				log.Warn().Interface("error", r).Msg("Authorization failed, running in web-only mode")
-				hasValidAuth = false
-			}
-		}()
+		app.setupHistoryTracking(servicesCtx)
 
-		if err := app.RestClient.MaybeAuthorize(false); err != nil {
-			log.Error().Err(err).Msg("Authentication failed")
-			hasValidAuth = false
+		servicesCtx.RunAsChild(app.serveHTTP)
+
+		if app.hasSavedSession() {
+			app.startServices(servicesCtx, app.SessionStore.Babies())
+			log.Info().Msg("All services started with authentication")
 		} else {
-			if _, err := app.RestClient.EnsureBabies(); err != nil {
-				log.Error().Err(err).Msg("Failed to fetch babies")
-				hasValidAuth = false
-			} else {
-				hasValidAuth = true
-			}
+			log.Info().Int("port", app.Opts.HTTPPort).Msg("Waiting for sign-in: open the dashboard to connect a Nanit account")
 		}
-	} else {
-		log.Info().Msg("No valid authentication found - running in web-only mode for initial setup")
-	}
 
-	// Always start HTTP server for web UI (including setup)
-	go ServeReact(app.BabyStateManager, app)
-
-	// Only start RTMP/MQTT/WebSocket if we have valid auth
-	if hasValidAuth {
-		app.startServices(ctx, app.SessionStore.Babies())
-		log.Info().Msg("All services started with authentication")
-	} else {
-		log.Info().Msg("Web server started - visit http://localhost:8080/setup to configure authentication")
-	}
+		<-servicesCtx.Done()
+	})
 
 	<-ctx.Done()
+	log.Info().Msg("Shutting down application...")
+
+	// Stop ffmpeg first, so it doesn't retry as the RTMP server goes away
+	if app.HLSManager != nil {
+		app.HLSManager.StopAll()
+	}
+	// Wait for the cameras to be told to stop streaming, the servers to
+	// close and queued history to be written
+	services.Wait()
+	// The history database used to be closed alongside all that, while the
+	// cameras could still be writing to it
+	if app.HistoryTracker != nil {
+		if err := app.HistoryTracker.Close(); err != nil {
+			log.Error().Err(err).Msg("Failed to close history tracker")
+		}
+	}
+	log.Info().Msg("Application cleanup completed")
+}
+
+// hasSavedSession reports whether a saved Nanit session still works:
+// signed in (renewing the token if needed) and the cameras known
+func (app *App) hasSavedSession() bool {
+	if app.SessionStore == nil || app.SessionStore.RefreshToken() == "" {
+		log.Info().Msg("No saved Nanit session")
+		return false
+	}
+	if err := app.RestClient.MaybeAuthorize(false); err != nil {
+		log.Error().Err(err).Msg("Saved Nanit session no longer works")
+		return false
+	}
+	if _, err := app.RestClient.EnsureBabies(); err != nil {
+		log.Error().Err(err).Msg("Failed to fetch babies")
+		return false
+	}
+	return true
 }
 
 func (app *App) handleBaby(baby baby.Baby, ctx utils.GracefulContext) {
@@ -414,11 +420,13 @@ func (app *App) startServices(ctx utils.GracefulContext, babies []baby.Baby) {
 	}
 
 	if app.Opts.RTMP != nil {
-		go func() {
-			if err := rtmpserver.StartRTMPServer(app.Opts.RTMP.ListenAddr, app.BabyStateManager); err != nil {
-				log.Error().Err(err).Msg("RTMP server failed to start or crashed")
+		ctx.RunAsChild(func(childCtx utils.GracefulContext) {
+			// Logged rather than stopping the app: in a container that would
+			// restart it, reconnecting to Nanit, in a loop
+			if err := rtmpserver.Serve(childCtx, app.Opts.RTMP.ListenAddr, app.BabyStateManager); err != nil {
+				log.Error().Err(err).Msg("RTMP server failed; video is unavailable")
 			}
-		}()
+		})
 	}
 
 	if app.MQTTConnection != nil {
@@ -545,65 +553,110 @@ func (app *App) autoStopStreaming(babyUID string) {
 }
 
 // setupHistoryTracking configures historical data tracking for state changes
-func (app *App) setupHistoryTracking() {
+// historyUpdate - a state change to record
+type historyUpdate struct {
+	babyUID string
+	state   baby.State
+}
+
+// historyQueueSize - how many state changes can wait to be written. Updates
+// come a few a second at most, so a full queue means the database is stuck.
+const historyQueueSize = 256
+
+func (app *App) setupHistoryTracking(ctx utils.GracefulContext) {
 	if !app.HistoryTracker.IsEnabled() {
 		log.Debug().Msg("Historical tracking disabled")
 		return
 	}
 
-	// Set up callback to track state changes
+	// Each state change used to be written from a goroutine of its own, so
+	// writes piled up against SQLite's single writer. They're queued now,
+	// for one writer.
+	app.historyQueue = make(chan historyUpdate, historyQueueSize)
 	app.BabyStateManager.SetHistoryCallback(func(babyUID string, state baby.State) {
-		// Track sensor data (temperature, humidity, night mode)
-		if state.TemperatureMilli != nil || state.HumidityMilli != nil || state.IsNight != nil {
-			if err := app.HistoryTracker.TrackSensorData(babyUID, state); err != nil {
-				log.Error().Err(err).Str("baby_uid", babyUID).Msg("Failed to track sensor data")
-			}
-		}
-
-		// Track motion events
-		if state.MotionTimestamp != nil {
-			if err := app.HistoryTracker.TrackEvent(babyUID, "motion", int64(*state.MotionTimestamp)); err != nil {
-				log.Error().Err(err).Str("baby_uid", babyUID).Msg("Failed to track motion event")
-			}
-		}
-
-		// Track sound events
-		if state.SoundTimestamp != nil {
-			if err := app.HistoryTracker.TrackEvent(babyUID, "sound", int64(*state.SoundTimestamp)); err != nil {
-				log.Error().Err(err).Str("baby_uid", babyUID).Msg("Failed to track sound event")
-			}
-		}
-
-		// Track night light state changes
-		if state.NightLight != nil {
-			if err := app.HistoryTracker.TrackStateChange(babyUID, "night_light", *state.NightLight); err != nil {
-				log.Error().Err(err).Str("baby_uid", babyUID).Msg("Failed to track night light state change")
-			}
-		}
-
-		// Track standby state changes
-		if state.Standby != nil {
-			if err := app.HistoryTracker.TrackStateChange(babyUID, "standby", *state.Standby); err != nil {
-				log.Error().Err(err).Str("baby_uid", babyUID).Msg("Failed to track standby state change")
-			}
+		select {
+		case app.historyQueue <- historyUpdate{babyUID, state}:
+		default:
+			log.Warn().Str("baby_uid", babyUID).Msg("History queue full, dropping an update")
 		}
 	})
+	ctx.RunAsChild(app.writeHistory)
 
 	log.Info().Msg("Historical data tracking enabled")
 
 	// Set up periodic cleanup if enabled
 	if app.Opts.History.CleanupEnabled {
-		app.setupHistoryCleanup()
+		app.setupHistoryCleanup(ctx)
+	}
+}
+
+// writeHistory records queued state changes until ctx ends, then writes
+// what's still queued. Run closes the database only after this returns.
+func (app *App) writeHistory(ctx utils.GracefulContext) {
+	for {
+		select {
+		case update := <-app.historyQueue:
+			app.recordHistory(update)
+		case <-ctx.Done():
+			for {
+				select {
+				case update := <-app.historyQueue:
+					app.recordHistory(update)
+				default:
+					return
+				}
+			}
+		}
+	}
+}
+
+// recordHistory writes one state change to the history database
+func (app *App) recordHistory(update historyUpdate) {
+	babyUID, state := update.babyUID, update.state
+
+	// Track sensor data (temperature, humidity, night mode)
+	if state.TemperatureMilli != nil || state.HumidityMilli != nil || state.IsNight != nil {
+		if err := app.HistoryTracker.TrackSensorData(babyUID, state); err != nil {
+			log.Error().Err(err).Str("baby_uid", babyUID).Msg("Failed to track sensor data")
+		}
+	}
+
+	// Track motion events
+	if state.MotionTimestamp != nil {
+		if err := app.HistoryTracker.TrackEvent(babyUID, "motion", int64(*state.MotionTimestamp)); err != nil {
+			log.Error().Err(err).Str("baby_uid", babyUID).Msg("Failed to track motion event")
+		}
+	}
+
+	// Track sound events
+	if state.SoundTimestamp != nil {
+		if err := app.HistoryTracker.TrackEvent(babyUID, "sound", int64(*state.SoundTimestamp)); err != nil {
+			log.Error().Err(err).Str("baby_uid", babyUID).Msg("Failed to track sound event")
+		}
+	}
+
+	// Track night light state changes
+	if state.NightLight != nil {
+		if err := app.HistoryTracker.TrackStateChange(babyUID, "night_light", *state.NightLight); err != nil {
+			log.Error().Err(err).Str("baby_uid", babyUID).Msg("Failed to track night light state change")
+		}
+	}
+
+	// Track standby state changes
+	if state.Standby != nil {
+		if err := app.HistoryTracker.TrackStateChange(babyUID, "standby", *state.Standby); err != nil {
+			log.Error().Err(err).Str("baby_uid", babyUID).Msg("Failed to track standby state change")
+		}
 	}
 }
 
 // setupHistoryCleanup starts a background routine for cleaning up old historical data
-func (app *App) setupHistoryCleanup() {
+func (app *App) setupHistoryCleanup(ctx utils.GracefulContext) {
 	if !app.HistoryTracker.IsEnabled() {
 		return
 	}
 
-	app.mainContext.RunAsChild(func(childCtx utils.GracefulContext) {
+	ctx.RunAsChild(func(childCtx utils.GracefulContext) {
 		ticker := time.NewTicker(24 * time.Hour) // Run cleanup daily
 		defer ticker.Stop()
 

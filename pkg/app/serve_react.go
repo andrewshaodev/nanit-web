@@ -1,23 +1,60 @@
 package app
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/andrewshaodev/nanit-web/pkg/baby"
+	"github.com/andrewshaodev/nanit-web/pkg/utils"
 	"github.com/rs/zerolog/log"
 )
 
-// ServeReact serves the React frontend instead of Go templates
-func ServeReact(stateManager *baby.StateManager, app *App) {
-	port := app.Opts.HTTPPort
+// serveHTTP runs the dashboard and API until ctx ends, then gives requests
+// in flight up to 5 s to finish. If the server can't start (the port is in
+// use, say) the app stops: it used to carry on without a dashboard.
+func (app *App) serveHTTP(ctx utils.GracefulContext) {
+	server := &http.Server{
+		Addr:    fmt.Sprintf(":%v", app.Opts.HTTPPort),
+		Handler: newHTTPHandler(app.BabyStateManager, app),
+		// The server had no timeouts, so a slow or stalled client held its
+		// connection open indefinitely
+		ReadHeaderTimeout: 10 * time.Second,
+		ReadTimeout:       30 * time.Second,
+		// Reading the camera's sound settings takes up to three 10 s requests
+		WriteTimeout: 60 * time.Second,
+		IdleTimeout:  120 * time.Second,
+	}
 
-	log.Info().Msg("=== Setting up HTTP server routes for React frontend ===")
+	serveErr := make(chan error, 1)
+	go func() {
+		log.Info().Int("port", app.Opts.HTTPPort).Msg("Starting HTTP server")
+		serveErr <- server.ListenAndServe()
+	}()
 
+	select {
+	case err := <-serveErr:
+		log.Error().Err(err).Int("port", app.Opts.HTTPPort).Msg("HTTP server failed")
+		app.fail(fmt.Errorf("HTTP server: %w", err))
+		return
+	case <-ctx.Done():
+	}
+
+	shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	if err := server.Shutdown(shutdownCtx); err != nil {
+		log.Warn().Err(err).Msg("HTTP server didn't shut down cleanly")
+	}
+	log.Info().Msg("HTTP server stopped")
+}
+
+// newHTTPHandler - the dashboard's page and assets, and the API
+func newHTTPHandler(stateManager *baby.StateManager, app *App) http.Handler {
 	// Vite's build output. The file names under assets/ carry a content hash,
 	// so a changed file gets a new URL and each one can be cached for good
 	mux := http.NewServeMux()
@@ -46,9 +83,7 @@ func ServeReact(stateManager *baby.StateManager, app *App) {
 
 	// API endpoints - keep existing API structure
 	setupAPIRoutes(mux, stateManager, app)
-
-	log.Info().Int("port", port).Msg("Starting HTTP server with React frontend")
-	http.ListenAndServe(fmt.Sprintf(":%v", port), mux)
+	return mux
 }
 
 // immutable marks responses as safe to cache forever
