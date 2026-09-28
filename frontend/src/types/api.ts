@@ -62,6 +62,14 @@ export interface DeviceInfoResponse {
   alerts: DeviceAlert[];
 }
 
+// The camera's built-in sounds, from /api/sound/{baby_uid}
+export interface SoundStatus {
+  tracks: string[];
+  playback: { playing: boolean; track?: string } | null;
+  volume: number | null;
+  errors?: string[];
+}
+
 export interface SensorReading {
   timestamp: number;
   temperature_celsius?: number;

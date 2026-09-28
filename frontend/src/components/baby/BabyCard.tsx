@@ -4,6 +4,7 @@ import BabyHeader from './BabyHeader'
 import VideoSection from './VideoSection'
 import SensorGrid from './SensorGrid'
 import ControlPanel from './ControlPanel'
+import SoundPanel from './SoundPanel'
 import HistoricalData from './HistoricalData'
 
 interface BabyCardProps {
@@ -39,6 +40,7 @@ export default function BabyCard({ baby, collapsed, onToggleCollapsed, onMoveUp,
             <div className="space-y-4">
               <SensorGrid baby={baby} />
               <ControlPanel baby={baby} />
+              <SoundPanel baby={baby} />
             </div>
           </div>
 

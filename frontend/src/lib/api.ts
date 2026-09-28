@@ -1,5 +1,6 @@
 import type {
   StatusResponse,
+  SoundStatus,
   DeviceInfoResponse,
   SensorDataResponse,
   // EventsDataResponse,  // Disabled motion/sound activity
@@ -238,6 +239,31 @@ class ApiClient {
     // proxy (a hardcoded http:// URL is blocked there as mixed content)
     const origin = typeof window !== 'undefined' ? window.location.origin : 'http://localhost:8080';
     return `${origin}/api/stream/hls/${babyUid}/playlist.m3u8`;
+  }
+
+  // The camera's built-in sounds. Every call reaches the camera; nothing plays
+  // unless play() is called.
+  async getSound(babyUid: string): Promise<SoundStatus> {
+    return this.request<SoundStatus>(`/sound/${babyUid}`);
+  }
+
+  // durationSeconds: -1 (or 0) keeps playing until stopped
+  async playSound(babyUid: string, track: string, durationSeconds: number): Promise<SoundStatus> {
+    return this.request<SoundStatus>(`/sound/${babyUid}/play`, {
+      method: 'POST',
+      body: JSON.stringify({ track, duration_seconds: durationSeconds }),
+    });
+  }
+
+  async stopSound(babyUid: string): Promise<SoundStatus> {
+    return this.request<SoundStatus>(`/sound/${babyUid}/stop`, { method: 'POST' });
+  }
+
+  async setVolume(babyUid: string, volume: number): Promise<SoundStatus> {
+    return this.request<SoundStatus>(`/sound/${babyUid}/volume`, {
+      method: 'POST',
+      body: JSON.stringify({ volume }),
+    });
   }
 
   // Web Authentication
