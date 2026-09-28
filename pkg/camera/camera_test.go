@@ -184,3 +184,20 @@ func TestRegistrySync(t *testing.T) {
 		t.Fatal("cameras didn't stop")
 	}
 }
+
+// The WiFi status fills in the device info, alongside what's already there
+func TestNetworkStatusFillsDeviceInfo(t *testing.T) {
+	state := baby.NewStateManager()
+	band := "Any"
+	state.Update("baby1", baby.State{DeviceInfo: &baby.DeviceInfo{WiFiBand: &band}})
+
+	processNetwork("baby1", &client.NetworkStatus{
+		Ssid: utils.ConstRefStr("ARPANET"), Rssi: utils.ConstRefInt32(-55), Frequency: utils.ConstRefInt32(5805),
+	}, state)
+
+	info := state.GetBabyState("baby1").GetDeviceInfo()
+	assert.Equal(t, "ARPANET", *info.WiFiNetwork)
+	assert.Equal(t, int32(-55), *info.WiFiSignal)
+	assert.Equal(t, int32(5805), *info.WiFiFrequency)
+	assert.Equal(t, "Any", *info.WiFiBand, "the settings' band is kept")
+}

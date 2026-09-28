@@ -152,6 +152,21 @@ func processStandby(babyUID string, settings *client.Settings, stateManager *bab
 	log.Debug().Str("baby_uid", babyUID).Interface("device_info", deviceInfo).Msg("Updated device info from settings")
 }
 
+// processNetwork - the camera's WiFi connection, from GET_STATUS_NETWORK
+func processNetwork(babyUID string, network *client.NetworkStatus, stateManager *baby.StateManager) {
+	deviceInfo := &baby.DeviceInfo{}
+	if network.Ssid != nil {
+		deviceInfo.WiFiNetwork = network.Ssid
+	}
+	if network.Rssi != nil {
+		deviceInfo.WiFiSignal = network.Rssi
+	}
+	if network.Frequency != nil {
+		deviceInfo.WiFiFrequency = network.Frequency
+	}
+	stateManager.Update(babyUID, baby.State{DeviceInfo: deviceInfo})
+}
+
 func processStatus(babyUID string, status *client.Status, stateManager *baby.StateManager) {
 	stateUpdate := baby.State{}
 	deviceInfo := &baby.DeviceInfo{}

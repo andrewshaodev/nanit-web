@@ -12,6 +12,8 @@ export interface DeviceInfo {
   device_mode?: string;
   mounting_mode?: number /* int32 */;
   wifi_network?: string;
+  wifi_signal?: number /* int32 */; // dBm
+  wifi_frequency?: number /* int32 */; // MHz
   wifi_band?: string;
   night_vision?: boolean;
   volume?: number /* int32 */;

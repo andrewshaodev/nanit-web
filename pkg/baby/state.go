@@ -130,6 +130,12 @@ func (state *State) mergeDeviceInfo(current *DeviceInfo, patch *DeviceInfo) *Dev
 	if patch.WiFiNetwork != nil {
 		merged.WiFiNetwork = patch.WiFiNetwork
 	}
+	if patch.WiFiSignal != nil {
+		merged.WiFiSignal = patch.WiFiSignal
+	}
+	if patch.WiFiFrequency != nil {
+		merged.WiFiFrequency = patch.WiFiFrequency
+	}
 	if patch.WiFiBand != nil {
 		merged.WiFiBand = patch.WiFiBand
 	}

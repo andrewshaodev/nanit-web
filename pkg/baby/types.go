@@ -10,6 +10,8 @@ type DeviceInfo struct {
 	DeviceMode           *string  `json:"device_mode,omitempty"`
 	MountingMode         *int32   `json:"mounting_mode,omitempty"`
 	WiFiNetwork          *string  `json:"wifi_network,omitempty"`
+	WiFiSignal           *int32   `json:"wifi_signal,omitempty"`    // dBm
+	WiFiFrequency        *int32   `json:"wifi_frequency,omitempty"` // MHz
 	WiFiBand             *string  `json:"wifi_band,omitempty"`
 	NightVision          *bool    `json:"night_vision,omitempty"`
 	Volume               *int32   `json:"volume,omitempty"`

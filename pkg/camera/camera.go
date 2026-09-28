@@ -17,6 +17,9 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
+// networkStatusInterval - how often the camera's WiFi signal is read
+const networkStatusInterval = 5 * time.Minute
+
 // ErrNotConnected - the camera's websocket isn't up, so it can't take commands
 var ErrNotConnected = errors.New("camera not connected")
 
@@ -190,6 +193,8 @@ func (c *Camera) runWebsocket(conn *client.WebsocketConnection, childCtx utils.G
 				processStandby(uid, m.Response.Settings, stateManager)
 			} else if *m.Response.RequestType == client.RequestType_GET_STATUS && m.Response.Status != nil {
 				processStatus(uid, m.Response.Status, stateManager)
+			} else if *m.Response.RequestType == client.RequestType_GET_STATUS_NETWORK && m.Response.NetworkStatus != nil {
+				processNetwork(uid, m.Response.NetworkStatus, stateManager)
 			}
 		} else
 
@@ -235,8 +240,28 @@ func (c *Camera) runWebsocket(conn *client.WebsocketConnection, childCtx utils.G
 		},
 	})
 
-	// Ask for settings to get device configuration
-	conn.SendRequest(client.RequestType_GET_SETTINGS, &client.Request{})
+	// Ask for settings to get device configuration. Sent without its
+	// getSettings field, as it long was, the camera answers 400 ("missed
+	// 'getsettings' field"), so the device page only had its settings once
+	// the Sound panel had asked for them properly.
+	conn.SendRequest(client.RequestType_GET_SETTINGS, &client.Request{
+		GetSettings_: &client.GetSettings{All: utils.ConstRefBool(true)},
+	})
+
+	// And its WiFi connection, now and every few minutes, since the signal
+	// changes. A read: it doesn't make the camera scan for networks.
+	go func() {
+		ticker := time.NewTicker(networkStatusInterval)
+		defer ticker.Stop()
+		for {
+			conn.SendRequest(client.RequestType_GET_STATUS_NETWORK, &client.Request{})
+			select {
+			case <-childCtx.Done():
+				return
+			case <-ticker.C:
+			}
+		}
+	}()
 
 	// The stream loop takes it from here: asking the camera to stream (with
 	// NANIT_RTMP_AUTO_START), and transcoding once it does
