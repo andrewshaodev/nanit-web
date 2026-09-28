@@ -148,7 +148,9 @@ func (conn *WebsocketConnection) SendRequest(reqType RequestType, requestData *R
 		Request: requestData,
 	}
 
-	// Response handling
+	// Response handling. resC is never closed: a response racing the timeout
+	// used to be sent on it just after the awaiter closed it, which panics.
+	// With room for one, the send never blocks, and a late one is dropped.
 	resC := make(chan *Response, 1)
 
 	conn.resHandlersMu.Lock()
@@ -156,10 +158,8 @@ func (conn *WebsocketConnection) SendRequest(reqType RequestType, requestData *R
 		Request: m.Request,
 		HandleResponse: func(res *Response) {
 			select {
-			case <-resC:
-				return // Channel already closed (ie. timeout)
+			case resC <- res:
 			default:
-				resC <- res
 			}
 		},
 	}
@@ -168,6 +168,9 @@ func (conn *WebsocketConnection) SendRequest(reqType RequestType, requestData *R
 	// Send request
 	if err := conn.SendMessage(m); err != nil {
 		log.Error().Err(err).Msg("Failed to send websocket message")
+		conn.resHandlersMu.Lock()
+		delete(conn.resHandlers, id)
+		conn.resHandlersMu.Unlock()
 		// Return an awaiter that immediately returns the error
 		return func(timeout time.Duration) (*Response, error) {
 			return nil, fmt.Errorf("failed to send request: %w", err)
@@ -186,10 +189,8 @@ func (conn *WebsocketConnection) SendRequest(reqType RequestType, requestData *R
 			delete(conn.resHandlers, id)
 			conn.resHandlersMu.Unlock()
 
-			close(resC)
 			return nil, errors.New("Request timeout")
 		case res := <-resC:
-			close(resC)
 			timer.Stop()
 
 			if res.StatusCode == nil {
@@ -216,15 +217,17 @@ func (conn *WebsocketConnection) handleResponse(r *Response) {
 	requestID := *r.RequestId
 	requestType := *r.RequestType
 
-	conn.resHandlersMu.RLock()
+	// Look up and claim the handler in one step, so two copies of a response
+	// (frames are handled concurrently) can't both be delivered
+	conn.resHandlersMu.Lock()
 	unhandledReqCandidate, ok := conn.resHandlers[requestID]
-	conn.resHandlersMu.RUnlock()
-
-	if ok && requestType == *unhandledReqCandidate.Request.Type {
-		conn.resHandlersMu.Lock()
+	ok = ok && requestType == *unhandledReqCandidate.Request.Type
+	if ok {
 		delete(conn.resHandlers, requestID)
-		conn.resHandlersMu.Unlock()
+	}
+	conn.resHandlersMu.Unlock()
 
+	if ok {
 		unhandledReqCandidate.HandleResponse(r)
 	}
 }

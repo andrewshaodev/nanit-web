@@ -109,3 +109,35 @@ func TestTimedOutRequestReleasesHandler(t *testing.T) {
 	conn.resHandlersMu.RUnlock()
 	assert.Equal(t, 0, remaining, "timed out request should not leave a handler behind")
 }
+
+// A response can arrive just as its request times out, and frames are
+// handled concurrently, so copies can arrive together too. The response
+// channel used to be closed on timeout, and a send racing that close
+// panics. Run with -race.
+func TestResponseRacingTimeout(t *testing.T) {
+	conn, _ := newTestConnection(t)
+
+	for i := range 200 {
+		awaitResponse := conn.SendRequest(RequestType_GET_STATUS, &Request{})
+		res := &Response{
+			RequestId:   utils.ConstRefInt32(int32(i + 1)),
+			RequestType: RequestType_GET_STATUS.Enum(),
+			StatusCode:  utils.ConstRefInt32(200),
+		}
+
+		done := make(chan struct{})
+		for range 2 {
+			go func() {
+				conn.handleResponse(res)
+				done <- struct{}{}
+			}()
+		}
+		_, _ = awaitResponse(time.Duration(i%3) * time.Microsecond)
+		<-done
+		<-done
+	}
+
+	conn.resHandlersMu.RLock()
+	defer conn.resHandlersMu.RUnlock()
+	assert.Empty(t, conn.resHandlers)
+}
