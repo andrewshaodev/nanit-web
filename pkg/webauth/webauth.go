@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"sync"
 	"time"
 
 	"github.com/rs/zerolog/log"
@@ -30,7 +31,10 @@ type SessionData struct {
 // WebAuth manages web interface authentication
 type WebAuth struct {
 	passwordFile string
-	sessions     map[string]SessionData
+
+	// Every HTTP request reads this, from its own goroutine
+	mu       sync.Mutex
+	sessions map[string]SessionData
 }
 
 // NewWebAuth creates a new WebAuth instance
@@ -94,7 +98,9 @@ func (wa *WebAuth) RemovePassword() error {
 	}
 
 	// Clear all sessions
+	wa.mu.Lock()
 	wa.sessions = make(map[string]SessionData)
+	wa.mu.Unlock()
 
 	log.Info().Msg("Password protection disabled")
 	return nil
@@ -116,7 +122,10 @@ func (wa *WebAuth) CreateSession() (string, error) {
 		ExpiresAt: time.Now().Add(24 * time.Hour), // 24 hour sessions
 	}
 
-	// Store session
+	wa.mu.Lock()
+	defer wa.mu.Unlock()
+	// Sessions are only added here, so pruning here keeps the map small
+	wa.removeExpiredLocked(time.Now())
 	wa.sessions[sessionID] = sessionData
 
 	return sessionID, nil
@@ -124,6 +133,9 @@ func (wa *WebAuth) CreateSession() (string, error) {
 
 // ValidateSession checks if a session is valid and not expired
 func (wa *WebAuth) ValidateSession(sessionID string) bool {
+	wa.mu.Lock()
+	defer wa.mu.Unlock()
+
 	sessionData, exists := wa.sessions[sessionID]
 	if !exists {
 		return false
@@ -140,12 +152,13 @@ func (wa *WebAuth) ValidateSession(sessionID string) bool {
 
 // InvalidateSession removes a session (logout)
 func (wa *WebAuth) InvalidateSession(sessionID string) {
+	wa.mu.Lock()
+	defer wa.mu.Unlock()
 	delete(wa.sessions, sessionID)
 }
 
-// CleanupExpiredSessions removes expired sessions
-func (wa *WebAuth) CleanupExpiredSessions() {
-	now := time.Now()
+// removeExpiredLocked drops expired sessions. wa.mu must be held.
+func (wa *WebAuth) removeExpiredLocked(now time.Time) {
 	for sessionID, sessionData := range wa.sessions {
 		if now.After(sessionData.ExpiresAt) {
 			delete(wa.sessions, sessionID)
