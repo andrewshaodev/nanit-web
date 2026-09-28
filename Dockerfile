@@ -33,7 +33,6 @@ RUN go mod download
 
 ADD cmd /app/cmd
 ADD pkg /app/pkg
-ADD scripts /app/scripts
 
 # Copy built frontend files to replace old web directory
 COPY --from=frontend-build /app/frontend/dist /app/web
@@ -51,16 +50,14 @@ RUN if [ "$TARGETARCH" = "arm64" ]; then \
 FROM debian:trixie-slim
 
 COPY --from=backend-build /app/bin/nanit /app/bin/nanit
-COPY --from=backend-build /app/scripts /app/scripts
 COPY --from=backend-build /app/web /app/web
 
 RUN apt-get -yqq update && \
-    apt-get install -yq --no-install-recommends ca-certificates ffmpeg bash curl jq sqlite3 libsqlite3-0 && \
+    apt-get install -yq --no-install-recommends ca-certificates ffmpeg bash curl sqlite3 libsqlite3-0 && \
     apt-get autoremove -y && \
     apt-get clean -y
 
-RUN mkdir -p /data && \
-    chmod +x /app/scripts/*.sh
+RUN mkdir -p /data
 
 WORKDIR /app
 ENTRYPOINT ["/app/bin/nanit"]

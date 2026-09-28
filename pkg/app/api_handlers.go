@@ -554,7 +554,7 @@ func handleAuthVerify2FAAPI(w http.ResponseWriter, r *http.Request, app *App) {
 		return
 	}
 
-	// Save session data (similar to init-nanit.sh)
+	// Save session data
 	sessionData := map[string]interface{}{
 		"revision":     3, // Keep in sync with session.go
 		"authToken":    requestData.MFAToken,

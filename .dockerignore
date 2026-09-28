@@ -1,7 +1,6 @@
 *
 !./cmd
 !./pkg
-!./scripts
 !./web
 !./frontend
 !./go.mod
