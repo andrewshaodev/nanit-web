@@ -1460,12 +1460,12 @@ func handleReadinessAPI(w http.ResponseWriter, r *http.Request, app *App) {
 
 	// Determine overall readiness
 	overallReady := authReady && babiesReady
+	// Headers must be set before WriteHeader, or they're dropped
+	w.Header().Set("Content-Type", "application/json")
 	if !overallReady {
 		readiness["status"] = "not_ready"
 		w.WriteHeader(http.StatusServiceUnavailable)
 	}
-
-	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(readiness)
 }
 
