@@ -216,9 +216,10 @@ class ApiClient {
   }
 
   getHLSUrl(babyUid: string): string {
-    const host = typeof window !== 'undefined' ? window.location.hostname : 'localhost';
-    const port = typeof window !== 'undefined' ? window.location.port : '8080';
-    return `http://${host}:${port}/api/stream/hls/${babyUid}/playlist.m3u8`;
+    // Same origin as the page, so it keeps working over HTTPS behind a reverse
+    // proxy (a hardcoded http:// URL is blocked there as mixed content)
+    const origin = typeof window !== 'undefined' ? window.location.origin : 'http://localhost:8080';
+    return `${origin}/api/stream/hls/${babyUid}/playlist.m3u8`;
   }
 
   // Web Authentication
