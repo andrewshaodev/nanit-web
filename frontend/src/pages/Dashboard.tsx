@@ -7,6 +7,7 @@ import LoadingSpinner from '@/components/ui/LoadingSpinner'
 import ErrorMessage from '@/components/ui/ErrorMessage'
 import { api } from '@/lib/api'
 import { useStatus } from '@/hooks/useStatus'
+import { useCameraLayout } from '@/hooks/useCameraLayout'
 import type { AuthStatusResponse, WebAuthStatusResponse } from '@/types/api'
 
 export default function Dashboard() {
@@ -40,6 +41,7 @@ export default function Dashboard() {
   const { babies, isLoading, isError } = useStatus(
     webAuthStatus?.authenticated && authStatus?.authenticated
   )
+  const { sortBabies, isCollapsed, toggleCollapsed, move } = useCameraLayout()
 
   useEffect(() => {
     if (webAuthStatus) {
@@ -162,11 +164,20 @@ export default function Dashboard() {
     )
   }
 
+  const sortedBabies = sortBabies(babies)
+
   return (
     <MainLayout>
       <div className="space-y-8">
-        {babies.map((baby) => (
-          <BabyCard key={baby.uid} baby={baby} />
+        {sortedBabies.map((baby, index) => (
+          <BabyCard
+            key={baby.uid}
+            baby={baby}
+            collapsed={isCollapsed(baby.uid)}
+            onToggleCollapsed={() => toggleCollapsed(baby.uid)}
+            onMoveUp={index > 0 ? () => move(sortedBabies, baby.uid, -1) : undefined}
+            onMoveDown={index < sortedBabies.length - 1 ? () => move(sortedBabies, baby.uid, 1) : undefined}
+          />
         ))}
       </div>
     </MainLayout>
