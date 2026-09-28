@@ -66,7 +66,7 @@ export default function StreamingLinks({ baby }: StreamingLinksProps) {
               <p className="text-sm text-nanit-gray-600 mb-3">
                 For Home Assistant, OBS, VLC, etc.
               </p>
-              <div className="bg-nanit-gray-50 p-3 rounded border text-sm font-mono text-nanit-gray-700 mb-3 overflow-x-auto whitespace-nowrap">
+              <div className="bg-nanit-gray-50 p-3 rounded-sm border text-sm font-mono text-nanit-gray-700 mb-3 overflow-x-auto whitespace-nowrap">
                 {rtmpUrl}
               </div>
               <CopyButton text={rtmpUrl} label="Copy RTMP URL" />
@@ -80,14 +80,14 @@ export default function StreamingLinks({ baby }: StreamingLinksProps) {
               <p className="text-sm text-nanit-gray-600 mb-3">
                 For web browsers and modern apps
               </p>
-              <div className="bg-nanit-gray-50 p-3 rounded border text-sm font-mono text-nanit-gray-700 mb-3 overflow-x-auto whitespace-nowrap">
+              <div className="bg-nanit-gray-50 p-3 rounded-sm border text-sm font-mono text-nanit-gray-700 mb-3 overflow-x-auto whitespace-nowrap">
                 {hlsUrl}
               </div>
               <CopyButton text={hlsUrl} label="Copy HLS URL" />
             </div>
           </div>
 
-          <div className="bg-blue-50 border-l-4 border-blue-500 p-3 rounded">
+          <div className="bg-blue-50 border-l-4 border-blue-500 p-3 rounded-sm">
             <div className="text-sm text-nanit-gray-700 space-y-1">
               <p><strong>Usage Notes:</strong></p>
               <p>• RTMP streams work with most video software and Home Assistant</p>

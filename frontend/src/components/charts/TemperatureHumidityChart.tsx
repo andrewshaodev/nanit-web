@@ -15,7 +15,7 @@ export default function TemperatureHumidityChart({ data, isLoading }: Temperatur
 
   if (isLoading) {
     return (
-      <div className="h-64 bg-nanit-gray-50 rounded flex items-center justify-center">
+      <div className="h-64 bg-nanit-gray-50 rounded-sm flex items-center justify-center">
         <div className="text-nanit-gray-500">Loading chart data...</div>
       </div>
     )
@@ -23,7 +23,7 @@ export default function TemperatureHumidityChart({ data, isLoading }: Temperatur
 
   if (!data || data.length === 0) {
     return (
-      <div className="h-64 bg-nanit-gray-50 rounded flex items-center justify-center">
+      <div className="h-64 bg-nanit-gray-50 rounded-sm flex items-center justify-center">
         <div className="text-nanit-gray-500">No data available for selected timeframe</div>
       </div>
     )

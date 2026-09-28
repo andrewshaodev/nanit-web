@@ -1,11 +1,6 @@
 import { Inter } from 'next/font/google'
 import './globals.css'
-import dynamic from 'next/dynamic'
-
-// Dynamically import tooltip to avoid SSR issues
-const ClientTooltip = dynamic(() => import('@/components/ui/ClientTooltip'), { 
-  ssr: false 
-})
+import ClientTooltip from '@/components/ui/ClientTooltip'
 
 const inter = Inter({ subsets: ['latin'] })
 

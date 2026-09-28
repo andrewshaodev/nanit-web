@@ -97,7 +97,7 @@ export default function SetupPage() {
                     type="email"
                     value={formData.email}
                     onChange={(e) => handleInputChange('email', e.target.value)}
-                    className="w-full px-3 py-2 border border-nanit-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3 py-2 border border-nanit-gray-300 rounded-md focus:outline-hidden focus:ring-2 focus:ring-blue-500"
                     placeholder="your@email.com"
                     required
                   />
@@ -111,14 +111,14 @@ export default function SetupPage() {
                     type="password"
                     value={formData.password}
                     onChange={(e) => handleInputChange('password', e.target.value)}
-                    className="w-full px-3 py-2 border border-nanit-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3 py-2 border border-nanit-gray-300 rounded-md focus:outline-hidden focus:ring-2 focus:ring-blue-500"
                     placeholder="Your password"
                     required
                   />
                 </div>
 
                 {error && (
-                  <div className="bg-red-50 border-l-4 border-red-500 p-3 rounded">
+                  <div className="bg-red-50 border-l-4 border-red-500 p-3 rounded-sm">
                     <div className="text-sm text-red-700">{error}</div>
                   </div>
                 )}
@@ -145,7 +145,7 @@ export default function SetupPage() {
                 Two-Factor Authentication
               </h2>
               
-              <div className="bg-blue-50 border-l-4 border-blue-500 p-3 rounded mb-6">
+              <div className="bg-blue-50 border-l-4 border-blue-500 p-3 rounded-sm mb-6">
                 <div className="text-sm text-blue-700">
                   Check your email for a verification code from Nanit and enter it below.
                 </div>
@@ -160,7 +160,7 @@ export default function SetupPage() {
                     type="text"
                     value={formData.mfaCode}
                     onChange={(e) => handleInputChange('mfaCode', e.target.value)}
-                    className="w-full px-3 py-2 border border-nanit-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3 py-2 border border-nanit-gray-300 rounded-md focus:outline-hidden focus:ring-2 focus:ring-blue-500"
                     placeholder="Enter 6-digit code"
                     maxLength={6}
                     required
@@ -168,7 +168,7 @@ export default function SetupPage() {
                 </div>
 
                 {error && (
-                  <div className="bg-red-50 border-l-4 border-red-500 p-3 rounded">
+                  <div className="bg-red-50 border-l-4 border-red-500 p-3 rounded-sm">
                     <div className="text-sm text-red-700">{error}</div>
                   </div>
                 )}

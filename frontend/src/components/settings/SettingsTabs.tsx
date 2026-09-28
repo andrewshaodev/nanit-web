@@ -46,7 +46,7 @@ export default function SettingsTabs({ tabs, defaultTab }: SettingsTabsProps) {
       </div>
 
       {/* Tab Content */}
-      <div className="bg-white rounded-lg shadow p-6">
+      <div className="bg-white rounded-lg shadow-sm p-6">
         <div className="mb-4">
           <h3 className="text-lg font-medium text-gray-900 flex items-center gap-2">
             <span>{activeTabData.icon}</span>

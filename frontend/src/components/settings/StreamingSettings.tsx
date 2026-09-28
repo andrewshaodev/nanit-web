@@ -127,7 +127,7 @@ export default function StreamingSettings({ babies }: StreamingSettingsProps) {
         <h4 className="font-medium text-green-900 mb-2">🏠 Home Assistant Integration</h4>
         <div className="text-sm text-green-800 space-y-2">
           <p>To add these streams to Home Assistant, use the RTMP URLs in your camera configuration:</p>
-          <div className="bg-green-100 p-3 rounded font-mono text-xs overflow-x-auto">
+          <div className="bg-green-100 p-3 rounded-sm font-mono text-xs overflow-x-auto">
             <div>camera:</div>
             <div>&nbsp;&nbsp;- platform: ffmpeg</div>
             <div>&nbsp;&nbsp;&nbsp;&nbsp;name: &quot;Nanit Camera&quot;</div>

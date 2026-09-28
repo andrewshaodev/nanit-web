@@ -107,7 +107,7 @@ export default function ControlPanel({ baby }: ControlPanelProps) {
       <h3 className="text-lg font-semibold text-nanit-gray-800">Controls</h3>
       
       {!baby.websocket_alive && (
-        <div className="bg-yellow-50 border-l-4 border-yellow-400 p-3 rounded">
+        <div className="bg-yellow-50 border-l-4 border-yellow-400 p-3 rounded-sm">
           <div className="text-sm text-yellow-800">
             ⚠️ Device is offline. Controls are disabled until connection is restored.
           </div>

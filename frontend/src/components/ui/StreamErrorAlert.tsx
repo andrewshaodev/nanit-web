@@ -93,14 +93,14 @@ export default function StreamErrorAlert({ error, baby_uid, onRetry, className =
   return (
     <div className={`bg-red-50 border border-red-200 rounded-lg p-4 ${className}`}>
       <div className="flex items-start gap-3">
-        <span className="flex-shrink-0 text-red-500 text-lg">❌</span>
+        <span className="shrink-0 text-red-500 text-lg">❌</span>
         <div className="flex-1 min-w-0">
           <div className="flex items-center justify-between gap-2 mb-2">
             <h4 className="font-semibold text-red-800">{title}</h4>
             {onRetry && (
               <button
                 onClick={onRetry}
-                className="px-3 py-1 text-sm bg-red-600 text-white rounded hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500"
+                className="px-3 py-1 text-sm bg-red-600 text-white rounded-sm hover:bg-red-700 focus:outline-hidden focus:ring-2 focus:ring-red-500"
               >
                 Retry
               </button>
@@ -122,7 +122,7 @@ export default function StreamErrorAlert({ error, baby_uid, onRetry, className =
             </ul>
           </details>
           
-          <div className="mt-3 text-xs text-red-600 font-mono bg-red-100 rounded p-2">
+          <div className="mt-3 text-xs text-red-600 font-mono bg-red-100 rounded-sm p-2">
             Error: {error.type} - {error.message}
           </div>
         </div>

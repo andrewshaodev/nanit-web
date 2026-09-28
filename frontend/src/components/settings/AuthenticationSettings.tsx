@@ -104,8 +104,8 @@ export default function AuthenticationSettings({
   if (!authStatus) {
     return (
       <div className="animate-pulse">
-        <div className="h-4 bg-gray-200 rounded w-1/3 mb-2"></div>
-        <div className="h-8 bg-gray-200 rounded w-1/2"></div>
+        <div className="h-4 bg-gray-200 rounded-sm w-1/3 mb-2"></div>
+        <div className="h-8 bg-gray-200 rounded-sm w-1/2"></div>
       </div>
     );
   }
@@ -147,14 +147,14 @@ export default function AuthenticationSettings({
                 {authStatus.authenticated ? (
                   <button
                     onClick={() => setShowResetConfirmation(true)}
-                    className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500"
+                    className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 focus:outline-hidden focus:ring-2 focus:ring-red-500"
                   >
                     Reset Authentication
                   </button>
                 ) : (
                   <button
                     onClick={handleReAuthenticate}
-                    className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-hidden focus:ring-2 focus:ring-blue-500"
                   >
                     Authenticate
                   </button>
@@ -190,7 +190,7 @@ export default function AuthenticationSettings({
                   {!webAuthStatus.password_set ? (
                     <button
                       onClick={() => openPasswordForm('set')}
-                      className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-hidden focus:ring-2 focus:ring-blue-500"
                     >
                       Set Password
                     </button>
@@ -198,13 +198,13 @@ export default function AuthenticationSettings({
                     <>
                       <button
                         onClick={() => openPasswordForm('change')}
-                        className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-hidden focus:ring-2 focus:ring-blue-500"
                       >
                         Change Password
                       </button>
                       <button
                         onClick={() => openPasswordForm('remove')}
-                        className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500"
+                        className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 focus:outline-hidden focus:ring-2 focus:ring-red-500"
                       >
                         Remove Password
                       </button>
@@ -218,7 +218,7 @@ export default function AuthenticationSettings({
                   <p className="text-blue-800 text-sm">
                     <strong>Forgot your password?</strong> You can reset it using the CLI command inside the Docker container:
                     <br />
-                    <code className="bg-blue-100 px-1 rounded text-xs mt-1 inline-block">
+                    <code className="bg-blue-100 px-1 rounded-sm text-xs mt-1 inline-block">
                       docker exec -it YOUR_CONTAINER_NAME /app/bin/nanit --reset-password
                     </code>
                   </p>
@@ -252,14 +252,14 @@ export default function AuthenticationSettings({
                 type="button"
                 onClick={() => setShowResetConfirmation(false)}
                 disabled={resetLoading}
-                className="px-4 py-2 text-gray-700 bg-gray-200 rounded-md hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-500 disabled:opacity-50"
+                className="px-4 py-2 text-gray-700 bg-gray-200 rounded-md hover:bg-gray-300 focus:outline-hidden focus:ring-2 focus:ring-gray-500 disabled:opacity-50"
               >
                 Cancel
               </button>
               <button
                 onClick={handleResetAuthentication}
                 disabled={resetLoading}
-                className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 disabled:opacity-50"
+                className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 focus:outline-hidden focus:ring-2 focus:ring-red-500 disabled:opacity-50"
               >
                 {resetLoading ? 'Resetting...' : 'Reset Authentication'}
               </button>
@@ -289,7 +289,7 @@ export default function AuthenticationSettings({
                     id="password"
                     value={formData.password}
                     onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-hidden focus:ring-2 focus:ring-blue-500"
                     required
                     minLength={8}
                     placeholder="Enter a password (minimum 8 characters)"
@@ -308,7 +308,7 @@ export default function AuthenticationSettings({
                       id="currentPassword"
                       value={formData.currentPassword}
                       onChange={(e) => setFormData({ ...formData, currentPassword: e.target.value })}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-hidden focus:ring-2 focus:ring-blue-500"
                       required
                     />
                   </div>
@@ -321,7 +321,7 @@ export default function AuthenticationSettings({
                       id="newPassword"
                       value={formData.newPassword}
                       onChange={(e) => setFormData({ ...formData, newPassword: e.target.value })}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-hidden focus:ring-2 focus:ring-blue-500"
                       required
                       minLength={8}
                       placeholder="Enter new password (minimum 8 characters)"
@@ -340,7 +340,7 @@ export default function AuthenticationSettings({
                     id="currentPassword"
                     value={formData.currentPassword}
                     onChange={(e) => setFormData({ ...formData, currentPassword: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-hidden focus:ring-2 focus:ring-blue-500"
                     required
                   />
                   <p className="text-sm text-red-600 mt-2">
@@ -353,13 +353,13 @@ export default function AuthenticationSettings({
                 <button
                   type="button"
                   onClick={() => setShowPasswordForm(false)}
-                  className="px-4 py-2 text-gray-700 bg-gray-200 rounded-md hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-500"
+                  className="px-4 py-2 text-gray-700 bg-gray-200 rounded-md hover:bg-gray-300 focus:outline-hidden focus:ring-2 focus:ring-gray-500"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className={`px-4 py-2 text-white rounded-md focus:outline-none focus:ring-2 ${
+                  className={`px-4 py-2 text-white rounded-md focus:outline-hidden focus:ring-2 ${
                     formType === 'remove'
                       ? 'bg-red-600 hover:bg-red-700 focus:ring-red-500'
                       : 'bg-blue-600 hover:bg-blue-700 focus:ring-blue-500'

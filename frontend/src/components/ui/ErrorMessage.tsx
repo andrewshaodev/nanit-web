@@ -11,7 +11,7 @@ export default function ErrorMessage({ title, message, action }: ErrorMessagePro
   return (
     <div className="card max-w-md mx-auto p-6 border-l-4 border-red-500">
       <div className="flex items-start">
-        <div className="flex-shrink-0">
+        <div className="shrink-0">
           <svg
             className="w-6 h-6 text-red-500"
             fill="none"

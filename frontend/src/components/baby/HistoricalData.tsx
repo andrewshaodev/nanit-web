@@ -73,7 +73,7 @@ export default function HistoricalData({ baby }: HistoricalDataProps) {
         <select
           value={selectedTimeframe}
           onChange={(e) => setSelectedTimeframe(e.target.value)}
-          className="px-3 py-2 border border-nanit-gray-300 rounded-md bg-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className="px-3 py-2 border border-nanit-gray-300 rounded-md bg-white text-sm focus:outline-hidden focus:ring-2 focus:ring-blue-500"
         >
           {timeframeOptions.map((option) => (
             <option key={option.value} value={option.value}>
@@ -115,7 +115,7 @@ export default function HistoricalData({ baby }: HistoricalDataProps) {
 
       {/* Error State */}
       {isError && (
-        <div className="bg-red-50 border-l-4 border-red-500 p-3 rounded">
+        <div className="bg-red-50 border-l-4 border-red-500 p-3 rounded-sm">
           <div className="text-sm text-red-700">
             Failed to load historical data. Please try refreshing.
           </div>

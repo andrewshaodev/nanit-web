@@ -113,7 +113,7 @@ export default function DeviceInfo({ baby }: DeviceInfoProps) {
                       }`}
                     >
                       <div className="flex items-start gap-3">
-                        <span className="flex-shrink-0 text-lg">
+                        <span className="shrink-0 text-lg">
                           {alert.type === 'error' ? '❌' : '⚠️'}
                         </span>
                         <div className="flex-1">

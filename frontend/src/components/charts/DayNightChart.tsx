@@ -99,7 +99,7 @@ export default function DayNightChart({ analytics, isLoading }: DayNightChartPro
 
   if (isLoading) {
     return (
-      <div className="h-64 bg-gray-50 rounded flex items-center justify-center">
+      <div className="h-64 bg-gray-50 rounded-sm flex items-center justify-center">
         <div className="text-gray-500">Loading day/night data...</div>
       </div>
     )
@@ -107,7 +107,7 @@ export default function DayNightChart({ analytics, isLoading }: DayNightChartPro
 
   if (!analytics) {
     return (
-      <div className="h-64 bg-gray-50 rounded flex items-center justify-center">
+      <div className="h-64 bg-gray-50 rounded-sm flex items-center justify-center">
         <div className="text-gray-500">No day/night pattern data available</div>
       </div>
     )
@@ -126,8 +126,8 @@ export default function DayNightChart({ analytics, isLoading }: DayNightChartPro
                 key={index}
                 className={`h-full cursor-pointer transition-all duration-200 hover:brightness-110 hover:scale-105 hover:shadow-lg relative ${
                   period.mode === 'day' 
-                    ? 'bg-gradient-to-r from-yellow-400 to-orange-400' 
-                    : 'bg-gradient-to-r from-indigo-600 to-purple-700'
+                    ? 'bg-linear-to-r from-yellow-400 to-orange-400' 
+                    : 'bg-linear-to-r from-indigo-600 to-purple-700'
                 }`}
                 style={{ 
                   width: `${period.percentage}%`,

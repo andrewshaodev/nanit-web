@@ -1,31 +1,57 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import 'tailwindcss';
 
+@theme {
+  --color-nanit-blue: #667eea;
+  --color-nanit-purple: #764ba2;
+
+  --color-nanit-gray-50: #f8f9fa;
+  --color-nanit-gray-100: #e9ecef;
+  --color-nanit-gray-200: #dee2e6;
+  --color-nanit-gray-300: #ced4da;
+  --color-nanit-gray-400: #adb5bd;
+  --color-nanit-gray-500: #6c757d;
+  --color-nanit-gray-600: #495057;
+  --color-nanit-gray-700: #343a40;
+  --color-nanit-gray-800: #212529;
+  --color-nanit-gray-900: #1a1a1a;
+
+  --animate-pulse-slow: pulse 2s infinite;
+}
+
+/*
+  The default border color has changed to `currentcolor` in Tailwind CSS v4,
+  so we've added these compatibility styles to make sure everything still
+  looks the same as it did with Tailwind CSS v3.
+
+  If we ever want to remove these styles, we need to add an explicit border
+  color utility to any element that depends on these defaults.
+*/
 @layer base {
-  html {
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+  *,
+  ::after,
+  ::before,
+  ::backdrop,
+  ::file-selector-button {
+    border-color: var(--color-gray-200, currentcolor);
   }
 }
 
-@layer components {
-  .card {
-    @apply bg-white rounded-lg shadow-md overflow-hidden transition-all duration-200 hover:shadow-lg hover:-translate-y-1;
-  }
+@utility card {
+  @apply bg-white rounded-lg shadow-md overflow-hidden transition-all duration-200 hover:shadow-lg hover:-translate-y-1;
+}
 
-  .sensor-card {
-    @apply bg-nanit-gray-50 p-5 rounded-lg border-l-4 transition-colors duration-200 hover:bg-nanit-gray-100;
-  }
+@utility sensor-card {
+  @apply bg-nanit-gray-50 p-5 rounded-lg border-l-4 transition-colors duration-200 hover:bg-nanit-gray-100;
 
-  .sensor-card.temperature {
+  &.temperature {
     @apply border-l-orange-500;
   }
 
-  .sensor-card.humidity {
+  &.humidity {
     @apply border-l-teal-500;
   }
 
-  .sensor-card.night-mode {
+  &.night-mode {
     @apply border-l-purple-500;
   }
 
@@ -39,56 +65,112 @@
   }
   */
 
-  .sensor-card.night-light {
+  &.night-light {
     @apply border-l-cyan-500;
   }
+}
 
-  .btn {
-    @apply px-4 py-2 rounded-md font-medium transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2;
+@utility temperature {
+  &.sensor-card {
+    @apply border-l-orange-500;
+  }
+}
+
+@utility humidity {
+  &.sensor-card {
+    @apply border-l-teal-500;
+  }
+}
+
+@utility night-mode {
+  &.sensor-card {
+    @apply border-l-purple-500;
+  }
+}
+
+@utility night-light {
+  /* Motion/sound sensor cards - disabled for now
+  .sensor-card.motion {
+    @apply border-l-pink-500;
   }
 
-  .btn-primary {
-    @apply bg-blue-600 text-white hover:bg-blue-700 focus:ring-blue-500;
+  .sensor-card.sound {
+    @apply border-l-yellow-500;
   }
+  */
 
-  .btn-secondary {
-    @apply bg-nanit-gray-200 text-nanit-gray-700 hover:bg-nanit-gray-300 focus:ring-nanit-gray-500;
+  &.sensor-card {
+    @apply border-l-cyan-500;
   }
+}
 
-  .btn-danger {
-    @apply bg-red-600 text-white hover:bg-red-700 focus:ring-red-500;
-  }
+@utility btn {
+  @apply px-4 py-2 rounded-md font-medium transition-all duration-200 focus:outline-hidden focus:ring-2 focus:ring-offset-2;
+}
 
-  .btn-success {
-    @apply bg-green-600 text-white hover:bg-green-700 focus:ring-green-500;
-  }
+@utility btn-primary {
+  @apply bg-blue-600 text-white hover:bg-blue-700 focus:ring-blue-500;
+}
 
-  .status-dot {
-    @apply w-2 h-2 rounded-full;
-  }
+@utility btn-secondary {
+  @apply bg-nanit-gray-200 text-nanit-gray-700 hover:bg-nanit-gray-300 focus:ring-nanit-gray-500;
+}
 
-  .status-dot.online {
+@utility btn-danger {
+  @apply bg-red-600 text-white hover:bg-red-700 focus:ring-red-500;
+}
+
+@utility btn-success {
+  @apply bg-green-600 text-white hover:bg-green-700 focus:ring-green-500;
+}
+
+@utility status-dot {
+  @apply w-2 h-2 rounded-full;
+
+  &.online {
     @apply bg-green-500;
   }
 
-  .status-dot.offline {
+  &.offline {
     @apply bg-red-500;
   }
 
-  .status-dot.connecting {
+  &.connecting {
     @apply bg-yellow-500 animate-pulse;
   }
 }
 
-@layer utilities {
-  .text-gradient {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
+@utility online {
+  &.status-dot {
+    @apply bg-green-500;
   }
+}
 
-  .bg-gradient-nanit {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+@utility offline {
+  &.status-dot {
+    @apply bg-red-500;
+  }
+}
+
+@utility connecting {
+  &.status-dot {
+    @apply bg-yellow-500 animate-pulse;
+  }
+}
+
+@utility text-gradient {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+@utility bg-gradient-nanit {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+
+@layer base {
+  html {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
   }
 }

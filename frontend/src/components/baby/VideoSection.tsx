@@ -29,7 +29,7 @@ export default function VideoSection({ baby }: VideoSectionProps) {
       
       {/* Error display */}
       {error && (
-        <div className="p-3 bg-red-100 border border-red-300 text-red-700 rounded">
+        <div className="p-3 bg-red-100 border border-red-300 text-red-700 rounded-sm">
           Error: {error}
         </div>
       )}
