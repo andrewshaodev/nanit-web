@@ -4,6 +4,8 @@ import { errorTooltipConfig } from '@/lib/tooltipSetup'
 import type { Baby, StreamStatusResponse, HealthResponse } from '@/types/api'
 import { displayName } from '@/lib/utils'
 import { useTemperatureUnit } from '@/hooks/useTemperatureUnit'
+import { ChevronDown, ChevronRight, ChevronUp } from 'lucide-react'
+import { Button } from '@/components/ui/button'
 
 interface BabyHeaderProps {
   baby: Baby
@@ -14,17 +16,11 @@ interface BabyHeaderProps {
   onMoveDown?: () => void
 }
 
+// Ghost icon buttons, tinted for the gradient header rather than the card
+// (aria-expanded: shadcn's ghost button highlights an open disclosure, which
+// here is every expanded card)
 const headerButton =
-  'p-2 rounded-full hover:bg-ctp-base/20 focus-visible:outline-2 focus-visible:outline-ctp-base disabled:opacity-30 disabled:hover:bg-transparent transition-colors'
-
-function Chevron({ direction }: { direction: 'up' | 'down' | 'right' }) {
-  const rotate = { up: 'rotate-180', down: '', right: '-rotate-90' }[direction]
-  return (
-    <svg className={`w-5 h-5 transition-transform ${rotate}`} viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-      <path fillRule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.17l3.71-3.94a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z" clipRule="evenodd" />
-    </svg>
-  )
-}
+  'text-current hover:bg-ctp-base/20 hover:text-current dark:hover:bg-ctp-base/20 aria-expanded:bg-transparent aria-expanded:text-current aria-expanded:hover:bg-ctp-base/20'
 
 export default function BabyHeader({ baby, collapsed, onToggleCollapsed, onMoveUp, onMoveDown }: BabyHeaderProps) {
   const { formatTemperature } = useTemperatureUnit()
@@ -129,16 +125,17 @@ export default function BabyHeader({ baby, collapsed, onToggleCollapsed, onMoveU
     <div className={`bg-gradient-nanit text-ctp-base ${collapsed ? 'px-6 py-3' : 'p-6'}`}>
       <div className="flex justify-between items-center gap-4">
         <div className="flex items-center gap-2 min-w-0">
-          <button
-            type="button"
+          <Button
+            variant="ghost"
+            size="icon-sm"
             className={headerButton}
             onClick={onToggleCollapsed}
             aria-expanded={!collapsed}
             aria-label={`${collapsed ? 'Expand' : 'Collapse'} ${displayName(baby)}`}
             title={collapsed ? 'Expand' : 'Collapse'}
           >
-            <Chevron direction={collapsed ? 'right' : 'down'} />
-          </button>
+            {collapsed ? <ChevronRight /> : <ChevronDown />}
+          </Button>
           <h2 className={`font-bold truncate ${collapsed ? 'text-xl' : 'text-2xl'}`}>{displayName(baby)}</h2>
         </div>
 
@@ -165,26 +162,28 @@ export default function BabyHeader({ baby, collapsed, onToggleCollapsed, onMoveU
 
           {canReorder && (
             <div className="flex items-center">
-              <button
-                type="button"
+              <Button
+                variant="ghost"
+                size="icon-sm"
                 className={headerButton}
                 onClick={onMoveUp}
                 disabled={!onMoveUp}
                 aria-label={`Move ${displayName(baby)} up`}
                 title="Move up"
               >
-                <Chevron direction="up" />
-              </button>
-              <button
-                type="button"
+                <ChevronUp />
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon-sm"
                 className={headerButton}
                 onClick={onMoveDown}
                 disabled={!onMoveDown}
                 aria-label={`Move ${displayName(baby)} down`}
                 title="Move down"
               >
-                <Chevron direction="down" />
-              </button>
+                <ChevronDown />
+              </Button>
             </div>
           )}
         </div>

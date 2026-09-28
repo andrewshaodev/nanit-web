@@ -1,8 +1,10 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router';
+import { Camera, Radio, ShieldCheck } from 'lucide-react';
 import { api } from '@/lib/api';
 import { useStatus } from '@/hooks/useStatus';
 import SettingsTabs, { SettingsTab } from '@/components/settings/SettingsTabs';
+import DashboardLogin from '@/components/DashboardLogin';
 import AuthenticationSettings from '@/components/settings/AuthenticationSettings';
 import DeviceSettings from '@/components/settings/DeviceSettings';
 import StreamingSettings from '@/components/settings/StreamingSettings';
@@ -82,52 +84,14 @@ export default function Settings() {
   // Show password login screen if required
   if (showPasswordLogin) {
     return (
-      <div className="min-h-screen bg-ctp-mantle flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-md w-full space-y-8">
-          <div>
-            <h2 className="mt-6 text-center text-3xl font-extrabold text-ctp-text">
-              Nanit Dashboard
-            </h2>
-            <p className="mt-2 text-center text-sm text-ctp-subtext1">
-              Enter your password to access settings
-            </p>
-          </div>
-          <form className="mt-8 space-y-6" onSubmit={handlePasswordLogin}>
-            <div>
-              <label htmlFor="password" className="sr-only">
-                Password
-              </label>
-              <input
-                id="password"
-                name="password"
-                type="password"
-                required
-                className="appearance-none rounded-md relative block w-full px-3 py-2 border border-ctp-surface1 placeholder-ctp-overlay1 text-ctp-text focus:outline-hidden focus:ring-ctp-lavender focus:border-ctp-lavender focus:z-10 sm:text-sm"
-                placeholder="Password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                disabled={isLoggingIn}
-              />
-            </div>
-
-            {loginError && (
-              <div className="text-ctp-red dark:text-ctp-red text-sm text-center">
-                {loginError}
-              </div>
-            )}
-
-            <div>
-              <button
-                type="submit"
-                disabled={isLoggingIn}
-                className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-ctp-base bg-ctp-lavender-900 dark:bg-ctp-lavender hover:bg-ctp-lavender-950 dark:hover:bg-ctp-lavender/85 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-ctp-lavender disabled:opacity-50"
-              >
-                {isLoggingIn ? 'Signing in...' : 'Sign in'}
-              </button>
-            </div>
-          </form>
-        </div>
-      </div>
+      <DashboardLogin
+        purpose="settings"
+        password={password}
+        onPasswordChange={setPassword}
+        error={loginError}
+        isLoggingIn={isLoggingIn}
+        onSubmit={handlePasswordLogin}
+      />
     );
   }
 
@@ -161,7 +125,7 @@ export default function Settings() {
     {
       id: 'authentication',
       label: 'Authentication & Security',
-      icon: '🔐',
+      icon: ShieldCheck,
       content: (
         <AuthenticationSettings
           authStatus={nanitAuthStatus}
@@ -175,7 +139,7 @@ export default function Settings() {
     {
       id: 'devices',
       label: 'Devices',
-      icon: '📱',
+      icon: Camera,
       content: (
         <DeviceSettings babies={babies} />
       ),
@@ -184,7 +148,7 @@ export default function Settings() {
     {
       id: 'streaming',
       label: 'Streaming',
-      icon: '📡',
+      icon: Radio,
       content: (
         <StreamingSettings babies={babies} />
       ),

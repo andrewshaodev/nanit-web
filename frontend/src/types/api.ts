@@ -118,10 +118,22 @@ export interface DayNightAnalytics {
   baby_uid: string;
   start_time: number;
   end_time: number;
+  day_mode_minutes: number;
+  night_mode_minutes: number;
+  unknown_mode_minutes: number;
   day_mode_percentage: number;
   night_mode_percentage: number;
+  unknown_mode_percentage: number;
   mode_transitions: number;
-  day_night_changes: DayNightChange[];
+  day_night_changes: DayNightChange[] | null;
+  // The window as consecutive stretches; "unknown" where nothing was recorded
+  periods: DayNightPeriod[] | null;
+}
+
+export interface DayNightPeriod {
+  start: number;
+  end: number;
+  mode: 'day' | 'night' | 'unknown';
 }
 
 // Control Request Types

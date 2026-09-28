@@ -2,6 +2,8 @@ import { useState } from 'react'
 import { api } from '@/lib/api'
 import type { Baby } from '@/types/api'
 import { useVideoPlayer } from '@/hooks/useVideoPlayer'
+import { CircleAlert } from 'lucide-react'
+import { Alert, AlertDescription } from '@/components/ui/alert'
 
 interface VideoSectionProps {
   baby: Baby
@@ -23,17 +25,21 @@ export default function VideoSection({ baby }: VideoSectionProps) {
 
   return (
     <div className="space-y-4">
-      <h3 className="text-lg font-semibold text-ctp-text">Live Video Stream</h3>
+      <h3 className="text-lg font-semibold">Live Video Stream</h3>
       
       {/* Error display */}
       {error && (
-        <div className="p-3 bg-ctp-red/20 border border-ctp-red/50 text-ctp-red dark:text-ctp-red rounded-sm">
-          Error: {error}
-        </div>
+        <Alert variant="destructive">
+          <CircleAlert />
+          <AlertDescription>Error: {error}</AlertDescription>
+        </Alert>
       )}
       
       
-      {/* Video.js Player with integrated controls */}
+      {/* Video.js Player with integrated controls. useVideoPlayer sets it up;
+          there must be no data-setup attribute, or video.js's own auto-setup
+          can reach the element first and create the player without our
+          options (fluid/fill), leaving it small and off-centre */}
       <div className="bg-black rounded-lg overflow-hidden">
         <video
           ref={videoRef}
@@ -41,7 +47,6 @@ export default function VideoSection({ baby }: VideoSectionProps) {
           controls
           preload="none"
           style={{ minHeight: '300px' }}
-          data-setup="{}"
         >
           <p className="vjs-no-js">
             To view this video please enable JavaScript, and consider upgrading to a web browser that

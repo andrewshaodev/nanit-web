@@ -1,8 +1,6 @@
-import { clsx, type ClassValue } from 'clsx'
-
-export function cn(...inputs: ClassValue[]) {
-  return clsx(inputs)
-}
+// shadcn's class merger (clsx + tailwind-merge in one), which its components
+// import from here
+export { cn } from 'cn'
 
 // Nanit leaves the name empty for a baby that was never named, and its app
 // shows "Baby" for it, so do the same

@@ -3,6 +3,8 @@ import { useNavigate } from 'react-router'
 import useSWR from 'swr'
 import MainLayout from '@/components/layout/MainLayout'
 import BabyCard from '@/components/baby/BabyCard'
+import DashboardLogin from '@/components/DashboardLogin'
+import { Card, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import LoadingSpinner from '@/components/ui/LoadingSpinner'
 import ErrorMessage from '@/components/ui/ErrorMessage'
 import { api } from '@/lib/api'
@@ -78,51 +80,14 @@ export default function Dashboard() {
   // Show password login screen if required
   if (showPasswordLogin) {
     return (
-      <div className="min-h-screen bg-ctp-mantle flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-md w-full space-y-8">
-          <div>
-            <h2 className="mt-6 text-center text-3xl font-extrabold text-ctp-text">
-              Nanit Dashboard
-            </h2>
-            <p className="mt-2 text-center text-sm text-ctp-subtext1">
-              Enter your password to access the dashboard
-            </p>
-          </div>
-          <form className="mt-8 space-y-6" onSubmit={handlePasswordLogin}>
-            <div>
-              <label htmlFor="password" className="sr-only">
-                Password
-              </label>
-              <input
-                id="password"
-                name="password"
-                type="password"
-                required
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="relative block w-full px-3 py-2 border border-ctp-surface1 placeholder-ctp-overlay1 text-ctp-text rounded-md focus:outline-hidden focus:ring-ctp-lavender focus:border-ctp-lavender focus:z-10 sm:text-sm"
-                placeholder="Password"
-              />
-            </div>
-
-            {loginError && (
-              <div className="bg-ctp-red/10 border border-ctp-red/30 text-ctp-red dark:text-ctp-red px-4 py-3 rounded-sm">
-                {loginError}
-              </div>
-            )}
-
-            <div>
-              <button
-                type="submit"
-                disabled={isLoggingIn}
-                className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-ctp-base bg-ctp-lavender-900 dark:bg-ctp-lavender hover:bg-ctp-lavender-950 dark:hover:bg-ctp-lavender/85 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-ctp-lavender disabled:opacity-50"
-              >
-                {isLoggingIn ? 'Signing in...' : 'Sign in'}
-              </button>
-            </div>
-          </form>
-        </div>
-      </div>
+      <DashboardLogin
+        purpose="the dashboard"
+        password={password}
+        onPasswordChange={setPassword}
+        error={loginError}
+        isLoggingIn={isLoggingIn}
+        onSubmit={handlePasswordLogin}
+      />
     )
   }
 
@@ -151,14 +116,14 @@ export default function Dashboard() {
     return (
       <MainLayout>
         <div className="text-center py-12">
-          <div className="card max-w-md mx-auto p-8">
-            <h2 className="text-xl font-semibold text-ctp-subtext1 mb-2">
-              No babies configured
-            </h2>
-            <p className="text-ctp-subtext1">
-              Make sure you have authenticated and configured your Nanit account.
-            </p>
-          </div>
+          <Card className="max-w-md mx-auto">
+            <CardHeader>
+              <CardTitle className="text-xl">No babies configured</CardTitle>
+              <CardDescription>
+                Make sure you have authenticated and configured your Nanit account.
+              </CardDescription>
+            </CardHeader>
+          </Card>
         </div>
       </MainLayout>
     )

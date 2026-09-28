@@ -1,4 +1,5 @@
 import type { Baby } from '@/types/api'
+import { Card } from '@/components/ui/card'
 import BabyHeader from './BabyHeader'
 import VideoSection from './VideoSection'
 import SensorGrid from './SensorGrid'
@@ -16,7 +17,8 @@ interface BabyCardProps {
 
 export default function BabyCard({ baby, collapsed, onToggleCollapsed, onMoveUp, onMoveDown }: BabyCardProps) {
   return (
-    <div className="card">
+    // No padding or gap of its own: the gradient header runs edge to edge
+    <Card className="gap-0 py-0">
       <BabyHeader
         baby={baby}
         collapsed={collapsed}
@@ -38,6 +40,6 @@ export default function BabyCard({ baby, collapsed, onToggleCollapsed, onMoveUp,
           <HistoricalData baby={baby} />
         </div>
       )}
-    </div>
+    </Card>
   )
 }

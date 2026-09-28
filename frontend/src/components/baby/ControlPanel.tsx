@@ -1,7 +1,9 @@
 import { useState } from 'react'
 import { api } from '@/lib/api'
 import type { Baby } from '@/types/api'
-import LoadingSpinner from '@/components/ui/LoadingSpinner'
+import { Loader2, TriangleAlert } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { Alert, AlertDescription } from '@/components/ui/alert'
 
 interface ControlPanelProps {
   baby: Baby
@@ -30,27 +32,27 @@ function ControlButton({ onClick, disabled, loading, children, variant = 'primar
     }
   }
 
-  const getButtonClass = () => {
-    if (feedback === 'success') return 'btn btn-success'
-    if (feedback === 'error') return 'btn btn-danger'
-    
+  const buttonVariant = () => {
+    if (feedback === 'success') return 'success'
+    if (feedback === 'error') return 'destructive'
+
     switch (variant) {
       case 'secondary':
-        return 'btn btn-secondary'
+        return 'secondary'
       case 'danger':
-        return 'btn btn-danger'
+        return 'destructive'
       default:
-        return 'btn btn-primary'
+        return 'default'
     }
   }
 
   const getButtonContent = () => {
     if (loading) {
       return (
-        <div className="flex items-center gap-2">
-          <LoadingSpinner size="sm" />
-          <span>Sending...</span>
-        </div>
+        <>
+          <Loader2 className="animate-spin" />
+          Sending...
+        </>
       )
     }
     
@@ -61,13 +63,13 @@ function ControlButton({ onClick, disabled, loading, children, variant = 'primar
   }
 
   return (
-    <button
+    <Button
       onClick={handleClick}
       disabled={disabled || loading || !!feedback}
-      className={`${getButtonClass()} disabled:opacity-50 disabled:cursor-not-allowed`}
+      variant={buttonVariant()}
     >
       {getButtonContent()}
-    </button>
+    </Button>
   )
 }
 
@@ -102,14 +104,15 @@ export default function ControlPanel({ baby }: ControlPanelProps) {
 
   return (
     <div className="space-y-4">
-      <h3 className="text-lg font-semibold text-ctp-text">Controls</h3>
+      <h3 className="text-lg font-semibold">Controls</h3>
       
       {!baby.websocket_alive && (
-        <div className="bg-ctp-yellow/10 border-l-4 border-ctp-yellow p-3 rounded-sm">
-          <div className="text-sm text-ctp-yellow-900 dark:text-ctp-yellow">
-            ⚠️ Device is offline. Controls are disabled until connection is restored.
-          </div>
-        </div>
+        <Alert variant="warning">
+          <TriangleAlert />
+          <AlertDescription>
+            Device is offline. Controls are disabled until connection is restored.
+          </AlertDescription>
+        </Alert>
       )}
       
       <div className="flex flex-wrap gap-3">
@@ -131,7 +134,7 @@ export default function ControlPanel({ baby }: ControlPanelProps) {
         </ControlButton>
       </div>
       
-      <div className="text-xs text-ctp-subtext1">
+      <div className="text-xs text-muted-foreground">
         Control commands are sent to the device and may take a few seconds to take effect.
       </div>
     </div>

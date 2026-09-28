@@ -72,14 +72,18 @@ function baseChartOptions() {
     scales: {
       x: {
         type: 'time' as const,
+        // Chart.js picks the unit from the axis range: minutes for an hour,
+        // hours for a day, days for a week or a month
         time: {
           displayFormats: {
-            hour: 'HH:mm',
-            day: 'MMM dd',
+            minute: 'h:mm a',
+            hour: 'h a',
+            day: 'EEE d MMM',
           },
+          tooltipFormat: 'EEE d MMM, h:mm a',
         },
         grid,
-        ticks,
+        ticks: { ...ticks, maxRotation: 0, autoSkip: true, maxTicksLimit: 8 },
       },
     },
     grid,
@@ -87,14 +91,32 @@ function baseChartOptions() {
   }
 }
 
-// Built per render, so the colours follow the device's light/dark setting
-export function temperatureHumidityOptions(scheme: ColorScheme, temperatureLabel: string) {
+// timeUnit - the tick unit for a window this long. Chosen here rather than
+// by Chart.js, which under a tick limit can land on odd steps such as every
+// 21 hours across a week, labelled 11 PM, 8 PM, 5 PM...
+function timeUnit(seconds: number): 'minute' | 'hour' | 'day' {
+  if (seconds <= 2 * 60 * 60) return 'minute'
+  if (seconds <= 2 * 24 * 60 * 60) return 'hour'
+  return 'day'
+}
+
+// Built per render, so the colours follow the device's light/dark setting.
+// range (unix seconds) pins the time axis to the selected window; left to
+// itself Chart.js fits the axis to the data, so an hour of history in the
+// 7-day view came out as an hour-wide axis.
+export function temperatureHumidityOptions(scheme: ColorScheme, temperatureLabel: string, range: { start: number; end: number }) {
   const { grid, ticks, ...base } = baseChartOptions()
 
   return {
     ...base,
     scales: {
       ...base.scales,
+      x: {
+        ...base.scales.x,
+        min: range.start * 1000,
+        max: range.end * 1000,
+        time: { ...base.scales.x.time, unit: timeUnit(range.end - range.start) },
+      },
       y: {
         type: 'linear' as const,
         display: true,

@@ -2,6 +2,20 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router';
 import type { AuthStatusResponse } from '@/types/api';
 import { api } from '@/lib/api';
+import { Info, Loader2 } from 'lucide-react';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import {
+  AlertDialog,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 
 interface WebAuthStatus {
   password_protection_enabled: boolean;
@@ -102,8 +116,8 @@ export default function AuthenticationSettings({
   if (!authStatus) {
     return (
       <div className="animate-pulse">
-        <div className="h-4 bg-ctp-surface0 rounded-sm w-1/3 mb-2"></div>
-        <div className="h-8 bg-ctp-surface0 rounded-sm w-1/2"></div>
+        <div className="h-4 bg-muted rounded-sm w-1/3 mb-2"></div>
+        <div className="h-8 bg-muted rounded-sm w-1/2"></div>
       </div>
     );
   }
@@ -113,16 +127,16 @@ export default function AuthenticationSettings({
       <div className="space-y-8">
         {/* Nanit Authentication Section */}
         <div>
-          <h3 className="text-lg font-medium text-ctp-text mb-4">Nanit Account</h3>
+          <h3 className="text-lg font-medium mb-4">Nanit Account</h3>
           <div className="space-y-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-ctp-text">Status</p>
+                <p className="text-sm font-medium">Status</p>
                 <div className="flex items-center gap-2 mt-1">
                   <div className={`w-2 h-2 rounded-full ${
                     authStatus.authenticated ? 'bg-ctp-green-900 dark:bg-ctp-green' : 'bg-ctp-red dark:bg-ctp-red'
                   }`} />
-                  <p className="text-sm text-ctp-subtext1">
+                  <p className="text-sm text-muted-foreground">
                     {authStatus.authenticated 
                       ? `Authenticated${authStatus.email ? ` as ${authStatus.email}` : ''}`
                       : authStatus.message
@@ -130,7 +144,7 @@ export default function AuthenticationSettings({
                   </p>
                 </div>
                 {authStatus.authenticated && (
-                  <div className="mt-2 text-xs text-ctp-subtext1">
+                  <div className="mt-2 text-xs text-muted-foreground">
                     {authStatus.babies_count && (
                       <span>{authStatus.babies_count} device{authStatus.babies_count !== 1 ? 's' : ''} • </span>
                     )}
@@ -141,31 +155,26 @@ export default function AuthenticationSettings({
                   </div>
                 )}
               </div>
-              <div className="flex space-x-2">
+              <div className="flex gap-2">
                 {authStatus.authenticated ? (
-                  <button
-                    onClick={() => setShowResetConfirmation(true)}
-                    className="px-4 py-2 bg-ctp-red dark:bg-ctp-red text-ctp-base rounded-md hover:bg-ctp-red-600 dark:hover:bg-ctp-red/85 focus:outline-hidden focus:ring-2 focus:ring-ctp-red"
-                  >
+                  <Button variant="destructive" onClick={() => setShowResetConfirmation(true)}>
                     Reset Authentication
-                  </button>
+                  </Button>
                 ) : (
-                  <button
-                    onClick={handleReAuthenticate}
-                    className="px-4 py-2 bg-ctp-blue-700 dark:bg-ctp-blue text-ctp-base rounded-md hover:bg-ctp-blue-800 dark:hover:bg-ctp-blue/85 focus:outline-hidden focus:ring-2 focus:ring-ctp-blue"
-                  >
+                  <Button onClick={handleReAuthenticate}>
                     Authenticate
-                  </button>
+                  </Button>
                 )}
               </div>
             </div>
 
             {authStatus.authenticated && (
-              <div className="bg-ctp-blue/10 border border-ctp-blue/30 rounded-md p-4">
-                <p className="text-ctp-blue-700 dark:text-ctp-blue text-sm">
-                  <strong>Note:</strong> Resetting authentication will stop all monitoring services and require you to re-authenticate with your Nanit account.
-                </p>
-              </div>
+              <Alert variant="info">
+                <Info />
+                <AlertDescription>
+                  <strong className="text-foreground">Note:</strong> Resetting authentication will stop all monitoring services and require you to re-authenticate with your Nanit account.
+                </AlertDescription>
+              </Alert>
             )}
           </div>
         </div>
@@ -173,205 +182,185 @@ export default function AuthenticationSettings({
         {/* Web Dashboard Password Protection Section */}
         {webAuthStatus?.password_protection_enabled && (
           <div>
-            <h3 className="text-lg font-medium text-ctp-text mb-4">Web Dashboard Security</h3>
+            <h3 className="text-lg font-medium mb-4">Web Dashboard Security</h3>
             <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-ctp-text">Password Protection</p>
-                  <p className="text-sm text-ctp-subtext1">
+                  <p className="text-sm font-medium">Password Protection</p>
+                  <p className="text-sm text-muted-foreground">
                     {webAuthStatus.password_set 
                       ? 'Password protection is enabled' 
                       : 'No password set'}
                   </p>
                 </div>
-                <div className="flex space-x-2">
+                <div className="flex gap-2">
                   {!webAuthStatus.password_set ? (
-                    <button
-                      onClick={() => openPasswordForm('set')}
-                      className="px-4 py-2 bg-ctp-blue-700 dark:bg-ctp-blue text-ctp-base rounded-md hover:bg-ctp-blue-800 dark:hover:bg-ctp-blue/85 focus:outline-hidden focus:ring-2 focus:ring-ctp-blue"
-                    >
+                    <Button onClick={() => openPasswordForm('set')}>
                       Set Password
-                    </button>
+                    </Button>
                   ) : (
                     <>
-                      <button
-                        onClick={() => openPasswordForm('change')}
-                        className="px-4 py-2 bg-ctp-blue-700 dark:bg-ctp-blue text-ctp-base rounded-md hover:bg-ctp-blue-800 dark:hover:bg-ctp-blue/85 focus:outline-hidden focus:ring-2 focus:ring-ctp-blue"
-                      >
+                      <Button onClick={() => openPasswordForm('change')}>
                         Change Password
-                      </button>
-                      <button
-                        onClick={() => openPasswordForm('remove')}
-                        className="px-4 py-2 bg-ctp-red dark:bg-ctp-red text-ctp-base rounded-md hover:bg-ctp-red-600 dark:hover:bg-ctp-red/85 focus:outline-hidden focus:ring-2 focus:ring-ctp-red"
-                      >
+                      </Button>
+                      <Button variant="destructive" onClick={() => openPasswordForm('remove')}>
                         Remove Password
-                      </button>
+                      </Button>
                     </>
                   )}
                 </div>
               </div>
 
               {webAuthStatus.password_set && (
-                <div className="bg-ctp-blue/10 border border-ctp-blue/30 rounded-md p-4">
-                  <p className="text-ctp-blue-700 dark:text-ctp-blue text-sm">
-                    <strong>Forgot your password?</strong> You can reset it using the CLI command inside the Docker container:
-                    <br />
-                    <code className="bg-ctp-blue/20 px-1 rounded-sm text-xs mt-1 inline-block">
-                      docker exec -it YOUR_CONTAINER_NAME /app/bin/nanit --reset-password
-                    </code>
-                  </p>
-                </div>
+                <Alert variant="info">
+                  <Info />
+                  <AlertDescription>
+                    <p>
+                      <strong className="text-foreground">Forgot your password?</strong> You can reset it using the CLI command inside the Docker container:
+                      <br />
+                      <code className="bg-muted text-foreground px-1 rounded-sm text-xs mt-1 inline-block">
+                        docker exec -it YOUR_CONTAINER_NAME /app/bin/nanit --reset-password
+                      </code>
+                    </p>
+                  </AlertDescription>
+                </Alert>
               )}
             </div>
           </div>
         )}
       </div>
 
-      {/* Reset Authentication Confirmation Modal */}
-      {showResetConfirmation && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-ctp-base rounded-lg p-6 w-full max-w-md mx-4">
-            <h3 className="text-lg font-medium text-ctp-text mb-4">
-              Reset Nanit Authentication
-            </h3>
-            
-            <p className="text-sm text-ctp-subtext1 mb-6">
+      {/* Reset Authentication Confirmation Dialog */}
+      <AlertDialog
+        open={showResetConfirmation}
+        onOpenChange={(open) => {
+          if (!resetLoading) setShowResetConfirmation(open);
+        }}
+      >
+        <AlertDialogContent className="sm:max-w-md">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Reset Nanit Authentication</AlertDialogTitle>
+            <AlertDialogDescription>
               Are you sure you want to reset your Nanit authentication? This will:
-            </p>
-            
-            <ul className="text-sm text-ctp-subtext1 mb-6 space-y-1">
-              <li>• Stop all monitoring services</li>
-              <li>• Clear your authentication session</li>
-              <li>• Require you to re-authenticate with your Nanit account</li>
-            </ul>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
 
-            <div className="flex justify-end space-x-3">
-              <button
-                type="button"
-                onClick={() => setShowResetConfirmation(false)}
-                disabled={resetLoading}
-                className="px-4 py-2 text-ctp-subtext1 bg-ctp-surface0 rounded-md hover:bg-ctp-surface1 focus:outline-hidden focus:ring-2 focus:ring-ctp-overlay0 disabled:opacity-50"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleResetAuthentication}
-                disabled={resetLoading}
-                className="px-4 py-2 bg-ctp-red dark:bg-ctp-red text-ctp-base rounded-md hover:bg-ctp-red-600 dark:hover:bg-ctp-red/85 focus:outline-hidden focus:ring-2 focus:ring-ctp-red disabled:opacity-50"
-              >
-                {resetLoading ? 'Resetting...' : 'Reset Authentication'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+          <ul className="text-sm text-muted-foreground space-y-1">
+            <li>• Stop all monitoring services</li>
+            <li>• Clear your authentication session</li>
+            <li>• Require you to re-authenticate with your Nanit account</li>
+          </ul>
 
-      {/* Password Form Modal */}
-      {showPasswordForm && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-ctp-base rounded-lg p-6 w-full max-w-md mx-4">
-            <h3 className="text-lg font-medium text-ctp-text mb-4">
+          <AlertDialogFooter>
+            <AlertDialogCancel type="button" disabled={resetLoading}>
+              Cancel
+            </AlertDialogCancel>
+            <Button
+              variant="destructive"
+              onClick={handleResetAuthentication}
+              disabled={resetLoading}
+            >
+              {resetLoading && <Loader2 className="animate-spin" />}
+              {resetLoading ? 'Resetting...' : 'Reset Authentication'}
+            </Button>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Password Form Dialog */}
+      <AlertDialog open={showPasswordForm} onOpenChange={setShowPasswordForm}>
+        <AlertDialogContent className="sm:max-w-md">
+          <AlertDialogHeader>
+            <AlertDialogTitle>
               {formType === 'set' && 'Set Password'}
               {formType === 'change' && 'Change Password'}
               {formType === 'remove' && 'Remove Password'}
-            </h3>
+            </AlertDialogTitle>
+          </AlertDialogHeader>
 
-            <form onSubmit={handlePasswordSubmit}>
-              {formType === 'set' && (
-                <div className="mb-4">
-                  <label htmlFor="password" className="block text-sm font-medium text-ctp-subtext1 mb-2">
-                    New Password
-                  </label>
-                  <input
-                    type="password"
-                    id="password"
-                    value={formData.password}
-                    onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                    className="w-full px-3 py-2 border border-ctp-surface1 rounded-md focus:outline-hidden focus:ring-2 focus:ring-ctp-blue"
-                    required
-                    minLength={8}
-                    placeholder="Enter a password (minimum 8 characters)"
-                  />
-                </div>
-              )}
+          <form onSubmit={handlePasswordSubmit} className="grid gap-4">
+            {formType === 'set' && (
+              <div className="grid gap-2">
+                <Label htmlFor="password">
+                  New Password
+                </Label>
+                <Input
+                  type="password"
+                  id="password"
+                  value={formData.password}
+                  onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                  required
+                  minLength={8}
+                  placeholder="Enter a password (minimum 8 characters)"
+                />
+              </div>
+            )}
 
-              {formType === 'change' && (
-                <>
-                  <div className="mb-4">
-                    <label htmlFor="currentPassword" className="block text-sm font-medium text-ctp-subtext1 mb-2">
-                      Current Password
-                    </label>
-                    <input
-                      type="password"
-                      id="currentPassword"
-                      value={formData.currentPassword}
-                      onChange={(e) => setFormData({ ...formData, currentPassword: e.target.value })}
-                      className="w-full px-3 py-2 border border-ctp-surface1 rounded-md focus:outline-hidden focus:ring-2 focus:ring-ctp-blue"
-                      required
-                    />
-                  </div>
-                  <div className="mb-4">
-                    <label htmlFor="newPassword" className="block text-sm font-medium text-ctp-subtext1 mb-2">
-                      New Password
-                    </label>
-                    <input
-                      type="password"
-                      id="newPassword"
-                      value={formData.newPassword}
-                      onChange={(e) => setFormData({ ...formData, newPassword: e.target.value })}
-                      className="w-full px-3 py-2 border border-ctp-surface1 rounded-md focus:outline-hidden focus:ring-2 focus:ring-ctp-blue"
-                      required
-                      minLength={8}
-                      placeholder="Enter new password (minimum 8 characters)"
-                    />
-                  </div>
-                </>
-              )}
-
-              {formType === 'remove' && (
-                <div className="mb-4">
-                  <label htmlFor="currentPassword" className="block text-sm font-medium text-ctp-subtext1 mb-2">
+            {formType === 'change' && (
+              <>
+                <div className="grid gap-2">
+                  <Label htmlFor="currentPassword">
                     Current Password
-                  </label>
-                  <input
+                  </Label>
+                  <Input
                     type="password"
                     id="currentPassword"
                     value={formData.currentPassword}
                     onChange={(e) => setFormData({ ...formData, currentPassword: e.target.value })}
-                    className="w-full px-3 py-2 border border-ctp-surface1 rounded-md focus:outline-hidden focus:ring-2 focus:ring-ctp-blue"
                     required
                   />
-                  <p className="text-sm text-ctp-red dark:text-ctp-red mt-2">
-                    This will permanently disable password protection.
-                  </p>
                 </div>
-              )}
+                <div className="grid gap-2">
+                  <Label htmlFor="newPassword">
+                    New Password
+                  </Label>
+                  <Input
+                    type="password"
+                    id="newPassword"
+                    value={formData.newPassword}
+                    onChange={(e) => setFormData({ ...formData, newPassword: e.target.value })}
+                    required
+                    minLength={8}
+                    placeholder="Enter new password (minimum 8 characters)"
+                  />
+                </div>
+              </>
+            )}
 
-              <div className="flex justify-end space-x-3">
-                <button
-                  type="button"
-                  onClick={() => setShowPasswordForm(false)}
-                  className="px-4 py-2 text-ctp-subtext1 bg-ctp-surface0 rounded-md hover:bg-ctp-surface1 focus:outline-hidden focus:ring-2 focus:ring-ctp-overlay0"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className={`px-4 py-2 text-ctp-base rounded-md focus:outline-hidden focus:ring-2 ${
-                    formType === 'remove'
-                      ? 'bg-ctp-red dark:bg-ctp-red hover:bg-ctp-red-600 dark:hover:bg-ctp-red/85 focus:ring-ctp-red'
-                      : 'bg-ctp-blue-700 dark:bg-ctp-blue hover:bg-ctp-blue-800 dark:hover:bg-ctp-blue/85 focus:ring-ctp-blue'
-                  }`}
-                >
-                  {formType === 'set' && 'Set Password'}
-                  {formType === 'change' && 'Change Password'}
-                  {formType === 'remove' && 'Remove Password'}
-                </button>
+            {formType === 'remove' && (
+              <div className="grid gap-2">
+                <Label htmlFor="currentPassword">
+                  Current Password
+                </Label>
+                <Input
+                  type="password"
+                  id="currentPassword"
+                  value={formData.currentPassword}
+                  onChange={(e) => setFormData({ ...formData, currentPassword: e.target.value })}
+                  required
+                />
+                <p className="text-sm text-destructive">
+                  This will permanently disable password protection.
+                </p>
               </div>
-            </form>
-          </div>
-        </div>
-      )}
+            )}
+
+            <AlertDialogFooter>
+              <AlertDialogCancel type="button">
+                Cancel
+              </AlertDialogCancel>
+              <Button
+                type="submit"
+                variant={formType === 'remove' ? 'destructive' : 'default'}
+              >
+                {formType === 'set' && 'Set Password'}
+                {formType === 'change' && 'Change Password'}
+                {formType === 'remove' && 'Remove Password'}
+              </Button>
+            </AlertDialogFooter>
+          </form>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 }

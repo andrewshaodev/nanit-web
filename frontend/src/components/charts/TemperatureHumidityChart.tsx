@@ -6,10 +6,12 @@ import type { SensorReading } from '@/types/api'
 
 interface TemperatureHumidityChartProps {
   data: SensorReading[]
+  // The selected window, in unix seconds; the time axis spans all of it
+  range: { start: number; end: number }
   isLoading?: boolean
 }
 
-export default function TemperatureHumidityChart({ data, isLoading }: TemperatureHumidityChartProps) {
+export default function TemperatureHumidityChart({ data, range, isLoading }: TemperatureHumidityChartProps) {
   const scheme = useColorScheme()
   const { unit, convertTemperature } = useTemperatureUnit()
 
@@ -71,7 +73,7 @@ export default function TemperatureHumidityChart({ data, isLoading }: Temperatur
     ],
   }
 
-  const options = temperatureHumidityOptions(scheme, `Temperature (°${unit === 'celsius' ? 'C' : 'F'})`)
+  const options = temperatureHumidityOptions(scheme, `Temperature (°${unit === 'celsius' ? 'C' : 'F'})`, range)
 
   return <Line data={chartData} options={options} />
 }

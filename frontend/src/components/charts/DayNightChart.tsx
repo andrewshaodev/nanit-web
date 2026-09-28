@@ -1,150 +1,113 @@
 import { timelineTooltipConfig } from '@/lib/tooltipSetup'
-import type { DayNightAnalytics } from '@/types/api'
+import type { DayNightAnalytics, DayNightPeriod } from '@/types/api'
 
 interface DayNightChartProps {
   analytics: DayNightAnalytics | null
   isLoading?: boolean
 }
 
-interface TimelinePeriod {
-  mode: 'day' | 'night'
-  startTime: number
-  endTime: number
-  duration: number // in minutes
-  percentage: number
-}
+// The camera's day/night mode over the selected window: day when it sees
+// enough light, night when it has switched to night vision
+const MODES = {
+  day: { label: 'Day', fill: 'bg-linear-to-r from-ctp-yellow to-ctp-peach' },
+  night: { label: 'Night', fill: 'bg-linear-to-r from-ctp-lavender to-ctp-mauve' },
+  unknown: {
+    label: 'No data',
+    // Striped, so "not recorded" can't be mistaken for a mode
+    fill: 'bg-ctp-surface0 bg-[repeating-linear-gradient(135deg,transparent_0_6px,var(--color-ctp-surface1)_6px_12px)]',
+  },
+} as const
 
-function formatTime(timestamp: number): string {
-  return new Date(timestamp * 1000).toLocaleTimeString('en-US', {
-    hour: 'numeric',
-    minute: '2-digit',
-    hour12: true
-  })
+// Windows longer than a day need the date as well as the time to make sense
+function timeFormatter(start: number, end: number) {
+  const multiDay = end - start > 20 * 60 * 60
+  const options: Intl.DateTimeFormatOptions = multiDay
+    ? { weekday: 'short', hour: 'numeric', minute: '2-digit' }
+    : { hour: 'numeric', minute: '2-digit' }
+  return (timestamp: number) => new Date(timestamp * 1000).toLocaleString(undefined, options)
 }
 
 function formatDuration(minutes: number): string {
   const hours = Math.floor(minutes / 60)
   const mins = Math.round(minutes % 60)
-  
-  if (hours === 0) {
-    return `${mins} min`
-  } else if (mins === 0) {
-    return `${hours}h`
-  } else {
-    return `${hours}h ${mins}m`
-  }
+
+  if (hours === 0) return `${mins} min`
+  if (mins === 0) return `${hours}h`
+  return `${hours}h ${mins}m`
 }
 
-function formatTooltipContent(period: TimelinePeriod): string {
-  return `${period.mode.charAt(0).toUpperCase() + period.mode.slice(1)} Mode
-Start: ${formatTime(period.startTime)}
-End: ${formatTime(period.endTime)}
-Duration: ${formatDuration(period.duration)}`
-}
-
-function buildTimelinePeriods(analytics: DayNightAnalytics): TimelinePeriod[] {
-  const periods: TimelinePeriod[] = []
-  const totalDuration = analytics.end_time - analytics.start_time
-  
-  if (!analytics.day_night_changes || analytics.day_night_changes.length === 0) {
-    // No transitions - single period based on dominant mode
-    const mode = analytics.night_mode_percentage > analytics.day_mode_percentage ? 'night' : 'day'
-    periods.push({
-      mode,
-      startTime: analytics.start_time,
-      endTime: analytics.end_time,
-      duration: totalDuration / 60,
-      percentage: 100
-    })
-    return periods
-  }
-  
-  // Determine initial mode from first transition
-  let currentTime = analytics.start_time
-  let currentMode: 'day' | 'night' = analytics.day_night_changes[0].from_night ? 'night' : 'day'
-  
-  analytics.day_night_changes.forEach(change => {
-    // Add period before this transition
-    const duration = change.timestamp - currentTime
-    periods.push({
-      mode: currentMode,
-      startTime: currentTime,
-      endTime: change.timestamp,
-      duration: duration / 60,
-      percentage: (duration / totalDuration) * 100
-    })
-    
-    currentTime = change.timestamp
-    currentMode = change.to_night ? 'night' : 'day'
-  })
-  
-  // Add final period
-  const finalDuration = analytics.end_time - currentTime
-  if (finalDuration > 0) {
-    periods.push({
-      mode: currentMode,
-      startTime: currentTime,
-      endTime: analytics.end_time,
-      duration: finalDuration / 60,
-      percentage: (finalDuration / totalDuration) * 100
-    })
-  }
-  
-  return periods
+function tooltip(period: DayNightPeriod, format: (t: number) => string): string {
+  return `${MODES[period.mode].label}
+Start: ${format(period.start)}
+End: ${format(period.end)}
+Duration: ${formatDuration((period.end - period.start) / 60)}`
 }
 
 export default function DayNightChart({ analytics, isLoading }: DayNightChartProps) {
-
   if (isLoading) {
     return (
-      <div className="h-64 bg-ctp-mantle rounded-sm flex items-center justify-center">
-        <div className="text-ctp-subtext1">Loading day/night data...</div>
+      <div className="h-24 bg-muted rounded-lg flex items-center justify-center">
+        <div className="text-muted-foreground text-sm">Loading day/night data...</div>
       </div>
     )
   }
 
-  if (!analytics) {
+  const periods = analytics?.periods ?? []
+  if (!analytics || periods.length === 0) {
     return (
-      <div className="h-64 bg-ctp-mantle rounded-sm flex items-center justify-center">
-        <div className="text-ctp-subtext1">No day/night pattern data available</div>
+      <div className="h-24 bg-muted rounded-lg flex items-center justify-center">
+        <div className="text-muted-foreground text-sm">No day/night pattern data available</div>
       </div>
     )
   }
 
-  const periods = buildTimelinePeriods(analytics)
+  const format = timeFormatter(analytics.start_time, analytics.end_time)
+  const midpoint = Math.round((analytics.start_time + analytics.end_time) / 2)
+  const legend = [
+    { mode: 'day' as const, minutes: analytics.day_mode_minutes },
+    { mode: 'night' as const, minutes: analytics.night_mode_minutes },
+    { mode: 'unknown' as const, minutes: analytics.unknown_mode_minutes },
+  ].filter(({ minutes }) => minutes > 0)
 
   return (
-    <div className="space-y-4">
-      {/* Timeline Chart */}
-      <div className="relative">
-        <div className="h-16 bg-ctp-mantle rounded-lg border overflow-hidden">
-          <div className="flex h-full">
-            {periods.map((period, index) => (
-              <div
-                key={index}
-                className={`h-full cursor-pointer transition-all duration-200 hover:brightness-110 hover:scale-105 hover:shadow-lg relative ${
-                  period.mode === 'day' 
-                    ? 'bg-linear-to-r from-ctp-yellow to-ctp-peach' 
-                    : 'bg-linear-to-r from-ctp-lavender to-ctp-mauve'
-                }`}
-                style={{ 
-                  width: `${period.percentage}%`,
-                  minWidth: '8px' // Ensure even small periods are hoverable
-                }}
-                data-tooltip-id="app-tooltip"
-                data-tooltip-content={formatTooltipContent(period)}
-                data-tooltip-place={timelineTooltipConfig.place}
-                data-tooltip-delay-show={timelineTooltipConfig.delayShow}
-              />
-            ))}
+    <div className="space-y-3">
+      {/* Timeline: each period's width is its share of the window */}
+      <div className="flex h-12 rounded-lg border overflow-hidden">
+        {periods.map((period) => (
+          <div
+            key={period.start}
+            className={`h-full min-w-0.5 transition-[filter] hover:brightness-110 ${MODES[period.mode].fill}`}
+            style={{ flex: `${period.end - period.start} 0 0` }}
+            data-tooltip-id="app-tooltip"
+            data-tooltip-content={tooltip(period, format)}
+            data-tooltip-place={timelineTooltipConfig.place}
+            data-tooltip-delay-show={timelineTooltipConfig.delayShow}
+          />
+        ))}
+      </div>
+
+      {/* Time axis */}
+      <div className="flex justify-between text-xs text-muted-foreground px-1">
+        <span>{format(analytics.start_time)}</span>
+        <span>{format(midpoint)}</span>
+        <span>{format(analytics.end_time)}</span>
+      </div>
+
+      {/* Legend, with the time spent in each */}
+      <div className="flex flex-wrap gap-x-5 gap-y-1 text-sm">
+        {legend.map(({ mode, minutes }) => (
+          <div key={mode} className="flex items-center gap-2">
+            <span className={`inline-block size-3 rounded-sm border ${MODES[mode].fill}`} aria-hidden="true" />
+            <span className="text-muted-foreground">
+              {MODES[mode].label} <span className="font-medium text-foreground">{formatDuration(minutes)}</span>
+            </span>
           </div>
-        </div>
-        
-        {/* Time axis labels */}
-        <div className="flex justify-between text-xs text-ctp-subtext1 mt-2 px-1">
-          <span>{formatTime(analytics.start_time)}</span>
-          <span>{formatTime(analytics.end_time)}</span>
-        </div>
+        ))}
+        {analytics.mode_transitions > 0 && (
+          <span className="text-muted-foreground">
+            {analytics.mode_transitions} {analytics.mode_transitions === 1 ? 'switch' : 'switches'}
+          </span>
+        )}
       </div>
     </div>
   )
