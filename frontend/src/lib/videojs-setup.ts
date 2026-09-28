@@ -83,22 +83,26 @@ export const injectCustomStyles = () => {
     }
     
     /* Live badge styling */
-    .vjs-live-control {
-      background: var(--color-ctp-red) !important;
-      color: var(--color-ctp-base) !important;
+    /* The live control stretches (video.js gives it flex: auto) to fill the
+       space the hidden progress bar leaves, keeping the buttons after it on
+       the right. It stays an invisible spacer; the red pill is the LIVE text
+       inside it. Painting the control itself turned the whole bar red. */
+    .video-js .vjs-live-control {
+      align-items: center;
+    }
+
+    .video-js .vjs-live-control .vjs-live-display {
+      background: var(--color-ctp-red);
+      color: var(--color-ctp-base);
       border-radius: 0.375rem;
       font-weight: 600;
-      font-size: 0.875rem;
-      padding: 0.25rem 0.75rem;
-      margin-right: 0.5rem;
+      font-size: 0.75rem;
+      line-height: 1.5;
+      padding: 0.125rem 0.5rem;
     }
-    
-    .vjs-live-control.vjs-control.vjs-button > .vjs-live-display {
-      font-size: inherit;
-    }
-    
-    /* Live indicator when at live edge */
-    .vjs-live-control.vjs-at-live-edge {
+
+    /* Pulse while at the live edge */
+    .video-js .vjs-live-control.vjs-at-live-edge .vjs-live-display {
       animation: pulse 2s infinite;
     }
     
