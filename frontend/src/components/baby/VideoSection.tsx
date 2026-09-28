@@ -1,3 +1,4 @@
+import { useEffect } from 'react'
 import { api } from '@/lib/api'
 import type { Baby } from '@/types/api'
 import { useVideoPlayer } from '@/hooks/useVideoPlayer'
@@ -14,6 +15,16 @@ export default function VideoSection({ baby }: VideoSectionProps) {
   
   // Use Video.js player hook with integrated controls
   const { videoRef, error } = useVideoPlayer({ hlsUrl })
+
+  // Ask the camera to stream while someone is watching. With
+  // NANIT_RTMP_AUTO_START on it already is, and the bridge leaves a running
+  // stream alone; with it off, this is what starts it. The player waits for
+  // the stream either way.
+  useEffect(() => {
+    if (baby.websocket_alive) {
+      api.startStream(baby.uid).catch(() => {})
+    }
+  }, [baby.uid, baby.websocket_alive])
 
   return (
     <div className="space-y-2">

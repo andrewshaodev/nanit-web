@@ -19,6 +19,7 @@ type fakeConn struct {
 	mu        sync.Mutex
 	requests  []*client.Request
 	responses map[client.RequestType]*client.Response
+	errs      map[client.RequestType]error
 }
 
 func (f *fakeConn) SendRequest(reqType client.RequestType, req *client.Request) func(time.Duration) (*client.Response, error) {
@@ -26,11 +27,12 @@ func (f *fakeConn) SendRequest(reqType client.RequestType, req *client.Request) 
 	req.Type = reqType.Enum()
 	f.requests = append(f.requests, req)
 	res, ok := f.responses[reqType]
+	err := f.errs[reqType]
 	f.mu.Unlock()
 	if !ok {
 		res = &client.Response{StatusCode: utils.ConstRefInt32(200)}
 	}
-	return func(time.Duration) (*client.Response, error) { return res, nil }
+	return func(time.Duration) (*client.Response, error) { return res, err }
 }
 
 func (f *fakeConn) sent() []*client.Request {
@@ -42,7 +44,7 @@ func (f *fakeConn) sent() []*client.Request {
 func newTestCamera(t *testing.T) (*Camera, *fakeConn) {
 	t.Helper()
 	cam := New(baby.Baby{UID: "baby1"}, Options{}, Deps{State: baby.NewStateManager()})
-	conn := &fakeConn{responses: map[client.RequestType]*client.Response{}}
+	conn := &fakeConn{responses: map[client.RequestType]*client.Response{}, errs: map[client.RequestType]error{}}
 	cam.setConnection(conn)
 	return cam, conn
 }

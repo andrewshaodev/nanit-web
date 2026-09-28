@@ -347,6 +347,12 @@ func (m *HLSManager) StopTranscoding(babyUID string) {
 }
 
 // GetTranscoder returns the transcoder for a baby
+// IsTranscoding - whether babyUID's stream has a transcoder running
+func (m *HLSManager) IsTranscoding(babyUID string) bool {
+	transcoder, exists := m.GetTranscoder(babyUID)
+	return exists && transcoder.IsRunning()
+}
+
 func (m *HLSManager) GetTranscoder(babyUID string) (*HLSTranscoder, bool) {
 	m.mutex.RLock()
 	defer m.mutex.RUnlock()

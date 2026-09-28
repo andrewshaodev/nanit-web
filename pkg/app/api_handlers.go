@@ -717,27 +717,31 @@ func handleStreamStartAPI(w http.ResponseWriter, r *http.Request, app *App) {
 		return
 	}
 
-	// Build RTMP URL for this baby
-	rtmpURL := app.getLocalStreamURL(requestData.BabyUID)
-	if rtmpURL == "" {
-		http.Error(w, "RTMP not configured", http.StatusServiceUnavailable)
+	cam, ok := app.Cameras.Get(requestData.BabyUID)
+	if !ok {
+		http.Error(w, "Camera not connected", http.StatusServiceUnavailable)
 		return
 	}
 
-	// Start HLS transcoding
-	if err := app.HLSManager.StartTranscoding(requestData.BabyUID, rtmpURL); err != nil {
-		log.Error().Err(err).Str("baby_uid", requestData.BabyUID).Msg("Failed to start HLS transcoding")
+	// Asks the camera to stream (it used to start ffmpeg only, which never
+	// asked the camera, so nothing streamed with NANIT_RTMP_AUTO_START off).
+	// HLS starts once the camera is publishing.
+	if err := cam.RequestStream(); errors.Is(err, camera.ErrNotConnected) || errors.Is(err, camera.ErrNoRTMP) {
+		http.Error(w, err.Error(), http.StatusServiceUnavailable)
+		return
+	} else if err != nil {
+		log.Error().Err(err).Str("baby_uid", requestData.BabyUID).Msg("Failed to request the stream")
 		http.Error(w, "Failed to start stream", http.StatusInternalServerError)
 		return
 	}
 
-	log.Info().Str("baby_uid", requestData.BabyUID).Msg("HLS transcoding started")
+	log.Info().Str("baby_uid", requestData.BabyUID).Msg("Stream requested")
 
 	result := map[string]interface{}{
 		"success":  true,
 		"baby_uid": requestData.BabyUID,
 		"hls_url":  fmt.Sprintf("/api/stream/hls/%s/playlist.m3u8", requestData.BabyUID),
-		"message":  "Stream started successfully",
+		"message":  "Stream requested; video starts once the camera is streaming",
 	}
 
 	w.Header().Set("Content-Type", "application/json")

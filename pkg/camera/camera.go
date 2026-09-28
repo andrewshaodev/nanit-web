@@ -13,7 +13,6 @@ import (
 	"github.com/andrewshaodev/nanit-web/pkg/client"
 	"github.com/andrewshaodev/nanit-web/pkg/message"
 	"github.com/andrewshaodev/nanit-web/pkg/mqtt"
-	"github.com/andrewshaodev/nanit-web/pkg/streaming"
 	"github.com/andrewshaodev/nanit-web/pkg/utils"
 	"github.com/rs/zerolog/log"
 )
@@ -48,7 +47,7 @@ type EventPollingOptions struct {
 type Deps struct {
 	State *baby.StateManager
 	Nanit *client.NanitClient
-	HLS   *streaming.HLSManager
+	HLS   transcoder
 	// MQTT - nil when MQTT is off
 	MQTT *mqtt.Connection
 }
@@ -67,11 +66,20 @@ type Camera struct {
 
 	mu   sync.RWMutex
 	conn requester // nil while the websocket is down
+
+	// For the stream loop; nil without RTMP
+	streamEvents   chan streamEvent
+	streamRetryMin time.Duration
+	streamRetryMax time.Duration
 }
 
 // New - a camera that isn't running yet; Run connects it
 func New(b baby.Baby, opts Options, deps Deps) *Camera {
-	return &Camera{Baby: b, opts: opts, deps: deps}
+	c := &Camera{Baby: b, opts: opts, deps: deps, streamRetryMin: streamRetryMin, streamRetryMax: streamRetryMax}
+	if opts.RTMP != nil {
+		c.streamEvents = make(chan streamEvent, streamEventQueueSize)
+	}
+	return c
 }
 
 // UID - the baby profile's UID, which names the camera throughout the bridge
@@ -111,25 +119,13 @@ func (c *Camera) Run(ctx utils.GracefulContext) {
 
 	ws.WithReadyConnection(func(conn *client.WebsocketConnection, childCtx utils.GracefulContext) {
 		c.setConnection(conn)
-		defer func() {
-			c.setConnection(nil)
-			// Gracefully stop streaming when WebSocket disconnects
-			if c.autoStart() {
-				c.autoStopStreaming()
-			}
-		}()
-
-		// Auto-start streaming if RTMP is enabled and auto-start is configured
-		if c.autoStart() {
-			log.Info().Str("baby_uid", uid).Msg("Auto-starting RTMP stream")
-			go c.autoStartStreaming(conn)
-
-			// Start persistent retry mechanism for failed connections
-			go c.streamingRetryMonitor(childCtx)
-		}
-
+		defer c.setConnection(nil)
 		c.runWebsocket(conn, childCtx)
 	})
+
+	if c.opts.RTMP != nil {
+		ctx.RunAsChild(c.runStream)
+	}
 
 	if c.opts.EventPolling.Enabled {
 		ctx.RunAsChild(c.pollMessages)
@@ -242,53 +238,23 @@ func (c *Camera) runWebsocket(conn *client.WebsocketConnection, childCtx utils.G
 	// Ask for settings to get device configuration
 	conn.SendRequest(client.RequestType_GET_SETTINGS, &client.Request{})
 
-	var cleanup func()
-
-	// Local streaming
-	if c.opts.RTMP != nil {
-		initializeLocalStreaming := func() {
-			requestLocalStreaming(uid, c.LocalStreamURL(), client.Streaming_STARTED, conn, stateManager)
-		}
-
-		// Asking the cam to stream on its own is what NANIT_RTMP_AUTO_START
-		// controls. These two requests used to ignore it, so setting it to false
-		// still pointed the cam's stream at this bridge on every connect.
-		autoStart := c.opts.RTMP.AutoStart
-
-		// Watch for stream liveness change
-		unsubscribe := stateManager.Subscribe(func(updatedBabyUID string, stateUpdate baby.State) {
-			// Do another streaming request if stream just turned unhealthy
-			if autoStart && updatedBabyUID == uid && stateUpdate.StreamState != nil && *stateUpdate.StreamState == baby.StreamState_Unhealthy {
-				// Prevent duplicate request if we already received failure
-				if stateManager.GetBabyState(uid).GetStreamRequestState() != baby.StreamRequestState_RequestFailed {
-					go initializeLocalStreaming()
-				}
-			}
-		})
-
-		cleanup = func() {
-			// Stop listening for stream liveness change
-			unsubscribe()
-
-			// Stop local streaming
-			state := stateManager.GetBabyState(uid)
-			if state.GetIsWebsocketAlive() && state.GetStreamState() == baby.StreamState_Alive {
-				requestLocalStreaming(uid, c.LocalStreamURL(), client.Streaming_STOPPED, conn, stateManager)
-			}
-		}
-
-		// Initialize local streaming upon connection if we know that the stream is not alive
-		babyState := stateManager.GetBabyState(uid)
-		if autoStart && babyState.GetStreamState() != baby.StreamState_Alive {
-			if babyState.GetStreamRequestState() != baby.StreamRequestState_Requested || babyState.GetStreamState() == baby.StreamState_Unhealthy {
-				go initializeLocalStreaming()
-			}
-		}
-	}
+	// The stream loop takes it from here: asking the camera to stream (with
+	// NANIT_RTMP_AUTO_START), and transcoding once it does
+	c.sendStreamEvent(connectionChanged{conn})
 
 	<-childCtx.Done()
-	if cleanup != nil {
-		cleanup()
+
+	// Tell the loop first: stopping the stream below ends the camera's
+	// publishing, which it would otherwise answer by asking for it again
+	c.sendStreamEvent(connectionChanged{nil})
+
+	// Stop local streaming on a deliberate shutdown, while the socket can
+	// still carry the request
+	if c.opts.RTMP != nil {
+		state := stateManager.GetBabyState(uid)
+		if state.GetIsWebsocketAlive() && state.GetStreamState() == baby.StreamState_Alive {
+			requestLocalStreaming(uid, c.LocalStreamURL(), client.Streaming_STOPPED, conn, stateManager)
+		}
 	}
 }
 
