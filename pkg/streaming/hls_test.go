@@ -102,3 +102,18 @@ func TestStopCancelsPendingRetry(t *testing.T) {
 	assert.Equal(t, 1, launches(launchLog), "no relaunch after Stop")
 	assert.False(t, h.IsRunning())
 }
+
+// A transcoder empties its folder on start, and the folder is named by the
+// baby UID. An unsafe UID must be refused before that, or ".." would empty
+// the data folder.
+func TestStartTranscodingRefusesUnsafeUID(t *testing.T) {
+	dataDir := t.TempDir()
+	keep := filepath.Join(dataDir, "session.json")
+	require.NoError(t, os.WriteFile(keep, []byte("{}"), 0600))
+	m := NewHLSManager(filepath.Join(dataDir, "hls"))
+
+	for _, uid := range []string{"..", "../history", "a/b", ""} {
+		assert.Error(t, m.StartTranscoding(uid, "rtmp://127.0.0.1/local/x"), uid)
+	}
+	assert.FileExists(t, keep)
+}

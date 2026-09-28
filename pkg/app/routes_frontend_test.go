@@ -56,10 +56,10 @@ var publicRequests = map[string]bool{
 	"/api/webauth/logout": true,
 }
 
-// Each request reaches its handler with the method the frontend uses. The
-// requests have no body and the app has no cameras, so the handlers answer
-// 400/404/503, but never 405 or the mux's own 404.
-func TestFrontendRequestsAreRouted(t *testing.T) {
+// newTestServer is the app with a dashboard password, no cameras connected
+// and history off, with its routes on a fresh mux. Files go in a temp dir.
+func newTestServer(t *testing.T) (*App, *http.ServeMux) {
+	t.Helper()
 	dir := t.TempDir()
 	wa := webauth.NewWebAuth(filepath.Join(dir, "password.json"))
 	require.NoError(t, wa.SetPassword("correct horse battery staple"))
@@ -76,6 +76,23 @@ func TestFrontendRequestsAreRouted(t *testing.T) {
 	}
 	mux := http.NewServeMux()
 	setupAPIRoutes(mux, nil, app.BabyStateManager, app)
+	return app, mux
+}
+
+// signedIn adds a valid dashboard session to r
+func signedIn(t *testing.T, app *App, r *http.Request) *http.Request {
+	t.Helper()
+	session, err := app.WebAuth.CreateSession()
+	require.NoError(t, err)
+	r.AddCookie(&http.Cookie{Name: "nanit_session", Value: session})
+	return r
+}
+
+// Each request reaches its handler with the method the frontend uses. The
+// requests have no body and the app has no cameras, so the handlers answer
+// 400/404/503, but never 405 or the mux's own 404.
+func TestFrontendRequestsAreRouted(t *testing.T) {
+	app, mux := newTestServer(t)
 
 	for _, req := range frontendRequests {
 		t.Run(req.method+" "+req.path, func(t *testing.T) {
@@ -89,12 +106,8 @@ func TestFrontendRequestsAreRouted(t *testing.T) {
 			}
 
 			// Signed in: routed, with the method accepted
-			session, err := wa.CreateSession()
-			require.NoError(t, err)
-			r := httptest.NewRequest(req.method, req.path, nil)
-			r.AddCookie(&http.Cookie{Name: "nanit_session", Value: session})
 			w = httptest.NewRecorder()
-			mux.ServeHTTP(w, r)
+			mux.ServeHTTP(w, signedIn(t, app, httptest.NewRequest(req.method, req.path, nil)))
 			assert.NotEqual(t, http.StatusMethodNotAllowed, w.Code, w.Body.String())
 			assert.NotEqual(t, "404 page not found\n", w.Body.String())
 		})

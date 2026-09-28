@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -715,6 +716,23 @@ func handleAuthResetAPI(w http.ResponseWriter, r *http.Request, app *App) {
 }
 
 // Streaming and historical API handlers - simplified implementations
+// hlsFileName matches the files ffmpeg writes for a stream (see ffmpegArgs)
+var hlsFileName = regexp.MustCompile(`^(playlist\.m3u8|segment_\d+\.ts)$`)
+
+// isKnownBaby reports whether uid is one of the account's cameras. Stream
+// requests carry the UID in their body, and it names a folder on disk.
+func (app *App) isKnownBaby(uid string) bool {
+	if app.SessionStore == nil {
+		return false
+	}
+	for _, b := range app.SessionStore.Babies() {
+		if b.UID == uid {
+			return true
+		}
+	}
+	return false
+}
+
 func handleHLSStreamAPI(w http.ResponseWriter, r *http.Request, app *App) {
 	// Extract baby UID from URL path: /api/stream/hls/{baby_uid}/playlist.m3u8
 	path := strings.TrimPrefix(r.URL.Path, "/api/stream/hls/")
@@ -727,6 +745,10 @@ func handleHLSStreamAPI(w http.ResponseWriter, r *http.Request, app *App) {
 
 	babyUID := parts[0]
 	fileName := parts[1]
+	if len(parts) != 2 || !hlsFileName.MatchString(fileName) {
+		http.Error(w, "Invalid stream path", http.StatusBadRequest)
+		return
+	}
 
 	// Get transcoder for this baby
 	transcoder, exists := app.HLSManager.GetTranscoder(babyUID)
@@ -818,8 +840,8 @@ func handleStreamStartAPI(w http.ResponseWriter, r *http.Request, app *App) {
 		return
 	}
 
-	if requestData.BabyUID == "" {
-		http.Error(w, "baby_uid is required", http.StatusBadRequest)
+	if !app.isKnownBaby(requestData.BabyUID) {
+		http.Error(w, "Unknown baby_uid", http.StatusNotFound)
 		return
 	}
 
@@ -865,8 +887,8 @@ func handleStreamStopAPI(w http.ResponseWriter, r *http.Request, app *App) {
 		return
 	}
 
-	if requestData.BabyUID == "" {
-		http.Error(w, "baby_uid is required", http.StatusBadRequest)
+	if !app.isKnownBaby(requestData.BabyUID) {
+		http.Error(w, "Unknown baby_uid", http.StatusNotFound)
 		return
 	}
 

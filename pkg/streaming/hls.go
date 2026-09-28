@@ -10,6 +10,8 @@ import (
 	"time"
 
 	"github.com/rs/zerolog/log"
+
+	"github.com/andrewshaodev/nanit-web/pkg/baby"
 )
 
 // StreamStatus represents the current state of the transcoder
@@ -300,6 +302,13 @@ func NewHLSManager(baseHLSDir string) *HLSManager {
 
 // StartTranscoding starts HLS transcoding for a baby
 func (m *HLSManager) StartTranscoding(babyUID, rtmpURL string) error {
+	// The UID names the transcoder's folder, which Start empties. A UID like
+	// ".." would make that the data folder, deleting the session, history and
+	// password
+	if err := baby.EnsureValidBabyUID(babyUID); err != nil {
+		return err
+	}
+
 	m.mutex.Lock()
 	defer m.mutex.Unlock()
 
