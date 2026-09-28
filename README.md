@@ -1,278 +1,179 @@
 # Nanit Baby Monitor Bridge
 
-A comprehensive Go application that bridges Nanit baby monitors with Home Assistant and provides a feature-rich web dashboard for monitoring your baby.
+A self-hosted bridge for Nanit baby monitors. It serves a web dashboard with live video, room readings, history and camera controls. It relays the camera's stream over RTMP for Home Assistant, VLC and other players, and publishes readings over MQTT.
+
+It isn't affiliated with Nanit. It uses Nanit's unofficial, reverse-engineered API, which can change without notice.
 
 ## Features
 
-- **🏠 Home Assistant Integration**: RTMP streaming and MQTT auto-discovery
-- **🌐 Web Dashboard**: React-based real-time monitoring with interactive charts
-- **📊 Historical Data**: SQLite-powered tracking of temperature, humidity, and day/night status
-- **🎥 Video Streaming**: HLS remuxing for browser-based video playback
-- **🔐 2FA Authentication**: Support for Nanit's required two-factor authentication
-- **📱 Real-time Updates**: Live sensor data and device control
-- **🔒 Optional Web Protection**: Password-protected dashboard access
+- **Live video in the browser.** The camera's H.264/AAC stream is remuxed to HLS without re-encoding (about 1% CPU), and it works over HTTPS behind a reverse proxy.
+- **RTMP relay.** The same stream is served over RTMP for Home Assistant, VLC and anything else that plays RTMP. It copes with several viewers, and a slow one can't stall the rest.
+- **Readings.** Temperature, humidity, the camera's day/night mode, and night light state, updated live.
+- **Controls.** Night light, standby, and the camera's built-in sounds (White Noise, Birds, Waves, Wind) with play/stop, a timer and speaker volume.
+- **History.** Temperature and humidity charts, and a day/night timeline that marks the time nothing was recorded, over 1 hour to 30 days, stored in SQLite.
+- **Dashboard.** Light and dark themes (Catppuccin Latte and Mocha, following the device or set by hand). Several cameras can be collapsed and reordered, per browser.
+- **Sign-in.** Nanit's email/password and 2FA (text or email code) from the dashboard, plus an optional password on the dashboard itself.
+- **MQTT.** Readings and switch topics for Home Assistant or anything else. See [MQTT](#mqtt).
 
-This is a fork of [indiefan/home_assistant_nanit](https://github.com/indiefan/home_assistant_nanit), which itself is a fork of the original [adam.stanek/nanit](https://gitlab.com/adam.stanek/nanit) project (no longer maintained). This version includes significant enhancements including 2FA support, web dashboard, historical tracking, and modern streaming capabilities.
-
-# Installation & Setup
-
-## Quick Start
-
-1. **Pull and run the container:**
-```bash
-docker run -d \
-  --name=nanit \
-  --restart unless-stopped \
-  -v /path/to/data:/data \
-  -p 8080:8080 \
-  -p 1935:1935 \
-  -e NANIT_RTMP_ADDR=YOUR_LOCAL_IP:1935 \
-  ghcr.io/maddijoyce/nanit-web
-```
-
-2. **Open the web dashboard:**
-   - Visit `http://localhost:8080`
-   - If not yet configured, you'll be redirected to the setup page
-
-3. **Complete setup via web interface:**
-   - Enter your Nanit email and password
-   - Enter the 2FA code sent to your email
-   - The system will automatically start monitoring your baby
-   - Dashboard will display live data, charts, and video stream
-
-**Security Note:** The refresh token provides full access to your Nanit account. Protect your system and proceed at your own risk.
-
-## Environment Variables
-
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `NANIT_RTMP_ADDR` | *Required* | Your local IP and port (e.g., `192.168.1.100:1935`) |
-| `NANIT_HTTP_PORT` | `8080` | Web dashboard port |
-| `NANIT_DATA_DIR` | `/data` | Directory where all files are stored |
-| `NANIT_SESSION_FILE` | | Session file path for storing auth tokens |
-| `NANIT_RTMP_AUTO_START` | `true` | Automatically start streaming when baby comes online |
-| `NANIT_LOG_LEVEL` | `info` | Logging level: `trace`, `debug`, `info`, `warn`, `error` |
-| `NANIT_HISTORY_ENABLED` | `true` | Enable historical data tracking |
-| `NANIT_HISTORY_RETENTION_DAYS` | `30` | Days to keep historical data |
-| `NANIT_MQTT_ENABLED` | `false` | Enable MQTT for Home Assistant |
-| `NANIT_MQTT_BROKER_URL` | | MQTT broker URL (e.g., `tcp://localhost:1883`) |
-| `NANIT_MQTT_USERNAME` | | MQTT username |
-| `NANIT_MQTT_PASSWORD` | | MQTT password |
-| `NANIT_MQTT_CLIENT_ID` | `nanit` | MQTT client identifier |
-| `NANIT_MQTT_PREFIX` | `nanit` | MQTT topic prefix |
-| `NANIT_EVENTS_POLLING` | `false` | Enable polling for event messages |
-| `NANIT_EVENTS_POLLING_INTERVAL` | `30` | Seconds between event polling requests |
-| `NANIT_EVENTS_MESSAGE_TIMEOUT` | `300` | Seconds after which to disregard old events |
-
-**Note:** Nanit credentials (email/password) are configured via the web dashboard at `http://localhost:8080`, not through environment variables.
-
-## Docker Deployment Options
-
-### Option 1: Docker Compose (Recommended)
-
-Use the included `docker-compose.yml`.
-
-### Option 2: Docker Run with Full Configuration
+## Quick start
 
 ```bash
 docker run -d \
-  --name=nanit \
+  --name nanit \
   --restart unless-stopped \
   -v /path/to/data:/data \
   -p 8080:8080 \
   -p 1935:1935 \
   -e NANIT_RTMP_ADDR=192.168.1.100:1935 \
-  -e NANIT_LOG_LEVEL=info \
-  -e NANIT_HISTORY_ENABLED=true \
-  -e NANIT_MQTT_ENABLED=true \
-  -e NANIT_MQTT_BROKER_URL=tcp://homeassistant:1883 \
-  -e NANIT_MQTT_USERNAME=mqtt_user \
-  -e NANIT_MQTT_PASSWORD=mqtt_pass \
-  ghcr.io/maddijoyce/nanit-web
+  ghcr.io/andrewshaodev/nanit-web:latest
 ```
 
-**Important:** Use your local IP address (reachable by the Nanit camera), not `127.0.0.1` or `localhost`.
+1. Set `NANIT_RTMP_ADDR` to **this machine's LAN address** and the RTMP port. The camera connects to it to send its stream, so it can't be `localhost`.
+2. Open `http://<host>:8080`. You'll be taken to the sign-in page.
+3. Sign in with your Nanit email and password, then enter the code Nanit sends by text or email. The session is saved in `/data`, so you won't need to sign in again after a restart.
 
-### Password Reset
-Reset the web dashboard password protection:
+For Docker Compose, see [docs/docker-compose.md](docs/docker-compose.md).
+
+The image is built for `linux/amd64` from `main` by GitHub Actions. `latest` follows `main`; `main-<commit>` tags pin a specific build.
+
+## Configuration
+
+All settings are environment variables. [.env.sample](.env.sample) has the same list with comments.
+
+| Variable | Default | Description |
+|---|---|---|
+| `NANIT_RTMP_ADDR` | *required* | Address and port the camera can reach this bridge on, e.g. `192.168.1.100:1935` |
+| `NANIT_RTMP_ENABLED` | `true` | Run the built-in RTMP server |
+| `NANIT_RTMP_AUTO_START` | `true` | Ask the camera to start streaming when it comes online, and again if the stream drops |
+| `NANIT_HTTP_PORT` | `8080` | Dashboard and API port |
+| `NANIT_DATA_DIR` | `/data` | Where the session, history database and other files are kept |
+| `NANIT_SESSION_FILE` | `/data/session.json` | Saved Nanit session (contains tokens, so keep it private) |
+| `NANIT_LOG_LEVEL` | `info` | `trace`, `debug`, `info`, `warn` or `error` |
+| `NANIT_HISTORY_ENABLED` | `true` | Record readings for the history charts |
+| `NANIT_HISTORY_RETENTION_DAYS` | `30` | How long history is kept |
+| `NANIT_HISTORY_CLEANUP_ENABLED` | `true` | Delete history older than the retention period |
+| `NANIT_MQTT_ENABLED` | `false` | Publish to an MQTT broker |
+| `NANIT_MQTT_BROKER_URL` | | Broker URL, e.g. `tcp://homeassistant:1883` |
+| `NANIT_MQTT_USERNAME` / `NANIT_MQTT_PASSWORD` | | Broker credentials |
+| `NANIT_MQTT_CLIENT_ID` | `nanit` | MQTT client ID |
+| `NANIT_MQTT_PREFIX` | `nanit` | Topic prefix |
+| `NANIT_EVENTS_POLLING` | `false` | Poll Nanit for motion and sound events (see [MQTT](#mqtt)) |
+| `NANIT_EVENTS_POLLING_INTERVAL` | `30` | Seconds between polls |
+| `NANIT_EVENTS_MESSAGE_TIMEOUT` | `300` | Ignore events older than this many seconds |
+| `NANIT_REFRESH_TOKEN` | | Start from an existing Nanit refresh token instead of signing in |
+| `NANIT_EMAIL` / `NANIT_PASSWORD` | | Used to sign in again if the saved session expires. They can't get past a 2FA prompt, so sign in from the dashboard first. |
+
+### Running behind a reverse proxy
+
+The dashboard works over HTTPS behind a reverse proxy (Caddy, Traefik, nginx, Pangolin...). Every URL it uses is relative to the page, so there are no mixed-content problems. Proxy the HTTP port. The RTMP port is plain TCP and is used on your LAN, so leave it out of the proxy.
+
+### Dashboard password
+
+You can set a password in **Settings → Authentication & Security**. With one set, the dashboard and the whole API (video, controls, history, Nanit sign-in) require it. Only the page itself, its login endpoints and the `/health` and `/ready` checks stay open. If you already protect the dashboard at the proxy with SSO, you don't need both.
+
+To remove a forgotten password:
+
 ```bash
-docker exec -it nanit /app/nanit --reset-password
-``` 
-
-# Web Dashboard Features
-
-The modern React-based dashboard at `http://localhost:8080` provides comprehensive baby monitoring:
-
-## 🎥 Live Video Streaming
-- **Browser-native playback**: HLS streaming works directly in any modern browser
-- **Real-time video**: Low-latency streaming from your Nanit camera
-- **No plugins required**: Pure HTML5 video with Video.js player
-
-## 📊 Interactive Data Visualization
-- **Real-time sensor charts**: Live temperature, humidity, and day/night status with Chart.js
-- **Historical trends**: Explore data over hours, days, or weeks
-- **Environmental monitoring**: Track room conditions and lighting changes over time
-- **Day/night patterns**: Visualize environmental and lighting changes throughout the day
-
-## 📱 Device Control Panel
-- **Night light control**: Toggle and adjust lighting remotely
-- **Standby mode**: Put camera in sleep mode when needed
-- **Streaming controls**: Start/stop video streaming on demand
-- **Device status**: Real-time connection and health monitoring
-
-## 🔧 Management & Settings
-- **Web-based authentication**: Complete 2FA setup without command line
-- **Password protection**: Optional dashboard security
-- **Configuration management**: Adjust settings through intuitive interface
-- **System monitoring**: View logs, connection status, and performance metrics
-
-## 📈 Advanced Analytics
-- **Temperature alerts**: Visual indicators for threshold breaches
-- **Sleep quality insights**: Track room conditions over time
-- **Export capabilities**: Download historical data for analysis
-- **Responsive design**: Works perfectly on desktop, tablet, and mobile
-
-# Integrations
+docker exec -it nanit /app/bin/nanit --reset-password
+```
 
 ## Home Assistant
 
-### MQTT Auto-Discovery (Recommended)
+### Camera
 
-When MQTT is enabled, the application automatically creates Home Assistant entities:
-
-- **Camera**: RTMP video feed
-- **Sensors**: Temperature, humidity, day/night status
-- **Binary Sensors**: Night mode, streaming status
-- **Switches**: Night light, standby mode
-
-Simply enable MQTT in your configuration and devices will appear automatically.
-
-### Manual Camera Setup
-
-Alternatively, add a camera manually to `configuration.yaml`:
+Add the RTMP stream as an ffmpeg camera. The dashboard shows each camera's exact URL under **Settings → Streaming → Streaming Links**:
 
 ```yaml
 camera:
-  - name: Nanit
-    platform: ffmpeg
-    input: rtmp://YOUR_LOCAL_IP:1935/local/YOUR_BABY_UID
+  - platform: ffmpeg
+    name: Nanit
+    input: rtmp://192.168.1.100:1935/local/YOUR_BABY_UID
 ```
 
-You can find your `baby_uid` in the web dashboard at `http://localhost:8080` or in the application logs.
+### MQTT
 
-# Development
+With `NANIT_MQTT_ENABLED=true`, readings are published to `<prefix>/babies/<baby_uid>/<name>`:
 
-For local development with hot reload:
+| Topic name | Value |
+|---|---|
+| `temperature` | °C, e.g. `23.1` |
+| `humidity` | %, e.g. `54.2` |
+| `is_night` | `true` when the camera is in night mode |
+| `night_light` | `true` / `false` |
+| `standby` | `true` / `false` |
+| `is_stream_alive` | `true` while the camera is streaming to the bridge |
+| `motion_timestamp` / `sound_timestamp` | Unix time of the latest motion or sound event (needs `NANIT_EVENTS_POLLING=true` and those notifications turned on in the Nanit app) |
 
-```bash
-# Clone the repository
-git clone https://github.com/daleiii/nanit-web.git
-cd nanit-web
+Publish `true` or `false` to `<prefix>/babies/<baby_uid>/night_light/switch` or `.../standby/switch` to control them.
 
-# Start development environment
-docker-compose -f docker-compose.dev.yml up frontend backend
-
-# Frontend: http://localhost:3000
-# Backend API: http://localhost:8080
-```
-
-See `CLAUDE.md` for detailed development instructions.
-
-# License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
-# FAQ
+This build doesn't send Home Assistant MQTT discovery messages, so add these as [MQTT sensors and switches](https://www.home-assistant.io/integrations/sensor.mqtt/) in your configuration. Your baby UIDs are shown in **Settings → Devices**.
 
 ## Troubleshooting
 
-### Q: Video streaming fails but sensor data still works?
-**A: Connection Limit Errors** - The most common issue is **"too many local connections"** to the Nanit camera:
+### The video won't load in the dashboard
 
-- **Symptoms**: Video stream fails to connect, but sensor data continues working
-- **Cause**: Nanit cameras limit concurrent local streaming connections
-- **Behavior**: App continuously retries connection attempts
-- **Impact**: Usually doesn't affect the official Nanit mobile app
+The bridge only has video while the camera is streaming to it. Check the logs (`docker logs nanit`) for `New stream publisher connected`. If it's missing, check `NANIT_RTMP_ADDR` is an address the camera can reach, and that the RTMP port is published. A camera on a different network (a travel router, say) can't stream to the bridge.
 
-**Solutions:**
-1. **Wait and retry**: Connection limits may clear after a few minutes
-2. **Restart the container**: `docker restart nanit`
-3. **Check network connectivity**: Ensure camera and app are on same network
-4. **Verify RTMP address**: Make sure `NANIT_RTMP_ADDR` uses correct local IP
+### "Number of Mobile App connections above limit"
 
-**Expected Behavior:**
-- **Sensor data continues**: Temperature, humidity, day/night status still update
-- **Automatic retries**: App persistently attempts to reconnect
-- **Mobile app unaffected**: Official Nanit app typically continues working
-- **Eventually connects**: Usually succeeds after some time
+Nanit limits how many app connections an account can have at once, and the bridge counts as one. Close the Nanit app on a device or two, or wait a few minutes. Don't run two bridges on the same account: they compete for the cameras.
 
-### Q: VLC (or ffplay/Home Assistant) says it can't open the RTMP URL?
-**A:** Two things to check, in order:
+### VLC (or ffplay, or Home Assistant) can't open the RTMP URL
 
-1. **Use the address from `NANIT_RTMP_ADDR`**, not the address of the dashboard.
-   The RTMP server listens on the port from `NANIT_RTMP_ADDR` (`1935` in the
-   examples above), which is separate from the dashboard's HTTP port. With
-   `NANIT_RTMP_ADDR=192.168.9.22:1935` the stream URL is
-   `rtmp://192.168.9.22:1935/local/YOUR_BABY_UID`. The dashboard's Streaming
-   Links panel reads this from the server, so copy the URL from there.
-2. **Start the stream first.** The RTMP server is a relay, not a recorder: it
-   closes any client that connects while the cam is not publishing, which VLC
-   reports as "unable to open the MRL". Start the stream from the dashboard (or
-   leave `NANIT_RTMP_AUTO_START=true`) and confirm the log shows
-   `New stream publisher connected` before pointing a player at the URL.
+1. **Use the address from `NANIT_RTMP_ADDR`**, not the dashboard's address. Copy it from Settings → Streaming → Streaming Links, which reads it from the server.
+2. **The camera has to be streaming first.** The RTMP server is a relay: it closes viewers that connect while the camera isn't publishing, which VLC reports as "unable to open the MRL". Keep `NANIT_RTMP_AUTO_START=true`, or start the stream from the dashboard, and check the logs for `New stream publisher connected`.
 
-### Q: How do I check what's going wrong?
-**A:** Check the application logs using the Docker commands from the Installation section:
+### Logs
+
 ```bash
-# Real-time logs
-docker logs -f nanit
-# Recent logs  
+docker logs -f nanit        # follow
 docker logs --tail 100 nanit
 ```
 
-### Q: Can I access this remotely/over the internet?
-**A:** This should **NOT be exposed directly to the public internet**. For remote access:
-- Use a VPN to access your home network
-- Use a reverse proxy (nginx, Traefik, Caddy) with proper authentication and HTTPS
-- Never rely solely on the built-in password protection
+Passwords, tokens and 2FA codes are never written to the log.
 
-## Security & Safety
+## Development
 
-### Q: Is this safe to use?
-**A:** This application accesses your Nanit account and camera feeds. Important considerations:
+Requirements: Go 1.27, [Bun](https://bun.sh) 1.3, and ffmpeg for HLS.
 
-**Security Risks:**
-- **Refresh tokens provide full Nanit account access**
-- **Live video streams from your baby's room** 
-- **Historical data about your home environment**
-- **Device control capabilities**
+```bash
+# Backend (serves ./web as the dashboard, so build the frontend into it first)
+cd frontend && bun install && bun run build && cd ..
+mkdir -p web && cp -R frontend/dist/* web/
+NANIT_RTMP_ADDR=<your LAN IP>:1935 NANIT_DATA_DIR=./data NANIT_SESSION_FILE=./data/session.json go run ./cmd/nanit
 
-**Recommendations:**
-- Use only within your home network
-- Enable the built-in password protection
-- Access via local IP addresses (e.g., `http://192.168.1.100:8080`)
-- **Never expose directly to the internet**
+# Frontend with hot reload, proxying /api to the backend above
+cd frontend && bun run dev
 
-### Q: What are the legal disclaimers?
-**A:** This is a personal project provided as-is for educational and personal use. **I am not responsible for any issues, damages, or consequences that may arise from using this software.**
+# Checks
+go vet ./... && go test ./...
+cd frontend && bun run typecheck && bun run lint
 
-**Use at your own risk:**
-- This software accesses your Nanit account and camera feeds
-- No warranty or support is provided
-- You are responsible for securing your own installation
-- Any misuse or security issues are your responsibility
+# Container image
+docker build -t nanit-web .
+```
 
-By using this software, you acknowledge that you understand the risks and accept full responsibility for its use.
+Only one bridge should be connected to your cameras at a time. Stop any other instance before running one locally.
 
-## Technical Questions
+The frontend is React 19 with Vite, Tailwind CSS 4, shadcn/ui on the Catppuccin theme, and Lucide icons. See [frontend/README.md](frontend/README.md).
 
-### Q: What ports does this use?
-**A:** 
-- **Port 8080**: Web dashboard interface
-- **Port 1935**: RTMP streaming (for Home Assistant and other RTMP clients)
+## History and credits
 
-### Q: Where do I find my baby_uid?
-**A:** Your `baby_uid` is displayed in the web dashboard at `http://localhost:8080` or can be found in the application logs.
+This project grew out of several before it:
 
-### Q: Do I need to be on the same network as my Nanit camera?
-**A:** Yes, your Docker host must be on the same network as your Nanit camera, and you must use your local IP address (not `localhost` or `127.0.0.1`) in the `NANIT_RTMP_ADDR` setting.
+- [adam.stanek/nanit](https://gitlab.com/adam.stanek/nanit): the original reverse engineering of Nanit's API and camera protocol
+- [indiefan/home_assistant_nanit](https://github.com/indiefan/home_assistant_nanit): the Home Assistant bridge this is built on
+- [daleiii/nanit-web](https://github.com/daleiii/nanit-web): added the web dashboard, 2FA sign-in, HLS video and history
+- [maddijoyce/nanit-web](https://github.com/maddijoyce/nanit-web): GHCR builds, stream and token-renewal fixes, and the decoding of the camera's sound and RTMP-address APIs, which this fork cherry-picks
+
+This fork adds a rebuilt frontend, the sound controls, and a long list of fixes. The fixes include HLS retries that never ran, day/night history inventing data, credentials in the logs, TLS verification on the camera connection, an RTMP relay that stalled on slow viewers, and an API that mostly skipped the dashboard password. `git log` has the details.
+
+## Security
+
+This bridge holds a session with full access to your Nanit account, live video from your child's room, and controls for the camera. Keep it on your home network or behind a reverse proxy with real authentication, don't expose it directly to the internet, and keep the `/data` directory private.
+
+## Disclaimer and license
+
+This is a personal project, provided as is and without warranty, for personal use. You're responsible for securing your installation, and for how you use it.
+
+Licensed under the MIT License. See [LICENSE](LICENSE).
