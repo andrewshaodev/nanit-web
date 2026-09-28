@@ -1,0 +1,8 @@
+{
+  "body": {
+    "baby_uid": "baby1",
+    "message": "No transcoder found for this baby",
+    "status": "not_found"
+  },
+  "status": 200
+}

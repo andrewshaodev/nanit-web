@@ -1,0 +1,20 @@
+{
+  "body": {
+    "baby_uid": "baby1",
+    "count": 1,
+    "end_time": 4000000000,
+    "readings": [
+      {
+        "baby_uid": "baby1",
+        "created_at": 0,
+        "humidity_percent": 51.2,
+        "id": 0,
+        "is_night": false,
+        "temperature_celsius": 23.5,
+        "timestamp": 0
+      }
+    ],
+    "start_time": 0
+  },
+  "status": 200
+}

@@ -1,0 +1,15 @@
+{
+  "body": {
+    "alerts": null,
+    "baby_name": "Baby",
+    "baby_uid": "baby1",
+    "camera_uid": "cam1",
+    "connection_status": {
+      "stream_state": "connected",
+      "websocket_alive": true
+    },
+    "device_info": {},
+    "timestamp": 0
+  },
+  "status": 200
+}

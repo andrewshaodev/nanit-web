@@ -1,0 +1,24 @@
+{
+  "body": {
+    "baby_uid": "baby1",
+    "details": {
+      "hls": {
+        "is_running": false,
+        "status": "stopped"
+      },
+      "rtmp": {
+        "actively_streaming": false,
+        "last_video_packet_time": 0,
+        "status": "connected_no_video",
+        "stream_state": "alive"
+      },
+      "websocket": {
+        "alive": true,
+        "status": "connected"
+      }
+    },
+    "overall_health": "connected_no_video",
+    "timestamp": 0
+  },
+  "status": 200
+}

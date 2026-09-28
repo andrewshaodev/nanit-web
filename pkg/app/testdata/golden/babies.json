@@ -1,0 +1,13 @@
+{
+  "body": {
+    "babies": [
+      {
+        "camera_uid": "cam1",
+        "name": "Baby",
+        "uid": "baby1"
+      }
+    ],
+    "count": 1
+  },
+  "status": 200
+}

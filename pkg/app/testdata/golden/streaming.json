@@ -1,0 +1,14 @@
+{
+  "body": {
+    "hls": {
+      "enabled": true,
+      "url_template": "/api/stream/hls/{baby_uid}/playlist.m3u8"
+    },
+    "rtmp": {
+      "enabled": true,
+      "public_addr": "192.0.2.1:1935",
+      "url_template": "rtmp://192.0.2.1:1935/local/{baby_uid}"
+    }
+  },
+  "status": 200
+}

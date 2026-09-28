@@ -1,0 +1,19 @@
+{
+  "body": {
+    "baby_uid": "baby1",
+    "count": 1,
+    "end_time": 4000000000,
+    "event_type": "",
+    "events": [
+      {
+        "baby_uid": "baby1",
+        "created_at": 0,
+        "event_type": "motion",
+        "id": 1,
+        "timestamp": 0
+      }
+    ],
+    "start_time": 0
+  },
+  "status": 200
+}

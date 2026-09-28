@@ -1,0 +1,22 @@
+{
+  "body": {
+    "avg_humidity": 51.2,
+    "avg_temperature": 23.5,
+    "baby_uid": "baby1",
+    "day_mode_minutes": 0,
+    "day_mode_percentage": 0,
+    "end_time": 4000000000,
+    "max_humidity": 51.2,
+    "max_temperature": 23.5,
+    "min_humidity": 51.2,
+    "min_temperature": 23.5,
+    "motion_event_count": 1,
+    "night_light_changes": 0,
+    "night_mode_minutes": 0,
+    "night_mode_percentage": 0,
+    "sound_event_count": 0,
+    "standby_changes": 0,
+    "start_time": 0
+  },
+  "status": 200
+}

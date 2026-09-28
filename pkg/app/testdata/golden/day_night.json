@@ -1,0 +1,29 @@
+{
+  "body": {
+    "baby_uid": "baby1",
+    "day_night": {
+      "baby_uid": "baby1",
+      "day_mode_minutes": 0,
+      "day_mode_percentage": 0,
+      "day_night_changes": null,
+      "end_time": 4000000000,
+      "mode_transitions": 0,
+      "night_mode_minutes": 0,
+      "night_mode_percentage": 0,
+      "periods": [
+        {
+          "end": 0,
+          "mode": "unknown",
+          "start": 0
+        }
+      ],
+      "start_time": 0,
+      "total_minutes": 66666666,
+      "unknown_mode_minutes": 66666666,
+      "unknown_mode_percentage": 100
+    },
+    "end_time": 4000000000,
+    "start_time": 0
+  },
+  "status": 200
+}

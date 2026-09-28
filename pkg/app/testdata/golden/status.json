@@ -1,0 +1,20 @@
+{
+  "body": {
+    "babies": [
+      {
+        "camera_uid": "cam1",
+        "humidity": 51.2,
+        "is_night": false,
+        "name": "Baby",
+        "night_light": true,
+        "standby": false,
+        "stream_state": 2,
+        "temperature": 23.5,
+        "uid": "baby1",
+        "websocket_alive": true
+      }
+    ],
+    "timestamp": 0
+  },
+  "status": 200
+}

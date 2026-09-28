@@ -1,0 +1,8 @@
+{
+  "body": {
+    "authenticated": true,
+    "password_protection_enabled": true,
+    "password_set": true
+  },
+  "status": 200
+}

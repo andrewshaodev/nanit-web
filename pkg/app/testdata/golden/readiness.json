@@ -1,0 +1,26 @@
+{
+  "body": {
+    "services": {
+      "authentication": {
+        "message": "Authentication configured",
+        "ready": true
+      },
+      "babies": {
+        "baby_count": 1,
+        "message": "1 babies configured",
+        "ready": true
+      },
+      "mqtt": {
+        "message": "MQTT not configured",
+        "ready": false
+      },
+      "rtmp": {
+        "message": "RTMP server configured",
+        "ready": true
+      }
+    },
+    "status": "ready",
+    "timestamp": 0
+  },
+  "status": 200
+}

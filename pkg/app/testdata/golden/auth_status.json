@@ -1,0 +1,10 @@
+{
+  "body": {
+    "authenticated": true,
+    "babies_count": 1,
+    "email": "",
+    "message": "Authenticated",
+    "services_running": true
+  },
+  "status": 200
+}
