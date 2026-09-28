@@ -4,9 +4,9 @@ import (
 	"os"
 	"time"
 
+	"github.com/andrewshaodev/nanit-web/pkg/utils"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
-	"github.com/andrewshaodev/nanit-web/pkg/utils"
 )
 
 // Set log level after env. initialization

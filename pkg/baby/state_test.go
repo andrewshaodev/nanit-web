@@ -3,8 +3,8 @@ package baby_test
 import (
 	"testing"
 
-	"github.com/stretchr/testify/assert"
 	"github.com/andrewshaodev/nanit-web/pkg/baby"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestStateAsMap(t *testing.T) {

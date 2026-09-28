@@ -6,7 +6,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/rs/zerolog/log"
 	"github.com/andrewshaodev/nanit-web/pkg/baby"
 	"github.com/andrewshaodev/nanit-web/pkg/client"
 	"github.com/andrewshaodev/nanit-web/pkg/history"
@@ -17,6 +16,7 @@ import (
 	"github.com/andrewshaodev/nanit-web/pkg/streaming"
 	"github.com/andrewshaodev/nanit-web/pkg/utils"
 	"github.com/andrewshaodev/nanit-web/pkg/webauth"
+	"github.com/rs/zerolog/log"
 )
 
 // App - application container
@@ -76,7 +76,7 @@ func NewApp(opts Opts) (*App, error) {
 func (app *App) Run(ctx utils.GracefulContext) {
 	// Store main context for later use
 	app.mainContext = ctx
-	
+
 	// Set up historical data tracking callback
 	app.setupHistoryTracking()
 	// Check if we have valid authentication
@@ -89,7 +89,7 @@ func (app *App) Run(ctx utils.GracefulContext) {
 				hasValidAuth = false
 			}
 		}()
-		
+
 		if err := app.RestClient.MaybeAuthorize(false); err != nil {
 			log.Error().Err(err).Msg("Authentication failed")
 			hasValidAuth = false
@@ -110,7 +110,7 @@ func (app *App) Run(ctx utils.GracefulContext) {
 	if hasValidAuth {
 		babies = app.SessionStore.Babies()
 	}
-	
+
 	if app.Opts.HTTPEnabled {
 		go ServeReact(babies, app.Opts.DataDirectories, app.BabyStateManager, app)
 	}
@@ -140,7 +140,7 @@ func (app *App) Run(ctx utils.GracefulContext) {
 				app.handleBaby(_babyInfo, childCtx)
 			})
 		}
-		
+
 		log.Info().Msg("All services started with authentication")
 	} else {
 		log.Info().Msg("Web server started - visit http://localhost:8080/setup to configure authentication")
@@ -164,16 +164,16 @@ func (app *App) handleBaby(baby baby.Baby, ctx utils.GracefulContext) {
 					app.autoStopStreaming(baby.UID)
 				}
 			}()
-			
+
 			// Auto-start streaming if RTMP is enabled and auto-start is configured
 			if app.Opts.RTMP != nil && app.Opts.RTMP.AutoStart {
 				log.Info().Str("baby_uid", baby.UID).Msg("Auto-starting RTMP stream")
 				go app.autoStartStreaming(baby.UID, conn)
-				
+
 				// Start persistent retry mechanism for failed connections
 				go app.startStreamingRetryMonitor(baby.UID, childCtx)
 			}
-			
+
 			app.runWebsocket(baby.UID, conn, childCtx)
 		})
 
@@ -386,7 +386,7 @@ func (app *App) RefreshAuthentication() error {
 	if refreshToken := app.SessionStore.RefreshToken(); refreshToken != "" {
 		app.RestClient.RefreshToken = refreshToken
 	}
-	
+
 	log.Info().Msg("Authentication refreshed successfully")
 	return nil
 }
@@ -400,9 +400,9 @@ func (app *App) StartMonitoringServices() {
 		return
 	}
 	log.Info().Msg("Starting monitoring services after authentication...")
-	
+
 	// Force refresh authorization and fetch babies (token may have expired since web auth)
-	if err := app.RestClient.MaybeAuthorize(true); err != nil {  // Force refresh
+	if err := app.RestClient.MaybeAuthorize(true); err != nil { // Force refresh
 		log.Error().Err(err).Msg("Failed to refresh authorization")
 		return
 	}
@@ -428,15 +428,15 @@ func (app *App) StartMonitoringServices() {
 		}()
 		log.Info().Msg("RTMP server startup initiated")
 	}
-	
-	// Start MQTT if configured  
+
+	// Start MQTT if configured
 	if app.MQTTConnection != nil {
 		ctx.RunAsChild(func(childCtx utils.GracefulContext) {
 			app.MQTTConnection.Run(app.BabyStateManager, childCtx)
 		})
 		log.Info().Msg("MQTT connection started")
 	}
-	
+
 	// Start baby monitoring for each baby (use same pattern as original Run method)
 	for _, babyInfo := range babies {
 		_babyInfo := babyInfo
@@ -445,15 +445,15 @@ func (app *App) StartMonitoringServices() {
 		})
 		log.Info().Str("baby_uid", _babyInfo.UID).Str("name", _babyInfo.Name).Msg("Started monitoring baby")
 	}
-	
+
 	log.Info().Msg("All monitoring services started successfully")
-	
+
 	// Set up cleanup handler for graceful shutdown
 	ctx.RunAsChild(func(childCtx utils.GracefulContext) {
 		<-childCtx.Done()
-		
+
 		log.Info().Msg("Shutting down application...")
-		
+
 		if app.HistoryTracker != nil {
 			if err := app.HistoryTracker.Close(); err != nil {
 				log.Error().Err(err).Msg("Failed to close history tracker")
@@ -490,7 +490,7 @@ func shouldReleaseStreamResources(state *baby.State) bool {
 func (app *App) autoStartStreaming(babyUID string, conn *client.WebsocketConnection) {
 	// Give the WebSocket connection a moment to fully establish
 	time.Sleep(2 * time.Second)
-	
+
 	// Get the RTMP URL for this baby
 	streamURL := app.getLocalStreamURL(babyUID)
 	if streamURL == "" {
@@ -588,7 +588,7 @@ func (app *App) setupHistoryTracking() {
 			}
 		}
 
-		// Track sound events  
+		// Track sound events
 		if state.SoundTimestamp != nil {
 			if err := app.HistoryTracker.TrackEvent(babyUID, "sound", int64(*state.SoundTimestamp)); err != nil {
 				log.Error().Err(err).Str("baby_uid", babyUID).Msg("Failed to track sound event")
@@ -667,7 +667,7 @@ func (app *App) startStreamingRetryMonitor(babyUID string, ctx utils.GracefulCon
 					log.Info().
 						Str("baby_uid", babyUID).
 						Msg("Retrying streaming connection due to previous failure")
-					
+
 					go app.retryStreaming(babyUID, conn)
 				}
 			}
@@ -689,7 +689,7 @@ func (app *App) shouldRetryStreaming(babyUID string) bool {
 	}
 
 	babyState := app.BabyStateManager.GetBabyState(babyUID)
-	
+
 	// Only retry if:
 	// 1. WebSocket is alive (connection exists)
 	// 2. Stream request failed (connection limit or other failure)
@@ -724,7 +724,7 @@ func (app *App) retryStreaming(babyUID string, conn *client.WebsocketConnection)
 			// Give RTMP stream a moment to establish before starting HLS transcoding
 			go func() {
 				time.Sleep(3 * time.Second)
-				
+
 				if err := app.HLSManager.StartTranscoding(babyUID, streamURL); err != nil {
 					log.Error().
 						Err(err).

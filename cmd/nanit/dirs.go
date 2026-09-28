@@ -5,9 +5,9 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/rs/zerolog/log"
 	"github.com/andrewshaodev/nanit-web/pkg/app"
 	"github.com/andrewshaodev/nanit-web/pkg/utils"
+	"github.com/rs/zerolog/log"
 )
 
 func ensureDataDirectories() (app.DataDirectories, error) {

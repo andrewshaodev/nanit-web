@@ -8,14 +8,14 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/rs/zerolog/log"
 	"github.com/andrewshaodev/nanit-web/pkg/baby"
+	"github.com/rs/zerolog/log"
 )
 
 // ServeReact serves the React frontend instead of Go templates
 func ServeReact(babies []baby.Baby, dataDir DataDirectories, stateManager *baby.StateManager, app *App) {
 	port := app.Opts.HTTPPort
-	
+
 	log.Info().Msg("=== Setting up HTTP server routes for React frontend ===")
 	log.Info().Int("babies_count", len(babies)).Msg("Number of babies available")
 
@@ -74,7 +74,7 @@ func requireAuth(app *App, handler http.HandlerFunc) http.HandlerFunc {
 			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(http.StatusUnauthorized)
 			json.NewEncoder(w).Encode(map[string]string{
-				"error": "authentication_required",
+				"error":   "authentication_required",
 				"message": "Please log in to access this resource",
 			})
 			return
@@ -204,12 +204,12 @@ func setupAPIRoutes(babies []baby.Baby, dataDir DataDirectories, stateManager *b
 	http.HandleFunc("/api/health/", requireAuth(app, func(w http.ResponseWriter, r *http.Request) {
 		handleHealthAPI(w, r, app)
 	}))
-	
+
 	// Basic liveness check (no authentication required)
 	http.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
 		handleLivenessAPI(w, r)
 	})
-	
+
 	// Readiness check with detailed service status (no authentication required)
 	http.HandleFunc("/ready", func(w http.ResponseWriter, r *http.Request) {
 		handleReadinessAPI(w, r, app)
@@ -282,7 +282,7 @@ func handleWebAuthLoginAPI(w http.ResponseWriter, r *http.Request, app *App) {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusUnauthorized)
 		json.NewEncoder(w).Encode(map[string]string{
-			"error": "invalid_password",
+			"error":   "invalid_password",
 			"message": "Invalid password",
 		})
 		return
@@ -417,7 +417,7 @@ func handleChangePasswordAPI(w http.ResponseWriter, r *http.Request, app *App) {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusUnauthorized)
 		json.NewEncoder(w).Encode(map[string]string{
-			"error": "invalid_current_password",
+			"error":   "invalid_current_password",
 			"message": "Current password is incorrect",
 		})
 		return
@@ -473,7 +473,7 @@ func handleRemovePasswordAPI(w http.ResponseWriter, r *http.Request, app *App) {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusUnauthorized)
 		json.NewEncoder(w).Encode(map[string]string{
-			"error": "invalid_password",
+			"error":   "invalid_password",
 			"message": "Password is incorrect",
 		})
 		return
