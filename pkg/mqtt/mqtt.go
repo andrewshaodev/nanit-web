@@ -2,6 +2,7 @@ package mqtt
 
 import (
 	"fmt"
+	"net/url"
 	"strings"
 	"time"
 
@@ -152,15 +153,26 @@ func (conn *Connection) subscribeToStandbyCommand() {
 	}
 }
 
+// redactURL - the broker URL for logging. It may carry credentials
+// (mqtt://user:pass@host), and they used to land in the log on every connect.
+func redactURL(raw string) string {
+	u, err := url.Parse(raw)
+	if err != nil {
+		// Not parseable, so don't risk echoing a password
+		return "(unparseable broker URL)"
+	}
+	return u.Redacted()
+}
+
 func runMqtt(conn *Connection, attempt utils.AttemptContext) {
 
 	if token := conn.client.Connect(); token.Wait() && token.Error() != nil {
-		log.Error().Str("broker_url", conn.Opts.BrokerURL).Err(token.Error()).Msg("Unable to connect to MQTT broker")
+		log.Error().Str("broker_url", redactURL(conn.Opts.BrokerURL)).Err(token.Error()).Msg("Unable to connect to MQTT broker")
 		attempt.Fail(token.Error())
 		return
 	}
 
-	log.Info().Str("broker_url", conn.Opts.BrokerURL).Msg("Successfully connected to MQTT broker")
+	log.Info().Str("broker_url", redactURL(conn.Opts.BrokerURL)).Msg("Successfully connected to MQTT broker")
 
 	unsubscribe := conn.StateManager.Subscribe(func(babyUID string, state baby.State) {
 		publish := func(key string, value interface{}) {
