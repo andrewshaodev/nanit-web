@@ -12,7 +12,7 @@ export default function DeviceSettings({ babies }: DeviceSettingsProps) {
 
   if (babies.length === 0) {
     return (
-      <div className="text-center py-8 text-gray-500">
+      <div className="text-center py-8 text-ctp-subtext1">
         No devices found. Please ensure your Nanit account is authenticated and devices are connected.
       </div>
     );
@@ -22,7 +22,7 @@ export default function DeviceSettings({ babies }: DeviceSettingsProps) {
     <div className="space-y-6">
       {/* Device Tabs */}
       {babies.length > 1 && (
-        <div className="border-b border-gray-200">
+        <div className="border-b border-ctp-surface0">
           <nav className="-mb-px flex space-x-8">
             {babies.map((baby, index) => (
               <button
@@ -30,8 +30,8 @@ export default function DeviceSettings({ babies }: DeviceSettingsProps) {
                 onClick={() => setActiveTab(index)}
                 className={`py-2 px-1 border-b-2 font-medium text-sm ${
                   activeTab === index
-                    ? 'border-blue-500 text-blue-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                    ? 'border-ctp-blue text-ctp-blue-700 dark:text-ctp-blue'
+                    : 'border-transparent text-ctp-subtext1 hover:text-ctp-subtext1 hover:border-ctp-surface1'
                 }`}
               >
                 {displayName(baby)}
@@ -45,12 +45,12 @@ export default function DeviceSettings({ babies }: DeviceSettingsProps) {
       <div className="space-y-4">
         {babies.length === 1 ? (
           <div>
-            <h4 className="text-lg font-medium text-gray-900 mb-4">{babies[0].name}</h4>
+            <h4 className="text-lg font-medium text-ctp-text mb-4">{babies[0].name}</h4>
             <DeviceInfo baby={babies[0]} />
           </div>
         ) : (
           <div>
-            <h4 className="text-lg font-medium text-gray-900 mb-4">{babies[activeTab]?.name}</h4>
+            <h4 className="text-lg font-medium text-ctp-text mb-4">{babies[activeTab]?.name}</h4>
             <DeviceInfo baby={babies[activeTab]} />
           </div>
         )}
@@ -58,21 +58,21 @@ export default function DeviceSettings({ babies }: DeviceSettingsProps) {
 
       {/* Device Summary for Multiple Devices */}
       {babies.length > 1 && (
-        <div className="mt-8 bg-gray-50 rounded-lg p-4">
-          <h4 className="text-sm font-medium text-gray-900 mb-3">Device Summary</h4>
+        <div className="mt-8 bg-ctp-mantle rounded-lg p-4">
+          <h4 className="text-sm font-medium text-ctp-text mb-3">Device Summary</h4>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {babies.map((baby) => (
-              <div key={baby.uid} className="bg-white rounded-lg p-3 border border-gray-200">
+              <div key={baby.uid} className="bg-ctp-base rounded-lg p-3 border border-ctp-surface0">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="font-medium text-gray-900">{displayName(baby)}</p>
-                    <p className="text-xs text-gray-500">{baby.uid}</p>
+                    <p className="font-medium text-ctp-text">{displayName(baby)}</p>
+                    <p className="text-xs text-ctp-subtext1">{baby.uid}</p>
                   </div>
                   <div className="flex items-center gap-2">
                     <div className={`w-2 h-2 rounded-full ${
-                      baby.websocket_alive ? 'bg-green-500' : 'bg-red-500'
+                      baby.websocket_alive ? 'bg-ctp-green-900 dark:bg-ctp-green' : 'bg-ctp-red dark:bg-ctp-red'
                     }`} />
-                    <span className="text-xs text-gray-600">
+                    <span className="text-xs text-ctp-subtext1">
                       {baby.websocket_alive ? 'Online' : 'Offline'}
                     </span>
                   </div>

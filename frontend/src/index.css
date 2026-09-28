@@ -1,21 +1,9 @@
 @import 'tailwindcss';
+/* Catppuccin: Latte in light mode, Mocha in dark mode, following the device */
+@import '@catppuccin/tailwindcss/mocha.css';
 
 @theme {
   --font-sans: 'Inter Variable', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-
-  --color-nanit-blue: #667eea;
-  --color-nanit-purple: #764ba2;
-
-  --color-nanit-gray-50: #f8f9fa;
-  --color-nanit-gray-100: #e9ecef;
-  --color-nanit-gray-200: #dee2e6;
-  --color-nanit-gray-300: #ced4da;
-  --color-nanit-gray-400: #adb5bd;
-  --color-nanit-gray-500: #6c757d;
-  --color-nanit-gray-600: #495057;
-  --color-nanit-gray-700: #343a40;
-  --color-nanit-gray-800: #212529;
-  --color-nanit-gray-900: #1a1a1a;
 
   --animate-pulse-slow: pulse 2s infinite;
 }
@@ -34,75 +22,75 @@
   ::before,
   ::backdrop,
   ::file-selector-button {
-    border-color: var(--color-gray-200, currentcolor);
+    border-color: var(--color-ctp-surface0, currentcolor);
   }
 }
 
 @utility card {
-  @apply bg-white rounded-lg shadow-md overflow-hidden transition-all duration-200 hover:shadow-lg hover:-translate-y-1;
+  @apply bg-ctp-base rounded-lg shadow-md overflow-hidden transition-all duration-200 hover:shadow-lg hover:-translate-y-1;
 }
 
 @utility sensor-card {
-  @apply bg-nanit-gray-50 p-5 rounded-lg border-l-4 transition-colors duration-200 hover:bg-nanit-gray-100;
+  @apply bg-ctp-mantle p-5 rounded-lg border-l-4 transition-colors duration-200 hover:bg-ctp-surface0;
 
   &.temperature {
-    @apply border-l-orange-500;
+    @apply border-l-ctp-peach;
   }
 
   &.humidity {
-    @apply border-l-teal-500;
+    @apply border-l-ctp-teal;
   }
 
   &.night-mode {
-    @apply border-l-purple-500;
+    @apply border-l-ctp-mauve;
   }
 
   /* Motion/sound sensor cards - disabled for now
   .sensor-card.motion {
-    @apply border-l-pink-500;
+    @apply border-l-ctp-pink;
   }
 
   .sensor-card.sound {
-    @apply border-l-yellow-500;
+    @apply border-l-ctp-yellow;
   }
   */
 
   &.night-light {
-    @apply border-l-cyan-500;
+    @apply border-l-ctp-sky;
   }
 }
 
 @utility temperature {
   &.sensor-card {
-    @apply border-l-orange-500;
+    @apply border-l-ctp-peach;
   }
 }
 
 @utility humidity {
   &.sensor-card {
-    @apply border-l-teal-500;
+    @apply border-l-ctp-teal;
   }
 }
 
 @utility night-mode {
   &.sensor-card {
-    @apply border-l-purple-500;
+    @apply border-l-ctp-mauve;
   }
 }
 
 @utility night-light {
   /* Motion/sound sensor cards - disabled for now
   .sensor-card.motion {
-    @apply border-l-pink-500;
+    @apply border-l-ctp-pink;
   }
 
   .sensor-card.sound {
-    @apply border-l-yellow-500;
+    @apply border-l-ctp-yellow;
   }
   */
 
   &.sensor-card {
-    @apply border-l-cyan-500;
+    @apply border-l-ctp-sky;
   }
 }
 
@@ -111,62 +99,62 @@
 }
 
 @utility btn-primary {
-  @apply bg-blue-600 text-white hover:bg-blue-700 focus:ring-blue-500;
+  @apply bg-ctp-blue-700 dark:bg-ctp-blue text-ctp-base hover:bg-ctp-blue-800 dark:hover:bg-ctp-blue/85 focus:ring-ctp-blue;
 }
 
 @utility btn-secondary {
-  @apply bg-nanit-gray-200 text-nanit-gray-700 hover:bg-nanit-gray-300 focus:ring-nanit-gray-500;
+  @apply bg-ctp-surface0 text-ctp-subtext1 hover:bg-ctp-surface1 focus:ring-ctp-overlay0;
 }
 
 @utility btn-danger {
-  @apply bg-red-600 text-white hover:bg-red-700 focus:ring-red-500;
+  @apply bg-ctp-red dark:bg-ctp-red text-ctp-base hover:bg-ctp-red-600 dark:hover:bg-ctp-red/85 focus:ring-ctp-red;
 }
 
 @utility btn-success {
-  @apply bg-green-600 text-white hover:bg-green-700 focus:ring-green-500;
+  @apply bg-ctp-green-900 dark:bg-ctp-green text-ctp-base hover:bg-ctp-green-950 dark:hover:bg-ctp-green/85 focus:ring-ctp-green;
 }
 
 @utility status-dot {
   @apply w-2 h-2 rounded-full;
 
   &.online {
-    @apply bg-green-500;
+    @apply bg-ctp-green-900 dark:bg-ctp-green;
   }
 
   &.offline {
-    @apply bg-red-500;
+    @apply bg-ctp-red dark:bg-ctp-red;
   }
 
   &.connecting {
-    @apply bg-yellow-500 animate-pulse;
+    @apply bg-ctp-yellow-900 dark:bg-ctp-yellow animate-pulse;
   }
 }
 
 @utility online {
   &.status-dot {
-    @apply bg-green-500;
+    @apply bg-ctp-green-900 dark:bg-ctp-green;
   }
 }
 
 @utility offline {
   &.status-dot {
-    @apply bg-red-500;
+    @apply bg-ctp-red dark:bg-ctp-red;
   }
 }
 
 @utility connecting {
   &.status-dot {
-    @apply bg-yellow-500 animate-pulse;
+    @apply bg-ctp-yellow-900 dark:bg-ctp-yellow animate-pulse;
   }
 }
 
 @utility text-gradient {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, var(--color-ctp-mauve) 0%, var(--color-ctp-blue) 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
 }
 
 @utility bg-gradient-nanit {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, var(--color-ctp-mauve) 0%, var(--color-ctp-blue) 100%);
 }

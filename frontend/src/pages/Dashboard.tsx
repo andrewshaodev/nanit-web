@@ -78,13 +78,13 @@ export default function Dashboard() {
   // Show password login screen if required
   if (showPasswordLogin) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
+      <div className="min-h-screen bg-ctp-mantle flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
         <div className="max-w-md w-full space-y-8">
           <div>
-            <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
+            <h2 className="mt-6 text-center text-3xl font-extrabold text-ctp-text">
               Nanit Dashboard
             </h2>
-            <p className="mt-2 text-center text-sm text-gray-600">
+            <p className="mt-2 text-center text-sm text-ctp-subtext1">
               Enter your password to access the dashboard
             </p>
           </div>
@@ -100,13 +100,13 @@ export default function Dashboard() {
                 required
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-hidden focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
+                className="relative block w-full px-3 py-2 border border-ctp-surface1 placeholder-ctp-overlay1 text-ctp-text rounded-md focus:outline-hidden focus:ring-ctp-lavender focus:border-ctp-lavender focus:z-10 sm:text-sm"
                 placeholder="Password"
               />
             </div>
 
             {loginError && (
-              <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-sm">
+              <div className="bg-ctp-red/10 border border-ctp-red/30 text-ctp-red dark:text-ctp-red px-4 py-3 rounded-sm">
                 {loginError}
               </div>
             )}
@@ -115,7 +115,7 @@ export default function Dashboard() {
               <button
                 type="submit"
                 disabled={isLoggingIn}
-                className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50"
+                className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-ctp-base bg-ctp-lavender-900 dark:bg-ctp-lavender hover:bg-ctp-lavender-950 dark:hover:bg-ctp-lavender/85 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-ctp-lavender disabled:opacity-50"
               >
                 {isLoggingIn ? 'Signing in...' : 'Sign in'}
               </button>
@@ -152,10 +152,10 @@ export default function Dashboard() {
       <MainLayout>
         <div className="text-center py-12">
           <div className="card max-w-md mx-auto p-8">
-            <h2 className="text-xl font-semibold text-nanit-gray-600 mb-2">
+            <h2 className="text-xl font-semibold text-ctp-subtext1 mb-2">
               No babies configured
             </h2>
-            <p className="text-nanit-gray-500">
+            <p className="text-ctp-subtext1">
               Make sure you have authenticated and configured your Nanit account.
             </p>
           </div>

@@ -15,7 +15,7 @@ export default function LoadingSpinner({ size = 'md', className }: LoadingSpinne
   return (
     <div className={clsx('animate-spin', sizeClasses[size], className)}>
       <svg
-        className="w-full h-full text-blue-600"
+        className="w-full h-full text-ctp-blue-700 dark:text-ctp-blue"
         fill="none"
         viewBox="0 0 24 24"
       >

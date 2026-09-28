@@ -30,15 +30,15 @@ export default function DeviceInfo({ baby }: DeviceInfoProps) {
   const hasAlerts = alerts.length > 0
 
   return (
-    <div className="border border-nanit-gray-200 rounded-lg overflow-hidden">
+    <div className="border border-ctp-surface0 rounded-lg overflow-hidden">
       <button
         onClick={() => setIsExpanded(!isExpanded)}
-        className="w-full px-4 py-3 bg-nanit-gray-50 hover:bg-nanit-gray-100 transition-colors duration-200 flex items-center justify-between text-left"
+        className="w-full px-4 py-3 bg-ctp-mantle hover:bg-ctp-surface0 transition-colors duration-200 flex items-center justify-between text-left"
       >
-        <h3 className="font-semibold text-nanit-gray-800 flex items-center gap-2">
+        <h3 className="font-semibold text-ctp-text flex items-center gap-2">
           🔧 Device Details & Troubleshooting
           {hasAlerts && (
-            <span className="bg-red-500 text-white text-xs px-2 py-1 rounded-full">
+            <span className="bg-ctp-red dark:bg-ctp-red text-ctp-base text-xs px-2 py-1 rounded-full">
               {alerts.length}
             </span>
           )}
@@ -55,7 +55,7 @@ export default function DeviceInfo({ baby }: DeviceInfoProps) {
               <LoadingSpinner size="md" />
             </div>
           ) : error ? (
-            <div className="text-center py-8 text-red-600">
+            <div className="text-center py-8 text-ctp-red dark:text-ctp-red">
               ❌ Failed to load device information
               <button
                 onClick={() => setIsExpanded(false)}
@@ -67,28 +67,28 @@ export default function DeviceInfo({ baby }: DeviceInfoProps) {
           ) : data ? (
             <div className="space-y-6">
               {/* Status Summary */}
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-4 p-4 bg-nanit-gray-50 rounded-lg">
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4 p-4 bg-ctp-mantle rounded-lg">
                 <div className="text-center">
-                  <div className="text-sm text-nanit-gray-600 mb-1">Firmware</div>
-                  <div className="font-semibold text-nanit-gray-800">
+                  <div className="text-sm text-ctp-subtext1 mb-1">Firmware</div>
+                  <div className="font-semibold text-ctp-text">
                     {data.device_info?.firmware_version || '--'}
                   </div>
                 </div>
                 <div className="text-center">
-                  <div className="text-sm text-nanit-gray-600 mb-1">Connection</div>
-                  <div className="font-semibold text-nanit-gray-800">
+                  <div className="text-sm text-ctp-subtext1 mb-1">Connection</div>
+                  <div className="font-semibold text-ctp-text">
                     {data.connection_status?.websocket_alive ? 'Connected' : 'Disconnected'}
                   </div>
                 </div>
                 <div className="text-center">
-                  <div className="text-sm text-nanit-gray-600 mb-1">Streaming</div>
-                  <div className="font-semibold text-nanit-gray-800">
+                  <div className="text-sm text-ctp-subtext1 mb-1">Streaming</div>
+                  <div className="font-semibold text-ctp-text">
                     {data.device_info?.streaming_error ? 'Error' : 'Ready'}
                   </div>
                 </div>
                 <div className="text-center">
-                  <div className="text-sm text-nanit-gray-600 mb-1">Last Updated</div>
-                  <div className="font-semibold text-nanit-gray-800">
+                  <div className="text-sm text-ctp-subtext1 mb-1">Last Updated</div>
+                  <div className="font-semibold text-ctp-text">
                     {data.device_info?.last_updated 
                       ? new Date(data.device_info.last_updated * 1000).toLocaleString()
                       : '--'
@@ -100,14 +100,14 @@ export default function DeviceInfo({ baby }: DeviceInfoProps) {
               {/* Alerts & Troubleshooting */}
               {hasAlerts && (
                 <div className="space-y-3">
-                  <h4 className="font-semibold text-nanit-gray-800">⚠️ Issues & Solutions</h4>
+                  <h4 className="font-semibold text-ctp-text">⚠️ Issues & Solutions</h4>
                   {alerts.map((alert, index) => (
                     <div
                       key={index}
                       className={`p-4 rounded-lg border-l-4 ${
                         alert.type === 'error'
-                          ? 'bg-red-50 border-l-red-500'
-                          : 'bg-yellow-50 border-l-yellow-500'
+                          ? 'bg-ctp-red/10 border-l-ctp-red'
+                          : 'bg-ctp-yellow/10 border-l-ctp-yellow'
                       }`}
                     >
                       <div className="flex items-start gap-3">
@@ -116,12 +116,12 @@ export default function DeviceInfo({ baby }: DeviceInfoProps) {
                         </span>
                         <div className="flex-1">
                           <div className={`font-medium mb-1 ${
-                            alert.type === 'error' ? 'text-red-800' : 'text-yellow-800'
+                            alert.type === 'error' ? 'text-ctp-red dark:text-ctp-red' : 'text-ctp-yellow-900 dark:text-ctp-yellow'
                           }`}>
                             {alert.message}
                           </div>
                           <div className={`text-sm mb-2 ${
-                            alert.type === 'error' ? 'text-red-600' : 'text-yellow-600'
+                            alert.type === 'error' ? 'text-ctp-red dark:text-ctp-red' : 'text-ctp-yellow-900 dark:text-ctp-yellow'
                           }`}>
                             Category: {alert.category}
                           </div>
@@ -130,12 +130,12 @@ export default function DeviceInfo({ baby }: DeviceInfoProps) {
                           {alert.category === 'connection_limit' && (
                             <details className="text-sm">
                               <summary className={`cursor-pointer font-medium mb-2 ${
-                                alert.type === 'error' ? 'text-red-700' : 'text-yellow-700'
+                                alert.type === 'error' ? 'text-ctp-red dark:text-ctp-red' : 'text-ctp-yellow-900 dark:text-ctp-yellow'
                               }`}>
                                 💡 How to fix this
                               </summary>
                               <ul className={`list-disc list-inside space-y-1 ml-2 ${
-                                alert.type === 'error' ? 'text-red-600' : 'text-yellow-600'
+                                alert.type === 'error' ? 'text-ctp-red dark:text-ctp-red' : 'text-ctp-yellow-900 dark:text-ctp-yellow'
                               }`}>
                                 <li>Close the official Nanit app on your phone/tablet</li>
                                 <li>Force-close the app (don&apos;t just minimize it)</li>
@@ -148,12 +148,12 @@ export default function DeviceInfo({ baby }: DeviceInfoProps) {
                           {alert.category === 'connectivity' && (
                             <details className="text-sm">
                               <summary className={`cursor-pointer font-medium mb-2 ${
-                                alert.type === 'error' ? 'text-red-700' : 'text-yellow-700'
+                                alert.type === 'error' ? 'text-ctp-red dark:text-ctp-red' : 'text-ctp-yellow-900 dark:text-ctp-yellow'
                               }`}>
                                 💡 How to fix this
                               </summary>
                               <ul className={`list-disc list-inside space-y-1 ml-2 ${
-                                alert.type === 'error' ? 'text-red-600' : 'text-yellow-600'
+                                alert.type === 'error' ? 'text-ctp-red dark:text-ctp-red' : 'text-ctp-yellow-900 dark:text-ctp-yellow'
                               }`}>
                                 <li>Check camera power connection</li>
                                 <li>Verify WiFi connectivity on camera</li>
@@ -166,12 +166,12 @@ export default function DeviceInfo({ baby }: DeviceInfoProps) {
                           {alert.category === 'streaming' && (
                             <details className="text-sm">
                               <summary className={`cursor-pointer font-medium mb-2 ${
-                                alert.type === 'error' ? 'text-red-700' : 'text-yellow-700'
+                                alert.type === 'error' ? 'text-ctp-red dark:text-ctp-red' : 'text-ctp-yellow-900 dark:text-ctp-yellow'
                               }`}>
                                 💡 How to fix this
                               </summary>
                               <ul className={`list-disc list-inside space-y-1 ml-2 ${
-                                alert.type === 'error' ? 'text-red-600' : 'text-yellow-600'
+                                alert.type === 'error' ? 'text-ctp-red dark:text-ctp-red' : 'text-ctp-yellow-900 dark:text-ctp-yellow'
                               }`}>
                                 <li>Try stopping and restarting the stream</li>
                                 <li>Check server resources and disk space</li>
@@ -184,12 +184,12 @@ export default function DeviceInfo({ baby }: DeviceInfoProps) {
                           {alert.category === 'firmware' && (
                             <details className="text-sm">
                               <summary className={`cursor-pointer font-medium mb-2 ${
-                                alert.type === 'error' ? 'text-red-700' : 'text-yellow-700'
+                                alert.type === 'error' ? 'text-ctp-red dark:text-ctp-red' : 'text-ctp-yellow-900 dark:text-ctp-yellow'
                               }`}>
                                 💡 How to fix this
                               </summary>
                               <ul className={`list-disc list-inside space-y-1 ml-2 ${
-                                alert.type === 'error' ? 'text-red-600' : 'text-yellow-600'
+                                alert.type === 'error' ? 'text-ctp-red dark:text-ctp-red' : 'text-ctp-yellow-900 dark:text-ctp-yellow'
                               }`}>
                                 <li>Use the official Nanit app to install the update</li>
                                 <li>Ensure camera is connected to WiFi during update</li>
@@ -208,21 +208,21 @@ export default function DeviceInfo({ baby }: DeviceInfoProps) {
               {/* Device Details Grid */}
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {/* Device Status */}
-                <div className="bg-white border border-nanit-gray-200 rounded-lg p-4">
-                  <h4 className="font-semibold text-nanit-gray-800 mb-3 border-b border-nanit-gray-200 pb-2">
+                <div className="bg-ctp-base border border-ctp-surface0 rounded-lg p-4">
+                  <h4 className="font-semibold text-ctp-text mb-3 border-b border-ctp-surface0 pb-2">
                     📱 Device Status
                   </h4>
                   <div className="space-y-2 text-sm">
                     <div className="flex justify-between">
-                      <span className="text-nanit-gray-600">Hardware:</span>
+                      <span className="text-ctp-subtext1">Hardware:</span>
                       <span className="font-medium">{data.device_info?.hardware_version || '--'}</span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-nanit-gray-600">Mode:</span>
+                      <span className="text-ctp-subtext1">Mode:</span>
                       <span className="font-medium">{data.device_info?.device_mode || '--'}</span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-nanit-gray-600">Volume:</span>
+                      <span className="text-ctp-subtext1">Volume:</span>
                       <span className="font-medium">
                         {data.device_info?.volume !== undefined ? `${data.device_info?.volume}%` : '--'}
                       </span>
@@ -231,30 +231,30 @@ export default function DeviceInfo({ baby }: DeviceInfoProps) {
                 </div>
 
                 {/* Network Status */}
-                <div className="bg-white border border-nanit-gray-200 rounded-lg p-4">
-                  <h4 className="font-semibold text-nanit-gray-800 mb-3 border-b border-nanit-gray-200 pb-2">
+                <div className="bg-ctp-base border border-ctp-surface0 rounded-lg p-4">
+                  <h4 className="font-semibold text-ctp-text mb-3 border-b border-ctp-surface0 pb-2">
                     📡 Network
                   </h4>
                   <div className="space-y-2 text-sm">
                     <div className="flex justify-between">
-                      <span className="text-nanit-gray-600">WiFi:</span>
+                      <span className="text-ctp-subtext1">WiFi:</span>
                       <span className="font-medium">{data.device_info?.wifi_network || '--'}</span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-nanit-gray-600">Band:</span>
+                      <span className="text-ctp-subtext1">Band:</span>
                       <span className="font-medium">{data.device_info?.wifi_band || '--'}</span>
                     </div>
                   </div>
                 </div>
 
                 {/* Stream Config */}
-                <div className="bg-white border border-nanit-gray-200 rounded-lg p-4">
-                  <h4 className="font-semibold text-nanit-gray-800 mb-3 border-b border-nanit-gray-200 pb-2">
+                <div className="bg-ctp-base border border-ctp-surface0 rounded-lg p-4">
+                  <h4 className="font-semibold text-ctp-text mb-3 border-b border-ctp-surface0 pb-2">
                     📹 Stream Config
                   </h4>
                   <div className="space-y-2 text-sm">
                     <div className="flex justify-between">
-                      <span className="text-nanit-gray-600">Mobile:</span>
+                      <span className="text-ctp-subtext1">Mobile:</span>
                       <span className="font-medium">
                         {data.device_info?.mobile_bitrate && data.device_info?.mobile_fps
                           ? `${Math.round(data.device_info?.mobile_bitrate / 1024)}KB/s @ ${data.device_info?.mobile_fps}fps`
@@ -262,7 +262,7 @@ export default function DeviceInfo({ baby }: DeviceInfoProps) {
                       </span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-nanit-gray-600">DVR:</span>
+                      <span className="text-ctp-subtext1">DVR:</span>
                       <span className="font-medium">
                         {data.device_info?.dvr_bitrate && data.device_info?.dvr_fps
                           ? `${Math.round(data.device_info?.dvr_bitrate / 1024)}KB/s @ ${data.device_info?.dvr_fps}fps`

@@ -40,12 +40,12 @@ export default function StreamingLinks({ baby }: StreamingLinksProps) {
   const hlsUrl = api.getHLSUrl(baby.uid)
 
   return (
-    <div className="border border-nanit-gray-200 rounded-lg overflow-hidden">
+    <div className="border border-ctp-surface0 rounded-lg overflow-hidden">
       <button
         onClick={() => setIsExpanded(!isExpanded)}
-        className="w-full px-4 py-3 bg-nanit-gray-50 hover:bg-nanit-gray-100 transition-colors duration-200 flex items-center justify-between text-left"
+        className="w-full px-4 py-3 bg-ctp-mantle hover:bg-ctp-surface0 transition-colors duration-200 flex items-center justify-between text-left"
       >
-        <h3 className="font-semibold text-nanit-gray-800 flex items-center gap-2">
+        <h3 className="font-semibold text-ctp-text flex items-center gap-2">
           🔗 Streaming Links
         </h3>
         <span className={`transform transition-transform duration-200 ${isExpanded ? 'rotate-90' : ''}`}>
@@ -57,36 +57,36 @@ export default function StreamingLinks({ baby }: StreamingLinksProps) {
         <div className="p-4 space-y-4">
           <div className="grid md:grid-cols-2 gap-4">
             {/* RTMP Link */}
-            <div className="bg-white border border-nanit-gray-200 rounded-lg p-4 border-l-4 border-l-red-500">
-              <h4 className="font-semibold text-nanit-gray-800 mb-2 flex items-center gap-2">
+            <div className="bg-ctp-base border border-ctp-surface0 rounded-lg p-4 border-l-4 border-l-ctp-red">
+              <h4 className="font-semibold text-ctp-text mb-2 flex items-center gap-2">
                 📡 RTMP Stream
               </h4>
-              <p className="text-sm text-nanit-gray-600 mb-3">
+              <p className="text-sm text-ctp-subtext1 mb-3">
                 For Home Assistant, OBS, VLC, etc.
               </p>
-              <div className="bg-nanit-gray-50 p-3 rounded-sm border text-sm font-mono text-nanit-gray-700 mb-3 overflow-x-auto whitespace-nowrap">
+              <div className="bg-ctp-mantle p-3 rounded-sm border text-sm font-mono text-ctp-subtext1 mb-3 overflow-x-auto whitespace-nowrap">
                 {rtmpUrl}
               </div>
               <CopyButton text={rtmpUrl} label="Copy RTMP URL" />
             </div>
 
             {/* HLS Link */}
-            <div className="bg-white border border-nanit-gray-200 rounded-lg p-4 border-l-4 border-l-blue-500">
-              <h4 className="font-semibold text-nanit-gray-800 mb-2 flex items-center gap-2">
+            <div className="bg-ctp-base border border-ctp-surface0 rounded-lg p-4 border-l-4 border-l-ctp-blue">
+              <h4 className="font-semibold text-ctp-text mb-2 flex items-center gap-2">
                 🌐 HLS Stream
               </h4>
-              <p className="text-sm text-nanit-gray-600 mb-3">
+              <p className="text-sm text-ctp-subtext1 mb-3">
                 For web browsers and modern apps
               </p>
-              <div className="bg-nanit-gray-50 p-3 rounded-sm border text-sm font-mono text-nanit-gray-700 mb-3 overflow-x-auto whitespace-nowrap">
+              <div className="bg-ctp-mantle p-3 rounded-sm border text-sm font-mono text-ctp-subtext1 mb-3 overflow-x-auto whitespace-nowrap">
                 {hlsUrl}
               </div>
               <CopyButton text={hlsUrl} label="Copy HLS URL" />
             </div>
           </div>
 
-          <div className="bg-blue-50 border-l-4 border-blue-500 p-3 rounded-sm">
-            <div className="text-sm text-nanit-gray-700 space-y-1">
+          <div className="bg-ctp-blue/10 border-l-4 border-ctp-blue p-3 rounded-sm">
+            <div className="text-sm text-ctp-subtext1 space-y-1">
               <p><strong>Usage Notes:</strong></p>
               <p>• RTMP streams work with most video software and Home Assistant</p>
               <p>• HLS streams work in web browsers and mobile apps</p>

@@ -24,14 +24,14 @@ function ConnectionStatus({ isConnected, lastUpdate }: ConnectionStatusProps) {
   
   return (
     <div 
-      className="flex items-center gap-2 px-4 py-2 bg-white/20 rounded-full text-sm cursor-help"
+      className="flex items-center gap-2 px-4 py-2 bg-ctp-base/20 rounded-full text-sm cursor-help"
       data-tooltip-id="app-tooltip"
       data-tooltip-content={getTooltipText()}
       data-tooltip-place={errorTooltipConfig.place}
       data-tooltip-delay-show={errorTooltipConfig.delayShow}
     >
       <div className={`status-dot ${statusClass}`} />
-      <span className="text-white">{statusText}</span>
+      <span className="text-ctp-base">{statusText}</span>
     </div>
   )
 }
@@ -58,7 +58,7 @@ export default function Header() {
         <div className="flex justify-between items-center py-5">
           <div className="flex items-center gap-8">
             <Link to="/">
-              <h1 className="text-3xl font-bold text-white hover:text-white/90 transition-colors">
+              <h1 className="text-3xl font-bold text-ctp-base hover:text-ctp-base/90 transition-colors">
                 Nanit Dashboard
               </h1>
             </Link>
@@ -66,16 +66,16 @@ export default function Header() {
             <nav className="flex gap-6">
               <Link 
                 to="/"
-                className={`text-white/90 hover:text-white transition-colors ${
-                  pathname === '/' ? 'font-semibold text-white' : ''
+                className={`text-ctp-base/90 hover:text-ctp-base transition-colors ${
+                  pathname === '/' ? 'font-semibold text-ctp-base' : ''
                 }`}
               >
                 Dashboard
               </Link>
               <Link 
                 to="/settings"
-                className={`text-white/90 hover:text-white transition-colors ${
-                  pathname === '/settings' ? 'font-semibold text-white' : ''
+                className={`text-ctp-base/90 hover:text-ctp-base transition-colors ${
+                  pathname === '/settings' ? 'font-semibold text-ctp-base' : ''
                 }`}
               >
                 Settings
@@ -90,7 +90,7 @@ export default function Header() {
             />
             
             {lastUpdate && (
-              <div className="text-white/80 text-sm">
+              <div className="text-ctp-base/80 text-sm">
                 Last updated: {lastUpdate.toLocaleTimeString()}
               </div>
             )}

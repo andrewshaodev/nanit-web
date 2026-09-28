@@ -22,10 +22,10 @@ function SensorCard({ title, value, type, tooltip, onClick, className }: SensorC
       data-tooltip-place={sensorTooltipConfig.place}
       data-tooltip-delay-show={sensorTooltipConfig.delayShow}
     >
-      <div className="text-sm font-medium text-nanit-gray-600 mb-1">
+      <div className="text-sm font-medium text-ctp-subtext1 mb-1">
         {title}
       </div>
-      <div className="text-xl font-bold text-nanit-gray-800">
+      <div className="text-xl font-bold text-ctp-text">
         {value}
       </div>
     </div>
@@ -76,7 +76,7 @@ export default function SensorGrid({ baby }: SensorGridProps) {
     console.error('❌ SensorGrid: baby object is undefined!')
     return (
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <div className="text-red-500 text-center col-span-full">
+        <div className="text-ctp-red dark:text-ctp-red text-center col-span-full">
           Error: Baby data not available
         </div>
       </div>
@@ -104,14 +104,14 @@ export default function SensorGrid({ baby }: SensorGridProps) {
         title="Night Mode"
         value={formatNightMode(baby.is_night)}
         type="night-mode"
-        className={baby.is_night ? 'bg-purple-50 border-l-purple-600' : ''}
+        className={baby.is_night ? 'bg-ctp-mauve/10 border-l-ctp-mauve' : ''}
       />
       
       <SensorCard
         title="Night Light"
         value={formatNightLight(baby.night_light)}
         type="night-light"
-        className={baby.night_light ? 'bg-cyan-50 border-l-cyan-600' : ''}
+        className={baby.night_light ? 'bg-ctp-sky/10 border-l-ctp-sky' : ''}
       />
     </div>
   )

@@ -97,16 +97,16 @@ export default function DayNightChart({ analytics, isLoading }: DayNightChartPro
 
   if (isLoading) {
     return (
-      <div className="h-64 bg-gray-50 rounded-sm flex items-center justify-center">
-        <div className="text-gray-500">Loading day/night data...</div>
+      <div className="h-64 bg-ctp-mantle rounded-sm flex items-center justify-center">
+        <div className="text-ctp-subtext1">Loading day/night data...</div>
       </div>
     )
   }
 
   if (!analytics) {
     return (
-      <div className="h-64 bg-gray-50 rounded-sm flex items-center justify-center">
-        <div className="text-gray-500">No day/night pattern data available</div>
+      <div className="h-64 bg-ctp-mantle rounded-sm flex items-center justify-center">
+        <div className="text-ctp-subtext1">No day/night pattern data available</div>
       </div>
     )
   }
@@ -117,15 +117,15 @@ export default function DayNightChart({ analytics, isLoading }: DayNightChartPro
     <div className="space-y-4">
       {/* Timeline Chart */}
       <div className="relative">
-        <div className="h-16 bg-gray-50 rounded-lg border overflow-hidden">
+        <div className="h-16 bg-ctp-mantle rounded-lg border overflow-hidden">
           <div className="flex h-full">
             {periods.map((period, index) => (
               <div
                 key={index}
                 className={`h-full cursor-pointer transition-all duration-200 hover:brightness-110 hover:scale-105 hover:shadow-lg relative ${
                   period.mode === 'day' 
-                    ? 'bg-linear-to-r from-yellow-400 to-orange-400' 
-                    : 'bg-linear-to-r from-indigo-600 to-purple-700'
+                    ? 'bg-linear-to-r from-ctp-yellow to-ctp-peach' 
+                    : 'bg-linear-to-r from-ctp-lavender to-ctp-mauve'
                 }`}
                 style={{ 
                   width: `${period.percentage}%`,
@@ -141,7 +141,7 @@ export default function DayNightChart({ analytics, isLoading }: DayNightChartPro
         </div>
         
         {/* Time axis labels */}
-        <div className="flex justify-between text-xs text-gray-500 mt-2 px-1">
+        <div className="flex justify-between text-xs text-ctp-subtext1 mt-2 px-1">
           <span>{formatTime(analytics.start_time)}</span>
           <span>{formatTime(analytics.end_time)}</span>
         </div>

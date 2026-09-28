@@ -2,9 +2,10 @@
 export const tooltipConfig = {
   // Default styling that matches the app design
   place: 'top' as const,
+  // Catppuccin CSS variables, so tooltips follow the Latte/Mocha switch
   style: {
-    backgroundColor: 'rgba(0, 0, 0, 0.9)',
-    color: 'white',
+    backgroundColor: 'var(--color-ctp-crust)',
+    color: 'var(--color-ctp-text)',
     borderRadius: '8px',
     padding: '8px 12px',
     fontSize: '14px',
@@ -12,7 +13,7 @@ export const tooltipConfig = {
     zIndex: 50,
   },
   // Border as separate prop
-  border: '1px solid rgba(255, 255, 255, 0.2)',
+  border: '1px solid var(--color-ctp-surface2)',
   // Animation settings
   delayShow: 500,
   delayHide: 0,
@@ -41,7 +42,8 @@ export const errorTooltipConfig = {
   place: 'bottom' as const,
   style: {
     ...tooltipConfig.style,
-    backgroundColor: 'rgba(239, 68, 68, 0.9)', // Red background for errors
+    backgroundColor: 'var(--color-ctp-red)', // Red background for errors
+    color: 'var(--color-ctp-base)',
     maxWidth: '300px',
   },
 }

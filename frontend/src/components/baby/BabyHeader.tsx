@@ -15,7 +15,7 @@ interface BabyHeaderProps {
 }
 
 const headerButton =
-  'p-2 rounded-full hover:bg-white/20 focus-visible:outline-2 focus-visible:outline-white disabled:opacity-30 disabled:hover:bg-transparent transition-colors'
+  'p-2 rounded-full hover:bg-ctp-base/20 focus-visible:outline-2 focus-visible:outline-ctp-base disabled:opacity-30 disabled:hover:bg-transparent transition-colors'
 
 function Chevron({ direction }: { direction: 'up' | 'down' | 'right' }) {
   const rotate = { up: 'rotate-180', down: '', right: '-rotate-90' }[direction]
@@ -73,7 +73,7 @@ export default function BabyHeader({ baby, collapsed, onToggleCollapsed, onMoveU
   
   const getCameraStatusInfo = () => {
     if (!health) {
-      return { text: 'Checking...', color: 'bg-gray-500', tooltip: 'Loading camera status...' }
+      return { text: 'Checking...', color: 'bg-ctp-overlay1', tooltip: 'Loading camera status...' }
     }
     
     const details = health.details
@@ -85,25 +85,25 @@ export default function BabyHeader({ baby, collapsed, onToggleCollapsed, onMoveU
         if (isStreaming) {
           return { 
             text: 'Online & Streaming', 
-            color: 'bg-green-500', 
+            color: 'bg-ctp-green-900 dark:bg-ctp-green', 
             tooltip: 'Camera online and actively streaming video'
           }
         }
         return { 
           text: 'Camera Online', 
-          color: 'bg-green-500', 
+          color: 'bg-ctp-green-900 dark:bg-ctp-green', 
           tooltip: 'Camera connected and ready to stream'
         }
       case 'degraded':
         return { 
           text: 'Camera Issues', 
-          color: 'bg-yellow-500', 
+          color: 'bg-ctp-yellow-900 dark:bg-ctp-yellow', 
           tooltip: 'Camera connected but has warnings. Click Settings → Devices for details.'
         }
       case 'starting':
         return { 
           text: 'Camera Starting', 
-          color: 'bg-blue-500', 
+          color: 'bg-ctp-blue-700 dark:bg-ctp-blue', 
           tooltip: 'Camera initializing, please wait...'
         }
       case 'unhealthy':
@@ -111,13 +111,13 @@ export default function BabyHeader({ baby, collapsed, onToggleCollapsed, onMoveU
         if (!baby.websocket_alive) {
           return { 
             text: 'Camera Offline', 
-            color: 'bg-red-500', 
+            color: 'bg-ctp-red dark:bg-ctp-red', 
             tooltip: 'Camera disconnected from Nanit servers'
           }
         }
         return { 
           text: 'Camera Error', 
-          color: 'bg-red-500', 
+          color: 'bg-ctp-red dark:bg-ctp-red', 
           tooltip: 'Camera has critical issues. Check Settings → Devices for troubleshooting.'
         }
     }
@@ -126,7 +126,7 @@ export default function BabyHeader({ baby, collapsed, onToggleCollapsed, onMoveU
   const cameraStatus = getCameraStatusInfo()
   
   return (
-    <div className={`bg-gradient-nanit text-white ${collapsed ? 'px-6 py-3' : 'p-6'}`}>
+    <div className={`bg-gradient-nanit text-ctp-base ${collapsed ? 'px-6 py-3' : 'p-6'}`}>
       <div className="flex justify-between items-center gap-4">
         <div className="flex items-center gap-2 min-w-0">
           <button
@@ -145,7 +145,7 @@ export default function BabyHeader({ baby, collapsed, onToggleCollapsed, onMoveU
         <div className="flex items-center gap-3 shrink-0">
           {/* A collapsed card still shows the readings at a glance */}
           {collapsed && (
-            <div className="hidden sm:flex items-center gap-3 text-sm text-white/90">
+            <div className="hidden sm:flex items-center gap-3 text-sm text-ctp-base/90">
               <span>{formatTemperature(baby.temperature)}</span>
               {baby.humidity !== undefined && baby.humidity > 0 && <span>{baby.humidity.toFixed(0)}%</span>}
             </div>
@@ -153,7 +153,7 @@ export default function BabyHeader({ baby, collapsed, onToggleCollapsed, onMoveU
 
           {/* Single Camera Status */}
           <div 
-            className="flex items-center gap-2 bg-white/20 px-4 py-2 rounded-full text-sm cursor-help"
+            className="flex items-center gap-2 bg-ctp-base/20 px-4 py-2 rounded-full text-sm cursor-help"
             data-tooltip-id="app-tooltip"
             data-tooltip-content={cameraStatus.tooltip}
             data-tooltip-place={errorTooltipConfig.place}

@@ -21,7 +21,7 @@ export default function SettingsTabs({ tabs, defaultTab }: SettingsTabsProps) {
   return (
     <div className="space-y-6">
       {/* Tab Navigation */}
-      <div className="border-b border-gray-200">
+      <div className="border-b border-ctp-surface0">
         <nav className="-mb-px flex space-x-8 overflow-x-auto">
           {tabs.map((tab) => (
             <button
@@ -30,10 +30,10 @@ export default function SettingsTabs({ tabs, defaultTab }: SettingsTabsProps) {
               disabled={tab.disabled}
               className={`py-2 px-1 border-b-2 font-medium text-sm whitespace-nowrap flex items-center gap-2 ${
                 activeTab === tab.id
-                  ? 'border-blue-500 text-blue-600'
+                  ? 'border-ctp-blue text-ctp-blue-700 dark:text-ctp-blue'
                   : tab.disabled
-                  ? 'border-transparent text-gray-400 cursor-not-allowed'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                  ? 'border-transparent text-ctp-overlay1 cursor-not-allowed'
+                  : 'border-transparent text-ctp-subtext1 hover:text-ctp-subtext1 hover:border-ctp-surface1'
               }`}
             >
               <span>{tab.icon}</span>
@@ -44,9 +44,9 @@ export default function SettingsTabs({ tabs, defaultTab }: SettingsTabsProps) {
       </div>
 
       {/* Tab Content */}
-      <div className="bg-white rounded-lg shadow-sm p-6">
+      <div className="bg-ctp-base rounded-lg shadow-sm p-6">
         <div className="mb-4">
-          <h3 className="text-lg font-medium text-gray-900 flex items-center gap-2">
+          <h3 className="text-lg font-medium text-ctp-text flex items-center gap-2">
             <span>{activeTabData.icon}</span>
             {activeTabData.label}
           </h3>

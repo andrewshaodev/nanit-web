@@ -82,13 +82,13 @@ export default function Settings() {
   // Show password login screen if required
   if (showPasswordLogin) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
+      <div className="min-h-screen bg-ctp-mantle flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
         <div className="max-w-md w-full space-y-8">
           <div>
-            <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
+            <h2 className="mt-6 text-center text-3xl font-extrabold text-ctp-text">
               Nanit Dashboard
             </h2>
-            <p className="mt-2 text-center text-sm text-gray-600">
+            <p className="mt-2 text-center text-sm text-ctp-subtext1">
               Enter your password to access settings
             </p>
           </div>
@@ -102,7 +102,7 @@ export default function Settings() {
                 name="password"
                 type="password"
                 required
-                className="appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-hidden focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
+                className="appearance-none rounded-md relative block w-full px-3 py-2 border border-ctp-surface1 placeholder-ctp-overlay1 text-ctp-text focus:outline-hidden focus:ring-ctp-lavender focus:border-ctp-lavender focus:z-10 sm:text-sm"
                 placeholder="Password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
@@ -111,7 +111,7 @@ export default function Settings() {
             </div>
 
             {loginError && (
-              <div className="text-red-600 text-sm text-center">
+              <div className="text-ctp-red dark:text-ctp-red text-sm text-center">
                 {loginError}
               </div>
             )}
@@ -120,7 +120,7 @@ export default function Settings() {
               <button
                 type="submit"
                 disabled={isLoggingIn}
-                className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50"
+                className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-ctp-base bg-ctp-lavender-900 dark:bg-ctp-lavender hover:bg-ctp-lavender-950 dark:hover:bg-ctp-lavender/85 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-ctp-lavender disabled:opacity-50"
               >
                 {isLoggingIn ? 'Signing in...' : 'Sign in'}
               </button>
@@ -134,11 +134,11 @@ export default function Settings() {
   if (isLoading) {
     return (
       <div className="p-6">
-        <div className="bg-white rounded-lg shadow-sm p-6">
-          <h2 className="text-2xl font-bold text-gray-900 mb-4">Settings</h2>
+        <div className="bg-ctp-base rounded-lg shadow-sm p-6">
+          <h2 className="text-2xl font-bold text-ctp-text mb-4">Settings</h2>
           <div className="animate-pulse">
-            <div className="h-4 bg-gray-200 rounded-sm w-1/4 mb-4"></div>
-            <div className="h-8 bg-gray-200 rounded-sm w-1/3"></div>
+            <div className="h-4 bg-ctp-surface0 rounded-sm w-1/4 mb-4"></div>
+            <div className="h-8 bg-ctp-surface0 rounded-sm w-1/3"></div>
           </div>
         </div>
       </div>
@@ -148,9 +148,9 @@ export default function Settings() {
   if (!authStatus) {
     return (
       <div className="p-6">
-        <div className="bg-white rounded-lg shadow-sm p-6">
-          <h2 className="text-2xl font-bold text-gray-900 mb-4">Settings</h2>
-          <div className="text-red-600">Failed to load settings</div>
+        <div className="bg-ctp-base rounded-lg shadow-sm p-6">
+          <h2 className="text-2xl font-bold text-ctp-text mb-4">Settings</h2>
+          <div className="text-ctp-red dark:text-ctp-red">Failed to load settings</div>
         </div>
       </div>
     );
@@ -195,15 +195,15 @@ export default function Settings() {
   return (
     <div className="p-6">
       <div className="mb-6">
-        <h2 className="text-2xl font-bold text-gray-900">Settings</h2>
-        <p className="text-gray-600 mt-1">Manage your Nanit device configuration and preferences</p>
+        <h2 className="text-2xl font-bold text-ctp-text">Settings</h2>
+        <p className="text-ctp-subtext1 mt-1">Manage your Nanit device configuration and preferences</p>
       </div>
       
       {message && (
         <div className={`mb-6 p-4 rounded-md ${
           message.type === 'success' 
-            ? 'bg-green-50 text-green-800 border border-green-200' 
-            : 'bg-red-50 text-red-800 border border-red-200'
+            ? 'bg-ctp-green/10 text-ctp-green-900 dark:text-ctp-green border border-ctp-green/30' 
+            : 'bg-ctp-red/10 text-ctp-red dark:text-ctp-red border border-ctp-red/30'
         }`}>
           {message.text}
         </div>

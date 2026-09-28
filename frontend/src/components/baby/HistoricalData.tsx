@@ -53,14 +53,14 @@ export default function HistoricalData({ baby }: HistoricalDataProps) {
 
   return (
     <div className="space-y-6">
-      <h3 className="text-lg font-semibold text-nanit-gray-800">Historical Data</h3>
+      <h3 className="text-lg font-semibold text-ctp-text">Historical Data</h3>
       
       {/* Controls */}
       <div className="flex flex-wrap items-center gap-3">
         <select
           value={selectedTimeframe}
           onChange={(e) => setSelectedTimeframe(e.target.value)}
-          className="px-3 py-2 border border-nanit-gray-300 rounded-md bg-white text-sm focus:outline-hidden focus:ring-2 focus:ring-blue-500"
+          className="px-3 py-2 border border-ctp-surface1 rounded-md bg-ctp-base text-sm focus:outline-hidden focus:ring-2 focus:ring-ctp-blue"
         >
           {timeframeOptions.map((option) => (
             <option key={option.value} value={option.value}>
@@ -102,8 +102,8 @@ export default function HistoricalData({ baby }: HistoricalDataProps) {
 
       {/* Error State */}
       {isError && (
-        <div className="bg-red-50 border-l-4 border-red-500 p-3 rounded-sm">
-          <div className="text-sm text-red-700">
+        <div className="bg-ctp-red/10 border-l-4 border-ctp-red p-3 rounded-sm">
+          <div className="text-sm text-ctp-red dark:text-ctp-red">
             Failed to load historical data. Please try refreshing.
           </div>
         </div>
@@ -112,8 +112,8 @@ export default function HistoricalData({ baby }: HistoricalDataProps) {
       {/* Charts */}
       <div className="space-y-6">
         {/* Temperature & Humidity Chart */}
-        <div className="bg-white border border-nanit-gray-200 rounded-lg p-4">
-          <h4 className="font-semibold text-nanit-gray-800 mb-4">Temperature & Humidity</h4>
+        <div className="bg-ctp-base border border-ctp-surface0 rounded-lg p-4">
+          <h4 className="font-semibold text-ctp-text mb-4">Temperature & Humidity</h4>
           <div className="h-64">
             <TemperatureHumidityChart key={unit} data={sensorData} isLoading={isLoading} />
           </div>
@@ -121,17 +121,17 @@ export default function HistoricalData({ baby }: HistoricalDataProps) {
 
 
         {/* Day/Night Pattern */}
-        <div className="bg-white border border-nanit-gray-200 rounded-lg p-4">
-          <h4 className="font-semibold text-nanit-gray-800 mb-4">Day/Night Pattern</h4>
+        <div className="bg-ctp-base border border-ctp-surface0 rounded-lg p-4">
+          <h4 className="font-semibold text-ctp-text mb-4">Day/Night Pattern</h4>
           <DayNightChart analytics={analytics || null} isLoading={isLoading} />
         </div>
       </div>
 
       {/* Summary Stats */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className="bg-white border border-nanit-gray-200 rounded-lg p-4 text-center">
-          <h5 className="text-sm font-semibold text-nanit-gray-600 mb-2">Temperature</h5>
-          <div className="space-y-1 text-sm text-nanit-gray-600">
+        <div className="bg-ctp-base border border-ctp-surface0 rounded-lg p-4 text-center">
+          <h5 className="text-sm font-semibold text-ctp-subtext1 mb-2">Temperature</h5>
+          <div className="space-y-1 text-sm text-ctp-subtext1">
             <div>Avg: <span className="font-medium">
               {summary?.avg_temperature ? formatTemperature(summary.avg_temperature) : '--'}
             </span></div>
@@ -144,9 +144,9 @@ export default function HistoricalData({ baby }: HistoricalDataProps) {
           </div>
         </div>
 
-        <div className="bg-white border border-nanit-gray-200 rounded-lg p-4 text-center">
-          <h5 className="text-sm font-semibold text-nanit-gray-600 mb-2">Humidity</h5>
-          <div className="space-y-1 text-sm text-nanit-gray-600">
+        <div className="bg-ctp-base border border-ctp-surface0 rounded-lg p-4 text-center">
+          <h5 className="text-sm font-semibold text-ctp-subtext1 mb-2">Humidity</h5>
+          <div className="space-y-1 text-sm text-ctp-subtext1">
             <div>Avg: <span className="font-medium">
               {summary?.avg_humidity !== undefined ? `${summary.avg_humidity.toFixed(1)}%` : '--'}
             </span></div>
@@ -159,9 +159,9 @@ export default function HistoricalData({ baby }: HistoricalDataProps) {
           </div>
         </div>
 
-        <div className="bg-white border border-nanit-gray-200 rounded-lg p-4 text-center">
-          <h5 className="text-sm font-semibold text-nanit-gray-600 mb-2">Day/Night</h5>
-          <div className="space-y-1 text-sm text-nanit-gray-600">
+        <div className="bg-ctp-base border border-ctp-surface0 rounded-lg p-4 text-center">
+          <h5 className="text-sm font-semibold text-ctp-subtext1 mb-2">Day/Night</h5>
+          <div className="space-y-1 text-sm text-ctp-subtext1">
             <div>Day: <span className="font-medium">
               {summary?.day_mode_percentage !== undefined ? `${summary.day_mode_percentage.toFixed(1)}%` : '--%'}
             </span></div>

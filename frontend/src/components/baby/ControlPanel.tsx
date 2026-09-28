@@ -102,11 +102,11 @@ export default function ControlPanel({ baby }: ControlPanelProps) {
 
   return (
     <div className="space-y-4">
-      <h3 className="text-lg font-semibold text-nanit-gray-800">Controls</h3>
+      <h3 className="text-lg font-semibold text-ctp-text">Controls</h3>
       
       {!baby.websocket_alive && (
-        <div className="bg-yellow-50 border-l-4 border-yellow-400 p-3 rounded-sm">
-          <div className="text-sm text-yellow-800">
+        <div className="bg-ctp-yellow/10 border-l-4 border-ctp-yellow p-3 rounded-sm">
+          <div className="text-sm text-ctp-yellow-900 dark:text-ctp-yellow">
             ⚠️ Device is offline. Controls are disabled until connection is restored.
           </div>
         </div>
@@ -131,7 +131,7 @@ export default function ControlPanel({ baby }: ControlPanelProps) {
         </ControlButton>
       </div>
       
-      <div className="text-xs text-nanit-gray-500">
+      <div className="text-xs text-ctp-subtext1">
         Control commands are sent to the device and may take a few seconds to take effect.
       </div>
     </div>

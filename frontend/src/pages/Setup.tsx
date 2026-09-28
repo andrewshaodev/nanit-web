@@ -71,13 +71,13 @@ export default function SetupPage() {
   }
 
   return (
-    <div className="min-h-screen bg-nanit-gray-50 flex items-center justify-center px-4">
+    <div className="min-h-screen bg-ctp-mantle flex items-center justify-center px-4">
       <div className="max-w-md w-full">
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold text-gradient mb-2">
             Nanit Dashboard
           </h1>
-          <p className="text-nanit-gray-600">
+          <p className="text-ctp-subtext1">
             Set up your Nanit Home Assistant Bridge
           </p>
         </div>
@@ -85,42 +85,42 @@ export default function SetupPage() {
         <div className="card p-6">
           {step === 'login' ? (
             <>
-              <h2 className="text-xl font-semibold text-nanit-gray-800 mb-6">
+              <h2 className="text-xl font-semibold text-ctp-text mb-6">
                 Sign In to Nanit
               </h2>
               
               <form onSubmit={handleLogin} className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-nanit-gray-700 mb-2">
+                  <label className="block text-sm font-medium text-ctp-subtext1 mb-2">
                     Email
                   </label>
                   <input
                     type="email"
                     value={formData.email}
                     onChange={(e) => handleInputChange('email', e.target.value)}
-                    className="w-full px-3 py-2 border border-nanit-gray-300 rounded-md focus:outline-hidden focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3 py-2 border border-ctp-surface1 rounded-md focus:outline-hidden focus:ring-2 focus:ring-ctp-blue"
                     placeholder="your@email.com"
                     required
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-nanit-gray-700 mb-2">
+                  <label className="block text-sm font-medium text-ctp-subtext1 mb-2">
                     Password
                   </label>
                   <input
                     type="password"
                     value={formData.password}
                     onChange={(e) => handleInputChange('password', e.target.value)}
-                    className="w-full px-3 py-2 border border-nanit-gray-300 rounded-md focus:outline-hidden focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3 py-2 border border-ctp-surface1 rounded-md focus:outline-hidden focus:ring-2 focus:ring-ctp-blue"
                     placeholder="Your password"
                     required
                   />
                 </div>
 
                 {error && (
-                  <div className="bg-red-50 border-l-4 border-red-500 p-3 rounded-sm">
-                    <div className="text-sm text-red-700">{error}</div>
+                  <div className="bg-ctp-red/10 border-l-4 border-ctp-red p-3 rounded-sm">
+                    <div className="text-sm text-ctp-red dark:text-ctp-red">{error}</div>
                   </div>
                 )}
 
@@ -142,12 +142,12 @@ export default function SetupPage() {
             </>
           ) : (
             <>
-              <h2 className="text-xl font-semibold text-nanit-gray-800 mb-6">
+              <h2 className="text-xl font-semibold text-ctp-text mb-6">
                 Two-Factor Authentication
               </h2>
               
-              <div className="bg-blue-50 border-l-4 border-blue-500 p-3 rounded-sm mb-6">
-                <div className="text-sm text-blue-700">
+              <div className="bg-ctp-blue/10 border-l-4 border-ctp-blue p-3 rounded-sm mb-6">
+                <div className="text-sm text-ctp-blue-700 dark:text-ctp-blue">
                   {mfaDelivery.channel === 'sms'
                     ? `Nanit texted a verification code to the phone ending in ${mfaDelivery.phoneSuffix ?? '??'}. Enter it below.`
                     : 'Check your email for a verification code from Nanit and enter it below.'}
@@ -156,14 +156,14 @@ export default function SetupPage() {
 
               <form onSubmit={handleVerify2FA} className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-nanit-gray-700 mb-2">
+                  <label className="block text-sm font-medium text-ctp-subtext1 mb-2">
                     Verification Code
                   </label>
                   <input
                     type="text"
                     value={formData.mfaCode}
                     onChange={(e) => handleInputChange('mfaCode', e.target.value)}
-                    className="w-full px-3 py-2 border border-nanit-gray-300 rounded-md focus:outline-hidden focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3 py-2 border border-ctp-surface1 rounded-md focus:outline-hidden focus:ring-2 focus:ring-ctp-blue"
                     placeholder="Enter 6-digit code"
                     maxLength={6}
                     required
@@ -171,8 +171,8 @@ export default function SetupPage() {
                 </div>
 
                 {error && (
-                  <div className="bg-red-50 border-l-4 border-red-500 p-3 rounded-sm">
-                    <div className="text-sm text-red-700">{error}</div>
+                  <div className="bg-ctp-red/10 border-l-4 border-ctp-red p-3 rounded-sm">
+                    <div className="text-sm text-ctp-red dark:text-ctp-red">{error}</div>
                   </div>
                 )}
 
@@ -209,7 +209,7 @@ export default function SetupPage() {
           )}
         </div>
 
-        <div className="text-center mt-6 text-sm text-nanit-gray-500">
+        <div className="text-center mt-6 text-sm text-ctp-subtext1">
           <p>This will securely store your authentication for the Nanit bridge.</p>
         </div>
       </div>

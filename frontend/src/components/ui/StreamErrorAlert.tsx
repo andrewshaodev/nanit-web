@@ -89,38 +89,38 @@ export default function StreamErrorAlert({ error, baby_uid, onRetry, className =
   const solutions = getErrorSolutions(error.type)
 
   return (
-    <div className={`bg-red-50 border border-red-200 rounded-lg p-4 ${className}`}>
+    <div className={`bg-ctp-red/10 border border-ctp-red/30 rounded-lg p-4 ${className}`}>
       <div className="flex items-start gap-3">
-        <span className="shrink-0 text-red-500 text-lg">❌</span>
+        <span className="shrink-0 text-ctp-red dark:text-ctp-red text-lg">❌</span>
         <div className="flex-1 min-w-0">
           <div className="flex items-center justify-between gap-2 mb-2">
-            <h4 className="font-semibold text-red-800">{title}</h4>
+            <h4 className="font-semibold text-ctp-red dark:text-ctp-red">{title}</h4>
             {onRetry && (
               <button
                 onClick={onRetry}
-                className="px-3 py-1 text-sm bg-red-600 text-white rounded-sm hover:bg-red-700 focus:outline-hidden focus:ring-2 focus:ring-red-500"
+                className="px-3 py-1 text-sm bg-ctp-red dark:bg-ctp-red text-ctp-base rounded-sm hover:bg-ctp-red-600 dark:hover:bg-ctp-red/85 focus:outline-hidden focus:ring-2 focus:ring-ctp-red"
               >
                 Retry
               </button>
             )}
           </div>
           
-          <p className="text-red-700 text-sm mb-3">
+          <p className="text-ctp-red dark:text-ctp-red text-sm mb-3">
             {explanation}
           </p>
           
           <details className="text-sm">
-            <summary className="cursor-pointer text-red-600 hover:text-red-800 font-medium mb-2">
+            <summary className="cursor-pointer text-ctp-red dark:text-ctp-red hover:text-ctp-red dark:hover:text-ctp-red font-medium mb-2">
               Troubleshooting Steps
             </summary>
-            <ul className="list-disc list-inside space-y-1 text-red-700 pl-2">
+            <ul className="list-disc list-inside space-y-1 text-ctp-red dark:text-ctp-red pl-2">
               {solutions.map((solution, index) => (
                 <li key={index}>{solution}</li>
               ))}
             </ul>
           </details>
           
-          <div className="mt-3 text-xs text-red-600 font-mono bg-red-100 rounded-sm p-2">
+          <div className="mt-3 text-xs text-ctp-red dark:text-ctp-red font-mono bg-ctp-red/20 rounded-sm p-2">
             Error: {error.type} - {error.message}
           </div>
         </div>

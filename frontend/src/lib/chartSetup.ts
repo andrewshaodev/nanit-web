@@ -12,6 +12,7 @@ import {
   Filler,
 } from 'chart.js'
 import 'chartjs-adapter-date-fns'
+import type { ColorScheme } from '@/hooks/useColorScheme'
 
 // Register Chart.js components
 ChartJS.register(
@@ -27,141 +28,99 @@ ChartJS.register(
   Filler
 )
 
-// Default chart options
-export const defaultChartOptions = {
-  responsive: true,
-  maintainAspectRatio: false,
-  interaction: {
-    mode: 'index' as const,
-    intersect: false,
-  },
-  plugins: {
-    legend: {
-      position: 'top' as const,
-    },
-    tooltip: {
-      backgroundColor: 'rgba(0, 0, 0, 0.8)',
-      titleColor: 'white',
-      bodyColor: 'white',
-      borderColor: 'rgba(255, 255, 255, 0.2)',
-      borderWidth: 1,
-    },
-  },
-  scales: {
-    x: {
-      type: 'time' as const,
-      time: {
-        displayFormats: {
-          hour: 'HH:mm',
-          day: 'MMM dd',
-        },
-      },
-      grid: {
-        color: 'rgba(0, 0, 0, 0.1)',
-      },
-    },
-  },
+// ctp - a Catppuccin colour as the page currently has it, Latte or Mocha
+// depending on the device. Chart.js draws on a canvas and needs real values,
+// so they are read from the CSS variables the theme defines.
+export function ctp(name: string, alpha = 1): string {
+  const hex = getComputedStyle(document.documentElement).getPropertyValue(`--catppuccin-color-${name}`).trim()
+  if (!/^#[0-9a-f]{6}$/i.test(hex)) return 'gray'
+  if (alpha === 1) return hex
+  const [r, g, b] = [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16))
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`
 }
 
-export const temperatureHumidityOptions = {
-  ...defaultChartOptions,
-  scales: {
-    ...defaultChartOptions.scales,
-    y: {
-      type: 'linear' as const,
-      display: true,
-      position: 'left' as const,
-      title: {
-        display: true,
-        text: 'Temperature (°C)',
-        color: '#ef4444',
-      },
-      grid: {
-        color: 'rgba(0, 0, 0, 0.1)',
-      },
-    },
-    y1: {
-      type: 'linear' as const,
-      display: true,
-      position: 'right' as const,
-      title: {
-        display: true,
-        text: 'Humidity (%)',
-        color: '#06b6d4',
-      },
-      grid: {
-        drawOnChartArea: false,
-      },
-    },
-  },
+// ctpLine - an accent for chart lines. Latte's pastel accents are too faint
+// on its light background, so light mode takes a darker shade (3:1 or better).
+export function ctpLine(name: string, scheme: ColorScheme, alpha = 1): string {
+  return ctp(scheme === 'light' ? `${name}-700` : name, alpha)
 }
 
-export const activityOptions = {
-  ...defaultChartOptions,
-  scales: {
-    ...defaultChartOptions.scales,
-    y: {
-      type: 'linear' as const,
-      display: true,
-      title: {
-        display: true,
-        text: 'Events Count',
-      },
-      grid: {
-        color: 'rgba(0, 0, 0, 0.1)',
-      },
-      beginAtZero: true,
+function baseChartOptions() {
+  const grid = { color: ctp('surface1') }
+  const ticks = { color: ctp('subtext0') }
+
+  return {
+    responsive: true,
+    maintainAspectRatio: false,
+    interaction: {
+      mode: 'index' as const,
+      intersect: false,
     },
-  },
-  plugins: {
-    ...defaultChartOptions.plugins,
-    tooltip: {
-      ...defaultChartOptions.plugins.tooltip,
-      callbacks: {
-        label: function(context: any) {
-          const label = context.dataset.label || '';
-          const value = context.parsed.y;
-          return `${label}: ${value} events`;
+    plugins: {
+      legend: {
+        position: 'top' as const,
+        labels: { color: ctp('subtext1') },
+      },
+      tooltip: {
+        backgroundColor: ctp('crust', 0.95),
+        titleColor: ctp('text'),
+        bodyColor: ctp('subtext1'),
+        borderColor: ctp('surface2'),
+        borderWidth: 1,
+      },
+    },
+    scales: {
+      x: {
+        type: 'time' as const,
+        time: {
+          displayFormats: {
+            hour: 'HH:mm',
+            day: 'MMM dd',
+          },
         },
+        grid,
+        ticks,
       },
     },
-  },
+    grid,
+    ticks,
+  }
 }
 
-export const dayNightOptions = {
-  ...defaultChartOptions,
-  scales: {
-    ...defaultChartOptions.scales,
-    y: {
-      type: 'linear' as const,
-      display: true,
-      title: {
+// Built per render, so the colours follow the device's light/dark setting
+export function temperatureHumidityOptions(scheme: ColorScheme, temperatureLabel: string) {
+  const { grid, ticks, ...base } = baseChartOptions()
+
+  return {
+    ...base,
+    scales: {
+      ...base.scales,
+      y: {
+        type: 'linear' as const,
         display: true,
-        text: 'Mode',
-      },
-      min: -0.5,
-      max: 1.5,
-      ticks: {
-        stepSize: 1,
-        callback: function(value: any) {
-          return value === 0 ? 'Day' : value === 1 ? 'Night' : '';
+        position: 'left' as const,
+        title: {
+          display: true,
+          text: temperatureLabel,
+          color: ctpLine('peach', scheme),
         },
+        grid,
+        ticks,
       },
-      grid: {
-        color: 'rgba(0, 0, 0, 0.1)',
+      y1: {
+        type: 'linear' as const,
+        display: true,
+        position: 'right' as const,
+        title: {
+          display: true,
+          text: 'Humidity (%)',
+          color: ctpLine('sky', scheme),
+        },
+        grid: {
+          drawOnChartArea: false,
+        },
+        ticks,
       },
     },
-  },
-  plugins: {
-    ...defaultChartOptions.plugins,
-    tooltip: {
-      ...defaultChartOptions.plugins.tooltip,
-      callbacks: {
-        label: function(context: any) {
-          const value = context.parsed.y;
-          return value === 0 ? 'Day Mode' : 'Night Mode';
-        },
-      },
-    },
-  },
+  }
 }

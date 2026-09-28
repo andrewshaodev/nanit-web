@@ -23,11 +23,11 @@ export default function VideoSection({ baby }: VideoSectionProps) {
 
   return (
     <div className="space-y-4">
-      <h3 className="text-lg font-semibold text-nanit-gray-800">Live Video Stream</h3>
+      <h3 className="text-lg font-semibold text-ctp-text">Live Video Stream</h3>
       
       {/* Error display */}
       {error && (
-        <div className="p-3 bg-red-100 border border-red-300 text-red-700 rounded-sm">
+        <div className="p-3 bg-ctp-red/20 border border-ctp-red/50 text-ctp-red dark:text-ctp-red rounded-sm">
           Error: {error}
         </div>
       )}

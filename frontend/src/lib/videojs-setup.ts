@@ -77,8 +77,8 @@ export const injectCustomStyles = () => {
     
     /* Live badge styling */
     .vjs-live-control {
-      background: #dc2626 !important;
-      color: white !important;
+      background: var(--color-ctp-red) !important;
+      color: var(--color-ctp-base) !important;
       border-radius: 0.375rem;
       font-weight: 600;
       font-size: 0.875rem;
@@ -113,23 +113,24 @@ export const injectCustomStyles = () => {
     }
     
     .video-js .vjs-progress-control .vjs-play-progress {
-      background: #3b82f6;
+      background: var(--color-ctp-blue);
       border-radius: 0.1875rem;
     }
     
     /* Live progress bar - red for live content */
     .vjs-live .vjs-progress-control .vjs-play-progress {
-      background: #dc2626;
+      background: var(--color-ctp-red);
     }
     
     /* Loading spinner */
     .vjs-loading-spinner {
-      border-color: #3b82f6 transparent #3b82f6 transparent;
+      border-color: var(--color-ctp-blue) transparent var(--color-ctp-blue) transparent;
     }
     
     /* Big play button */
     .video-js .vjs-big-play-button {
-      background: rgba(59, 130, 246, 0.9);
+      background: color-mix(in srgb, var(--color-ctp-blue) 90%, transparent);
+      color: var(--color-ctp-base);
       border: none;
       border-radius: 50%;
       width: 4rem;
@@ -141,7 +142,7 @@ export const injectCustomStyles = () => {
     }
     
     .video-js .vjs-big-play-button:hover {
-      background: rgba(59, 130, 246, 1);
+      background: var(--color-ctp-blue);
     }
     
     /* Volume control */
@@ -157,7 +158,8 @@ export const injectCustomStyles = () => {
     
     /* Error styling */
     .vjs-error .vjs-error-display {
-      background: rgba(220, 38, 38, 0.9);
+      background: color-mix(in srgb, var(--color-ctp-red) 90%, transparent);
+      color: var(--color-ctp-base);
       backdrop-filter: blur(4px);
     }
     
@@ -194,29 +196,35 @@ export const injectCustomStyles = () => {
       z-index: 3;
     }
     
-    .vjs-status-info {
-      background: rgba(0, 0, 0, 0.7);
-      color: white;
-    }
-    
-    .vjs-status-success {
-      background: rgba(34, 197, 94, 0.9);
-      color: white;
-    }
-    
-    .vjs-status-error {
-      background: rgba(239, 68, 68, 0.9);
-      color: white;
-    }
-    
-    .vjs-status-loading {
-      background: rgba(59, 130, 246, 0.9);
-      color: white;
-    }
-    
+    /* Status chips sit over the video, which is dark in either flavour, so
+       they are dark with the accent as text rather than the other way round
+       (base text on Latte's green or yellow would be unreadable) */
+    .vjs-status-info,
+    .vjs-status-success,
+    .vjs-status-error,
+    .vjs-status-loading,
     .vjs-status-live {
-      background: rgba(220, 38, 38, 0.9);
-      color: white;
+      background: rgba(17, 17, 27, 0.8);
+    }
+
+    .vjs-status-info {
+      color: #cdd6f4;
+    }
+
+    .vjs-status-success {
+      color: #a6e3a1;
+    }
+
+    .vjs-status-error {
+      color: #f38ba8;
+    }
+
+    .vjs-status-loading {
+      color: #89b4fa;
+    }
+
+    .vjs-status-live {
+      color: #f38ba8;
       animation: pulse 2s infinite;
     }
 

@@ -102,8 +102,8 @@ export default function AuthenticationSettings({
   if (!authStatus) {
     return (
       <div className="animate-pulse">
-        <div className="h-4 bg-gray-200 rounded-sm w-1/3 mb-2"></div>
-        <div className="h-8 bg-gray-200 rounded-sm w-1/2"></div>
+        <div className="h-4 bg-ctp-surface0 rounded-sm w-1/3 mb-2"></div>
+        <div className="h-8 bg-ctp-surface0 rounded-sm w-1/2"></div>
       </div>
     );
   }
@@ -113,16 +113,16 @@ export default function AuthenticationSettings({
       <div className="space-y-8">
         {/* Nanit Authentication Section */}
         <div>
-          <h3 className="text-lg font-medium text-gray-900 mb-4">Nanit Account</h3>
+          <h3 className="text-lg font-medium text-ctp-text mb-4">Nanit Account</h3>
           <div className="space-y-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-900">Status</p>
+                <p className="text-sm font-medium text-ctp-text">Status</p>
                 <div className="flex items-center gap-2 mt-1">
                   <div className={`w-2 h-2 rounded-full ${
-                    authStatus.authenticated ? 'bg-green-500' : 'bg-red-500'
+                    authStatus.authenticated ? 'bg-ctp-green-900 dark:bg-ctp-green' : 'bg-ctp-red dark:bg-ctp-red'
                   }`} />
-                  <p className="text-sm text-gray-600">
+                  <p className="text-sm text-ctp-subtext1">
                     {authStatus.authenticated 
                       ? `Authenticated${authStatus.email ? ` as ${authStatus.email}` : ''}`
                       : authStatus.message
@@ -130,7 +130,7 @@ export default function AuthenticationSettings({
                   </p>
                 </div>
                 {authStatus.authenticated && (
-                  <div className="mt-2 text-xs text-gray-500">
+                  <div className="mt-2 text-xs text-ctp-subtext1">
                     {authStatus.babies_count && (
                       <span>{authStatus.babies_count} device{authStatus.babies_count !== 1 ? 's' : ''} • </span>
                     )}
@@ -145,14 +145,14 @@ export default function AuthenticationSettings({
                 {authStatus.authenticated ? (
                   <button
                     onClick={() => setShowResetConfirmation(true)}
-                    className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 focus:outline-hidden focus:ring-2 focus:ring-red-500"
+                    className="px-4 py-2 bg-ctp-red dark:bg-ctp-red text-ctp-base rounded-md hover:bg-ctp-red-600 dark:hover:bg-ctp-red/85 focus:outline-hidden focus:ring-2 focus:ring-ctp-red"
                   >
                     Reset Authentication
                   </button>
                 ) : (
                   <button
                     onClick={handleReAuthenticate}
-                    className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-hidden focus:ring-2 focus:ring-blue-500"
+                    className="px-4 py-2 bg-ctp-blue-700 dark:bg-ctp-blue text-ctp-base rounded-md hover:bg-ctp-blue-800 dark:hover:bg-ctp-blue/85 focus:outline-hidden focus:ring-2 focus:ring-ctp-blue"
                   >
                     Authenticate
                   </button>
@@ -161,8 +161,8 @@ export default function AuthenticationSettings({
             </div>
 
             {authStatus.authenticated && (
-              <div className="bg-blue-50 border border-blue-200 rounded-md p-4">
-                <p className="text-blue-800 text-sm">
+              <div className="bg-ctp-blue/10 border border-ctp-blue/30 rounded-md p-4">
+                <p className="text-ctp-blue-700 dark:text-ctp-blue text-sm">
                   <strong>Note:</strong> Resetting authentication will stop all monitoring services and require you to re-authenticate with your Nanit account.
                 </p>
               </div>
@@ -173,12 +173,12 @@ export default function AuthenticationSettings({
         {/* Web Dashboard Password Protection Section */}
         {webAuthStatus?.password_protection_enabled && (
           <div>
-            <h3 className="text-lg font-medium text-gray-900 mb-4">Web Dashboard Security</h3>
+            <h3 className="text-lg font-medium text-ctp-text mb-4">Web Dashboard Security</h3>
             <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-gray-900">Password Protection</p>
-                  <p className="text-sm text-gray-600">
+                  <p className="text-sm font-medium text-ctp-text">Password Protection</p>
+                  <p className="text-sm text-ctp-subtext1">
                     {webAuthStatus.password_set 
                       ? 'Password protection is enabled' 
                       : 'No password set'}
@@ -188,7 +188,7 @@ export default function AuthenticationSettings({
                   {!webAuthStatus.password_set ? (
                     <button
                       onClick={() => openPasswordForm('set')}
-                      className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-hidden focus:ring-2 focus:ring-blue-500"
+                      className="px-4 py-2 bg-ctp-blue-700 dark:bg-ctp-blue text-ctp-base rounded-md hover:bg-ctp-blue-800 dark:hover:bg-ctp-blue/85 focus:outline-hidden focus:ring-2 focus:ring-ctp-blue"
                     >
                       Set Password
                     </button>
@@ -196,13 +196,13 @@ export default function AuthenticationSettings({
                     <>
                       <button
                         onClick={() => openPasswordForm('change')}
-                        className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-hidden focus:ring-2 focus:ring-blue-500"
+                        className="px-4 py-2 bg-ctp-blue-700 dark:bg-ctp-blue text-ctp-base rounded-md hover:bg-ctp-blue-800 dark:hover:bg-ctp-blue/85 focus:outline-hidden focus:ring-2 focus:ring-ctp-blue"
                       >
                         Change Password
                       </button>
                       <button
                         onClick={() => openPasswordForm('remove')}
-                        className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 focus:outline-hidden focus:ring-2 focus:ring-red-500"
+                        className="px-4 py-2 bg-ctp-red dark:bg-ctp-red text-ctp-base rounded-md hover:bg-ctp-red-600 dark:hover:bg-ctp-red/85 focus:outline-hidden focus:ring-2 focus:ring-ctp-red"
                       >
                         Remove Password
                       </button>
@@ -212,11 +212,11 @@ export default function AuthenticationSettings({
               </div>
 
               {webAuthStatus.password_set && (
-                <div className="bg-blue-50 border border-blue-200 rounded-md p-4">
-                  <p className="text-blue-800 text-sm">
+                <div className="bg-ctp-blue/10 border border-ctp-blue/30 rounded-md p-4">
+                  <p className="text-ctp-blue-700 dark:text-ctp-blue text-sm">
                     <strong>Forgot your password?</strong> You can reset it using the CLI command inside the Docker container:
                     <br />
-                    <code className="bg-blue-100 px-1 rounded-sm text-xs mt-1 inline-block">
+                    <code className="bg-ctp-blue/20 px-1 rounded-sm text-xs mt-1 inline-block">
                       docker exec -it YOUR_CONTAINER_NAME /app/bin/nanit --reset-password
                     </code>
                   </p>
@@ -230,16 +230,16 @@ export default function AuthenticationSettings({
       {/* Reset Authentication Confirmation Modal */}
       {showResetConfirmation && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 w-full max-w-md mx-4">
-            <h3 className="text-lg font-medium text-gray-900 mb-4">
+          <div className="bg-ctp-base rounded-lg p-6 w-full max-w-md mx-4">
+            <h3 className="text-lg font-medium text-ctp-text mb-4">
               Reset Nanit Authentication
             </h3>
             
-            <p className="text-sm text-gray-600 mb-6">
+            <p className="text-sm text-ctp-subtext1 mb-6">
               Are you sure you want to reset your Nanit authentication? This will:
             </p>
             
-            <ul className="text-sm text-gray-600 mb-6 space-y-1">
+            <ul className="text-sm text-ctp-subtext1 mb-6 space-y-1">
               <li>• Stop all monitoring services</li>
               <li>• Clear your authentication session</li>
               <li>• Require you to re-authenticate with your Nanit account</li>
@@ -250,14 +250,14 @@ export default function AuthenticationSettings({
                 type="button"
                 onClick={() => setShowResetConfirmation(false)}
                 disabled={resetLoading}
-                className="px-4 py-2 text-gray-700 bg-gray-200 rounded-md hover:bg-gray-300 focus:outline-hidden focus:ring-2 focus:ring-gray-500 disabled:opacity-50"
+                className="px-4 py-2 text-ctp-subtext1 bg-ctp-surface0 rounded-md hover:bg-ctp-surface1 focus:outline-hidden focus:ring-2 focus:ring-ctp-overlay0 disabled:opacity-50"
               >
                 Cancel
               </button>
               <button
                 onClick={handleResetAuthentication}
                 disabled={resetLoading}
-                className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 focus:outline-hidden focus:ring-2 focus:ring-red-500 disabled:opacity-50"
+                className="px-4 py-2 bg-ctp-red dark:bg-ctp-red text-ctp-base rounded-md hover:bg-ctp-red-600 dark:hover:bg-ctp-red/85 focus:outline-hidden focus:ring-2 focus:ring-ctp-red disabled:opacity-50"
               >
                 {resetLoading ? 'Resetting...' : 'Reset Authentication'}
               </button>
@@ -269,8 +269,8 @@ export default function AuthenticationSettings({
       {/* Password Form Modal */}
       {showPasswordForm && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 w-full max-w-md mx-4">
-            <h3 className="text-lg font-medium text-gray-900 mb-4">
+          <div className="bg-ctp-base rounded-lg p-6 w-full max-w-md mx-4">
+            <h3 className="text-lg font-medium text-ctp-text mb-4">
               {formType === 'set' && 'Set Password'}
               {formType === 'change' && 'Change Password'}
               {formType === 'remove' && 'Remove Password'}
@@ -279,7 +279,7 @@ export default function AuthenticationSettings({
             <form onSubmit={handlePasswordSubmit}>
               {formType === 'set' && (
                 <div className="mb-4">
-                  <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-2">
+                  <label htmlFor="password" className="block text-sm font-medium text-ctp-subtext1 mb-2">
                     New Password
                   </label>
                   <input
@@ -287,7 +287,7 @@ export default function AuthenticationSettings({
                     id="password"
                     value={formData.password}
                     onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-hidden focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3 py-2 border border-ctp-surface1 rounded-md focus:outline-hidden focus:ring-2 focus:ring-ctp-blue"
                     required
                     minLength={8}
                     placeholder="Enter a password (minimum 8 characters)"
@@ -298,7 +298,7 @@ export default function AuthenticationSettings({
               {formType === 'change' && (
                 <>
                   <div className="mb-4">
-                    <label htmlFor="currentPassword" className="block text-sm font-medium text-gray-700 mb-2">
+                    <label htmlFor="currentPassword" className="block text-sm font-medium text-ctp-subtext1 mb-2">
                       Current Password
                     </label>
                     <input
@@ -306,12 +306,12 @@ export default function AuthenticationSettings({
                       id="currentPassword"
                       value={formData.currentPassword}
                       onChange={(e) => setFormData({ ...formData, currentPassword: e.target.value })}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-hidden focus:ring-2 focus:ring-blue-500"
+                      className="w-full px-3 py-2 border border-ctp-surface1 rounded-md focus:outline-hidden focus:ring-2 focus:ring-ctp-blue"
                       required
                     />
                   </div>
                   <div className="mb-4">
-                    <label htmlFor="newPassword" className="block text-sm font-medium text-gray-700 mb-2">
+                    <label htmlFor="newPassword" className="block text-sm font-medium text-ctp-subtext1 mb-2">
                       New Password
                     </label>
                     <input
@@ -319,7 +319,7 @@ export default function AuthenticationSettings({
                       id="newPassword"
                       value={formData.newPassword}
                       onChange={(e) => setFormData({ ...formData, newPassword: e.target.value })}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-hidden focus:ring-2 focus:ring-blue-500"
+                      className="w-full px-3 py-2 border border-ctp-surface1 rounded-md focus:outline-hidden focus:ring-2 focus:ring-ctp-blue"
                       required
                       minLength={8}
                       placeholder="Enter new password (minimum 8 characters)"
@@ -330,7 +330,7 @@ export default function AuthenticationSettings({
 
               {formType === 'remove' && (
                 <div className="mb-4">
-                  <label htmlFor="currentPassword" className="block text-sm font-medium text-gray-700 mb-2">
+                  <label htmlFor="currentPassword" className="block text-sm font-medium text-ctp-subtext1 mb-2">
                     Current Password
                   </label>
                   <input
@@ -338,10 +338,10 @@ export default function AuthenticationSettings({
                     id="currentPassword"
                     value={formData.currentPassword}
                     onChange={(e) => setFormData({ ...formData, currentPassword: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-hidden focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3 py-2 border border-ctp-surface1 rounded-md focus:outline-hidden focus:ring-2 focus:ring-ctp-blue"
                     required
                   />
-                  <p className="text-sm text-red-600 mt-2">
+                  <p className="text-sm text-ctp-red dark:text-ctp-red mt-2">
                     This will permanently disable password protection.
                   </p>
                 </div>
@@ -351,16 +351,16 @@ export default function AuthenticationSettings({
                 <button
                   type="button"
                   onClick={() => setShowPasswordForm(false)}
-                  className="px-4 py-2 text-gray-700 bg-gray-200 rounded-md hover:bg-gray-300 focus:outline-hidden focus:ring-2 focus:ring-gray-500"
+                  className="px-4 py-2 text-ctp-subtext1 bg-ctp-surface0 rounded-md hover:bg-ctp-surface1 focus:outline-hidden focus:ring-2 focus:ring-ctp-overlay0"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className={`px-4 py-2 text-white rounded-md focus:outline-hidden focus:ring-2 ${
+                  className={`px-4 py-2 text-ctp-base rounded-md focus:outline-hidden focus:ring-2 ${
                     formType === 'remove'
-                      ? 'bg-red-600 hover:bg-red-700 focus:ring-red-500'
-                      : 'bg-blue-600 hover:bg-blue-700 focus:ring-blue-500'
+                      ? 'bg-ctp-red dark:bg-ctp-red hover:bg-ctp-red-600 dark:hover:bg-ctp-red/85 focus:ring-ctp-red'
+                      : 'bg-ctp-blue-700 dark:bg-ctp-blue hover:bg-ctp-blue-800 dark:hover:bg-ctp-blue/85 focus:ring-ctp-blue'
                   }`}
                 >
                   {formType === 'set' && 'Set Password'}

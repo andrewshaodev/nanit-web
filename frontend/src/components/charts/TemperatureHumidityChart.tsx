@@ -1,5 +1,6 @@
 import { Line } from 'react-chartjs-2'
-import { temperatureHumidityOptions } from '@/lib/chartSetup'
+import { ctpLine, temperatureHumidityOptions } from '@/lib/chartSetup'
+import { useColorScheme } from '@/hooks/useColorScheme'
 import { useTemperatureUnit } from '@/hooks/useTemperatureUnit'
 import type { SensorReading } from '@/types/api'
 
@@ -9,20 +10,21 @@ interface TemperatureHumidityChartProps {
 }
 
 export default function TemperatureHumidityChart({ data, isLoading }: TemperatureHumidityChartProps) {
+  const scheme = useColorScheme()
   const { unit, convertTemperature } = useTemperatureUnit()
 
   if (isLoading) {
     return (
-      <div className="h-64 bg-nanit-gray-50 rounded-sm flex items-center justify-center">
-        <div className="text-nanit-gray-500">Loading chart data...</div>
+      <div className="h-64 bg-ctp-mantle rounded-sm flex items-center justify-center">
+        <div className="text-ctp-subtext1">Loading chart data...</div>
       </div>
     )
   }
 
   if (!data || data.length === 0) {
     return (
-      <div className="h-64 bg-nanit-gray-50 rounded-sm flex items-center justify-center">
-        <div className="text-nanit-gray-500">No data available for selected timeframe</div>
+      <div className="h-64 bg-ctp-mantle rounded-sm flex items-center justify-center">
+        <div className="text-ctp-subtext1">No data available for selected timeframe</div>
       </div>
     )
   }
@@ -47,8 +49,8 @@ export default function TemperatureHumidityChart({ data, isLoading }: Temperatur
       {
         label: `Temperature (°${unit === 'celsius' ? 'C' : 'F'})`,
         data: temperatureData,
-        borderColor: '#ef4444',
-        backgroundColor: 'rgba(239, 68, 68, 0.1)',
+        borderColor: ctpLine('peach', scheme),
+        backgroundColor: ctpLine('peach', scheme, 0.1),
         yAxisID: 'y',
         tension: 0.3,
         pointRadius: 2,
@@ -58,8 +60,8 @@ export default function TemperatureHumidityChart({ data, isLoading }: Temperatur
       {
         label: 'Humidity (%)',
         data: humidityData,
-        borderColor: '#06b6d4',
-        backgroundColor: 'rgba(6, 182, 212, 0.1)',
+        borderColor: ctpLine('sky', scheme),
+        backgroundColor: ctpLine('sky', scheme, 0.1),
         yAxisID: 'y1',
         tension: 0.3,
         pointRadius: 2,
@@ -69,20 +71,7 @@ export default function TemperatureHumidityChart({ data, isLoading }: Temperatur
     ],
   }
 
-  // Update Y-axis title based on temperature unit
-  const options = {
-    ...temperatureHumidityOptions,
-    scales: {
-      ...temperatureHumidityOptions.scales,
-      y: {
-        ...temperatureHumidityOptions.scales.y,
-        title: {
-          ...temperatureHumidityOptions.scales.y.title,
-          text: `Temperature (°${unit === 'celsius' ? 'C' : 'F'})`,
-        },
-      },
-    },
-  }
+  const options = temperatureHumidityOptions(scheme, `Temperature (°${unit === 'celsius' ? 'C' : 'F'})`)
 
   return <Line data={chartData} options={options} />
 }
