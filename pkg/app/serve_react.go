@@ -3,12 +3,10 @@ package app
 import (
 	"encoding/json"
 	"fmt"
-	"io"
 	"net/http"
 	"os"
 	"path/filepath"
 	"strings"
-	"time"
 
 	"github.com/rs/zerolog/log"
 	"github.com/indiefan/home_assistant_nanit/pkg/baby"
@@ -102,13 +100,13 @@ func setupAPIRoutes(babies []baby.Baby, dataDir DataDirectories, stateManager *b
 	}))
 
 	// Control endpoints
-	http.HandleFunc("/api/control/night-light", func(w http.ResponseWriter, r *http.Request) {
+	http.HandleFunc("/api/control/night-light", requireAuth(app, func(w http.ResponseWriter, r *http.Request) {
 		handleControlAPI(w, r, "night-light", babies, stateManager, app)
-	})
+	}))
 
-	http.HandleFunc("/api/control/standby", func(w http.ResponseWriter, r *http.Request) {
+	http.HandleFunc("/api/control/standby", requireAuth(app, func(w http.ResponseWriter, r *http.Request) {
 		handleControlAPI(w, r, "standby", babies, stateManager, app)
-	})
+	}))
 
 	// The camera's built-in sounds and speaker volume
 	http.HandleFunc("/api/sound/", requireAuth(app, func(w http.ResponseWriter, r *http.Request) {
@@ -116,27 +114,27 @@ func setupAPIRoutes(babies []baby.Baby, dataDir DataDirectories, stateManager *b
 	}))
 
 	// Device info endpoint
-	http.HandleFunc("/api/device-info/", func(w http.ResponseWriter, r *http.Request) {
+	http.HandleFunc("/api/device-info/", requireAuth(app, func(w http.ResponseWriter, r *http.Request) {
 		handleDeviceInfoAPI(w, r, babies, stateManager)
-	})
+	}))
 
 	// Authentication endpoints (Nanit API)
 	log.Info().Msg("Registering Nanit authentication endpoints")
-	http.HandleFunc("/api/auth/login", func(w http.ResponseWriter, r *http.Request) {
+	http.HandleFunc("/api/auth/login", requireAuth(app, func(w http.ResponseWriter, r *http.Request) {
 		handleAuthLoginAPI(w, r)
-	})
+	}))
 
-	http.HandleFunc("/api/auth/verify-2fa", func(w http.ResponseWriter, r *http.Request) {
+	http.HandleFunc("/api/auth/verify-2fa", requireAuth(app, func(w http.ResponseWriter, r *http.Request) {
 		handleAuthVerify2FAAPI(w, r, app)
-	})
+	}))
 
-	http.HandleFunc("/api/auth/status", func(w http.ResponseWriter, r *http.Request) {
+	http.HandleFunc("/api/auth/status", requireAuth(app, func(w http.ResponseWriter, r *http.Request) {
 		handleAuthStatusAPI(w, r, app)
-	})
+	}))
 
-	http.HandleFunc("/api/auth/reset", func(w http.ResponseWriter, r *http.Request) {
+	http.HandleFunc("/api/auth/reset", requireAuth(app, func(w http.ResponseWriter, r *http.Request) {
 		handleAuthResetAPI(w, r, app)
-	})
+	}))
 
 	// Web password authentication endpoints
 	log.Info().Msg("Registering web password authentication endpoints")
@@ -165,47 +163,47 @@ func setupAPIRoutes(babies []baby.Baby, dataDir DataDirectories, stateManager *b
 	}))
 
 	// HLS streaming endpoints
-	http.HandleFunc("/api/stream/hls/", func(w http.ResponseWriter, r *http.Request) {
+	http.HandleFunc("/api/stream/hls/", requireAuth(app, func(w http.ResponseWriter, r *http.Request) {
 		handleHLSStreamAPI(w, r, app)
-	})
+	}))
 
-	http.HandleFunc("/api/stream/start/", func(w http.ResponseWriter, r *http.Request) {
+	http.HandleFunc("/api/stream/start/", requireAuth(app, func(w http.ResponseWriter, r *http.Request) {
 		handleStreamStartAPI(w, r, app)
-	})
+	}))
 
-	http.HandleFunc("/api/stream/stop/", func(w http.ResponseWriter, r *http.Request) {
+	http.HandleFunc("/api/stream/stop/", requireAuth(app, func(w http.ResponseWriter, r *http.Request) {
 		handleStreamStopAPI(w, r, app)
-	})
+	}))
 
-	http.HandleFunc("/api/stream/status/", func(w http.ResponseWriter, r *http.Request) {
+	http.HandleFunc("/api/stream/status/", requireAuth(app, func(w http.ResponseWriter, r *http.Request) {
 		handleStreamStatusAPI(w, r, app)
-	})
+	}))
 
 	// Historical data endpoints
-	http.HandleFunc("/api/history/sensor/", func(w http.ResponseWriter, r *http.Request) {
+	http.HandleFunc("/api/history/sensor/", requireAuth(app, func(w http.ResponseWriter, r *http.Request) {
 		handleHistorySensorAPI(w, r, app)
-	})
+	}))
 
-	http.HandleFunc("/api/history/events/", func(w http.ResponseWriter, r *http.Request) {
+	http.HandleFunc("/api/history/events/", requireAuth(app, func(w http.ResponseWriter, r *http.Request) {
 		handleHistoryEventsAPI(w, r, app)
-	})
+	}))
 
-	http.HandleFunc("/api/history/summary/", func(w http.ResponseWriter, r *http.Request) {
+	http.HandleFunc("/api/history/summary/", requireAuth(app, func(w http.ResponseWriter, r *http.Request) {
 		handleHistorySummaryAPI(w, r, app)
-	})
+	}))
 
-	http.HandleFunc("/api/history/day-night/", func(w http.ResponseWriter, r *http.Request) {
+	http.HandleFunc("/api/history/day-night/", requireAuth(app, func(w http.ResponseWriter, r *http.Request) {
 		handleHistoryDayNightAPI(w, r, app)
-	})
+	}))
 
-	http.HandleFunc("/api/history/reset/", func(w http.ResponseWriter, r *http.Request) {
+	http.HandleFunc("/api/history/reset/", requireAuth(app, func(w http.ResponseWriter, r *http.Request) {
 		handleHistoryResetAPI(w, r, app)
-	})
+	}))
 
 	// Health endpoints
-	http.HandleFunc("/api/health/", func(w http.ResponseWriter, r *http.Request) {
+	http.HandleFunc("/api/health/", requireAuth(app, func(w http.ResponseWriter, r *http.Request) {
 		handleHealthAPI(w, r, app)
-	})
+	}))
 	
 	// Basic liveness check (no authentication required)
 	http.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
@@ -218,32 +216,12 @@ func setupAPIRoutes(babies []baby.Baby, dataDir DataDirectories, stateManager *b
 	})
 
 	// Video files
-	http.Handle("/video/", http.StripPrefix("/video/", http.FileServer(http.Dir(dataDir.VideoDir))))
+	videoFiles := http.StripPrefix("/video/", http.FileServer(http.Dir(dataDir.VideoDir)))
+	http.HandleFunc("/video/", requireAuth(app, videoFiles.ServeHTTP))
 
-	// Dummy log handler - useful for receiving logs from cam
-	http.HandleFunc("/log", func(w http.ResponseWriter, r *http.Request) {
-		filename := filepath.Join(dataDir.LogDir, fmt.Sprintf("camlogs-%v.tar.gz", time.Now().Format(time.RFC3339)))
-
-		log.Info().Str("file", filename).Msg("Saving log to file")
-		defer r.Body.Close()
-
-		out, err := os.Create(filename)
-		if err != nil {
-			log.Error().Str("file", filename).Err(err).Msg("Unable to create file")
-		}
-
-		defer out.Close()
-
-		_, err = io.Copy(out, r.Body)
-
-		if err != nil {
-			log.Error().Str("file", filename).Err(err).Msg("Unable to save received log file")
-			w.WriteHeader(http.StatusInternalServerError)
-			return
-		}
-
-		w.WriteHeader(http.StatusNoContent)
-	})
+	// (There used to be an unauthenticated /log endpoint here that saved any
+	// POST body to disk, for the cam's GET_LOGS upload. Nothing sends there,
+	// and anyone who could reach it could fill the disk, so it's gone.)
 }
 
 // Web authentication API handlers
