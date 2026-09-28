@@ -1,24 +1,26 @@
 module github.com/indiefan/home_assistant_nanit
 
-go 1.24
+go 1.27
 
 require (
-	github.com/eclipse/paho.mqtt.golang v1.3.0
-	github.com/gorilla/websocket v1.4.2
-	github.com/joho/godotenv v1.3.0
-	github.com/mattn/go-sqlite3 v1.14.16
+	github.com/eclipse/paho.mqtt.golang v1.5.1
+	github.com/gorilla/websocket v1.5.3
+	github.com/joho/godotenv v1.5.1
+	github.com/mattn/go-sqlite3 v1.14.52
 	github.com/notedit/rtmp v0.0.2
-	github.com/rs/zerolog v1.20.0
-	github.com/sacOO7/gowebsocket v0.0.0-20201031204121-1620b8bfa516
-	github.com/stretchr/testify v1.6.1
-	golang.org/x/crypto v0.17.0
-	google.golang.org/protobuf v1.36.5
+	github.com/rs/zerolog v1.35.1
+	github.com/sacOO7/gowebsocket v0.0.0-20221109081133-70ac927be105
+	github.com/stretchr/testify v1.12.1
+	golang.org/x/crypto v0.57.0
+	google.golang.org/protobuf v1.36.12
 )
 
 require (
-	github.com/davecgh/go-spew v1.1.0 // indirect
-	github.com/pmezard/go-difflib v1.0.0 // indirect
+	github.com/mattn/go-colorable v0.1.15 // indirect
+	github.com/mattn/go-isatty v0.0.24 // indirect
 	github.com/sacOO7/go-logger v0.0.0-20180719173527-9ac9add5a50d // indirect
-	golang.org/x/net v0.19.0 // indirect
-	gopkg.in/yaml.v3 v3.0.0-20200313102051-9f266ea9e77c // indirect
+	go.yaml.in/yaml/v3 v3.0.5 // indirect
+	golang.org/x/net v0.59.0 // indirect
+	golang.org/x/sync v0.23.0 // indirect
+	golang.org/x/sys v0.48.0 // indirect
 )
