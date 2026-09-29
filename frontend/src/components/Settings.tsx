@@ -123,6 +123,7 @@ export default function Settings() {
     {
       id: 'authentication',
       label: 'Authentication & Security',
+      shortLabel: 'Security',
       icon: ShieldCheck,
       content: (
         <AuthenticationSettings

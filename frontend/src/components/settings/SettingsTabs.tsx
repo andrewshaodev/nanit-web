@@ -5,6 +5,8 @@ import { Tabs as TabsPrimitive } from 'radix-ui';
 export interface SettingsTab {
   id: string;
   label: string;
+  // Shown instead of label on narrow screens, where the tabs sit in a row
+  shortLabel?: string;
   icon: LucideIcon;
   content: ReactNode;
   disabled?: boolean;
@@ -41,7 +43,8 @@ export default function SettingsTabs({ tabs, defaultTab }: SettingsTabsProps) {
               aria-hidden="true"
             />
             <tab.icon className="size-4 shrink-0 group-data-[state=active]:text-ctp-mauve" />
-            {tab.label}
+            <span className="md:hidden">{tab.shortLabel ?? tab.label}</span>
+            <span className="hidden md:inline">{tab.label}</span>
           </TabsPrimitive.Trigger>
         ))}
       </TabsPrimitive.List>
