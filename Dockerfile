@@ -1,5 +1,5 @@
 # Frontend build stage
-FROM --platform=$BUILDPLATFORM oven/bun:1.3-alpine AS frontend-build
+FROM --platform=$BUILDPLATFORM oven/bun:1.4-alpine AS frontend-build
 
 WORKDIR /app/frontend
 

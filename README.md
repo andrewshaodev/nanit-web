@@ -136,7 +136,7 @@ Passwords, tokens and 2FA codes are never written to the log.
 
 ## Development
 
-Requirements: Go 1.27, [Bun](https://bun.sh) 1.3, and ffmpeg for HLS.
+Requirements: Go 1.27, [Bun](https://bun.sh) 1.4, and ffmpeg for HLS.
 
 ```bash
 # Backend (serves ./web as the dashboard, so build the frontend into it first)
