@@ -201,3 +201,15 @@ func TestNetworkStatusFillsDeviceInfo(t *testing.T) {
 	assert.Equal(t, int32(5805), *info.WiFiFrequency)
 	assert.Equal(t, "Any", *info.WiFiBand, "the settings' band is kept")
 }
+
+// Sound and motion readings are only logged for now; the readings the
+// bridge uses come through as before
+func TestSoundAndMotionReadingsLeaveOtherReadingsAlone(t *testing.T) {
+	state := baby.NewStateManager()
+	processSensorData("baby1", []*client.SensorData{
+		{SensorType: client.SensorType_TEMPERATURE.Enum(), ValueMilli: utils.ConstRefInt32(22500)},
+		{SensorType: client.SensorType_SOUND.Enum(), Value: utils.ConstRefInt32(1), IsAlert: utils.ConstRefBool(true)},
+		{SensorType: client.SensorType_MOTION.Enum(), Value: utils.ConstRefInt32(3)},
+	}, state)
+	assert.Equal(t, 22.5, state.GetBabyState("baby1").GetTemperature())
+}

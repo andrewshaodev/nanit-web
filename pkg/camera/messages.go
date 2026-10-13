@@ -23,6 +23,19 @@ func processSensorData(babyUID string, sensorData []*client.SensorData, stateMan
 		if *sensorDataSet.SensorType == client.SensorType_NIGHT {
 			stateUpdate.SetIsNight(*sensorDataSet.Value == 1)
 		}
+		// Not used yet: logged to learn whether the camera's own sound and
+		// motion sensors can tell when the baby is awake (they work without
+		// a Nanit subscription; Nanit's sleep tracking doesn't)
+		if t := sensorDataSet.GetSensorType(); t == client.SensorType_SOUND || t == client.SensorType_MOTION {
+			log.Info().
+				Str("baby_uid", babyUID).
+				Str("sensor", t.String()).
+				Int32("value", sensorDataSet.GetValue()).
+				Int32("value_milli", sensorDataSet.GetValueMilli()).
+				Bool("is_alert", sensorDataSet.GetIsAlert()).
+				Int32("timestamp", sensorDataSet.GetTimestamp()).
+				Msg("Camera sensor reading")
+		}
 	}
 
 	stateManager.Update(babyUID, stateUpdate)
@@ -108,6 +121,9 @@ func processStandby(babyUID string, settings *client.Settings, stateManager *bab
 				if sensor.HighThreshold != nil {
 					deviceInfo.HumidityHighThreshold = sensor.HighThreshold
 				}
+			case client.SensorType_SOUND, client.SensorType_MOTION:
+				// Logged to learn how the camera's own detection is set up
+				log.Info().Str("baby_uid", babyUID).Str("settings", sensor.String()).Msg("Camera sensor settings")
 			}
 		}
 	}

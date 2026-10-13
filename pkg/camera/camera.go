@@ -207,6 +207,10 @@ func (c *Camera) runWebsocket(conn *client.WebsocketConnection, childCtx utils.G
 				processLight(uid, m.Request.Control, stateManager)
 			} else if *m.Request.Type == client.RequestType_PUT_SETTINGS && m.Request.Settings != nil {
 				processStandby(uid, m.Request.Settings, stateManager)
+			} else {
+				// Something the camera sent on its own that isn't handled,
+				// logged whole to learn what it reports (sleep, breathing...)
+				log.Info().Str("baby_uid", uid).Str("message", m.String()).Msg("Unrecognised message from the camera")
 			}
 		}
 	})
