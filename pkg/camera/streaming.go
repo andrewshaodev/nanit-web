@@ -36,6 +36,10 @@ const (
 	stolenStreamWindow = 10 * time.Minute
 	stolenStreamCount  = 3
 	stolenStreamPause  = 15 * time.Minute
+
+	// hlsCheckInterval - how often HLS is started again if it stopped while
+	// video is still arriving
+	hlsCheckInterval = 30 * time.Second
 )
 
 // stolenStreamMessage - the device alert for two stream servers
@@ -139,7 +143,7 @@ func (c *Camera) runStream(ctx utils.GracefulContext) {
 		if c.deps.HLS == nil || c.deps.HLS.IsTranscoding(uid) {
 			return
 		}
-		if err := c.deps.HLS.StartTranscoding(uid, c.LocalStreamURL()); err != nil {
+		if err := c.deps.HLS.StartTranscoding(uid, c.hlsInputURL()); err != nil {
 			sublog.Error().Err(err).Msg("Failed to start HLS transcoding")
 		} else {
 			sublog.Info().Msg("Started HLS transcoding")
@@ -171,10 +175,22 @@ func (c *Camera) runStream(ctx utils.GracefulContext) {
 		}(conn)
 	}
 
+	// HLS's converter exits when its RTMP connection is closed: the stream
+	// password changing, or the camera's stream being replaced. Nothing
+	// started it again while video kept arriving, so the dashboard reported
+	// camera issues.
+	hlsCheck := time.NewTicker(hlsCheckInterval)
+	defer hlsCheck.Stop()
+
 	for {
 		select {
 		case <-ctx.Done():
 			return
+
+		case <-hlsCheck.C:
+			if publishing {
+				startTranscoding()
+			}
 
 		case <-settled:
 			settled = nil

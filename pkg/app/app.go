@@ -101,7 +101,12 @@ func NewApp(opts Opts) (*App, error) {
 		MessageTimeout: opts.EventPolling.MessageTimeout,
 	}}
 	if opts.RTMP != nil {
-		cameraOpts.RTMP = &camera.RTMPOptions{PublicAddr: opts.RTMP.PublicAddr, AutoStart: opts.RTMP.AutoStart}
+		cameraOpts.RTMP = &camera.RTMPOptions{
+			PublicAddr:  opts.RTMP.PublicAddr,
+			ListenAddr:  opts.RTMP.ListenAddr,
+			InternalKey: instance.StreamAuth.InternalKey(),
+			AutoStart:   opts.RTMP.AutoStart,
+		}
 	}
 	instance.Cameras = camera.NewRegistry(cameraOpts, camera.Deps{
 		State:  instance.BabyStateManager,
@@ -200,9 +205,14 @@ func (app *App) hasSavedSession() bool {
 		log.Error().Err(err).Msg("Saved Nanit session no longer works")
 		return false
 	}
-	if _, err := app.RestClient.EnsureBabies(); err != nil {
-		log.Error().Err(err).Msg("Failed to fetch babies")
-		return false
+	// Asked for again at every start: the saved list used to be kept for
+	// good, so a camera added to the account later never showed up
+	if _, err := app.RestClient.FetchBabies(); err != nil {
+		if _, err := app.RestClient.EnsureBabies(); err != nil {
+			log.Error().Err(err).Msg("Failed to fetch babies")
+			return false
+		}
+		log.Warn().Err(err).Msg("Couldn't refresh the camera list from Nanit, using the saved one")
 	}
 	return true
 }
@@ -271,6 +281,40 @@ func (app *App) startSharedServices(ctx utils.GracefulContext) {
 		ctx.RunAsChild(func(childCtx utils.GracefulContext) {
 			app.MQTTConnection.Run(app.BabyStateManager, childCtx)
 		})
+	}
+
+	ctx.RunAsChild(func(childCtx utils.GracefulContext) {
+		app.refreshBabies(ctx, childCtx)
+	})
+}
+
+// babiesRefreshInterval - how often the account's cameras are listed again,
+// so one added or removed in the Nanit app is picked up
+const babiesRefreshInterval = 6 * time.Hour
+
+// refreshBabies lists the account's cameras every so often, starting and
+// stopping cameras to match, until loopCtx ends. Cameras run under ctx.
+func (app *App) refreshBabies(ctx, loopCtx utils.GracefulContext) {
+	ticker := time.NewTicker(babiesRefreshInterval)
+	defer ticker.Stop()
+	for {
+		select {
+		case <-ticker.C:
+		case <-loopCtx.Done():
+			return
+		}
+		babies, err := app.RestClient.FetchBabies()
+		if err != nil {
+			log.Warn().Err(err).Msg("Couldn't refresh the camera list from Nanit")
+			continue
+		}
+		// An empty list is more likely a hiccup than every camera removed,
+		// and would stop them all
+		if len(babies) == 0 {
+			log.Warn().Msg("Nanit listed no cameras; keeping the current ones")
+			continue
+		}
+		app.Cameras.Sync(ctx, babies)
 	}
 }
 

@@ -66,3 +66,24 @@ func TestEnabledWithoutKeyIsOff(t *testing.T) {
 	require.NoError(t, os.WriteFile(path, []byte(`{"enabled":true}`), 0o600))
 	assert.False(t, Open(path).Get().Enabled)
 }
+
+// The bridge's own key opens the streams with the password on, and stays
+// the same when the password changes
+func TestInternalKey(t *testing.T) {
+	s := Open(filepath.Join(t.TempDir(), "stream_auth.json"))
+	internal := s.InternalKey()
+	require.Len(t, internal, 26)
+
+	settings, err := s.SetEnabled(true)
+	require.NoError(t, err)
+	assert.NotEqual(t, settings.Key, internal)
+	assert.True(t, s.Allows(internal))
+
+	_, err = s.Regenerate()
+	require.NoError(t, err)
+	assert.Equal(t, internal, s.InternalKey())
+	assert.True(t, s.Allows(internal))
+
+	var none *Store
+	assert.Equal(t, "", none.InternalKey())
+}

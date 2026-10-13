@@ -5,6 +5,7 @@ package camera
 
 import (
 	"errors"
+	"net"
 	"strings"
 	"sync"
 	"time"
@@ -42,6 +43,11 @@ type Options struct {
 type RTMPOptions struct {
 	// IP:Port under which the camera can reach the RTMP server
 	PublicAddr string
+	// :Port the RTMP server listens on, for the bridge's own HLS converter
+	ListenAddr string
+	// InternalKey - the HLS converter's key, which the RTMP output accepts
+	// whether or not the stream password is on
+	InternalKey string
 	// Ask the camera to stream as soon as it connects, and again if the
 	// stream drops
 	AutoStart bool
@@ -316,6 +322,24 @@ const localStreamURLTemplate = "rtmp://{publicAddr}/local/{babyUid}"
 // publicAddr
 func LocalStreamURL(publicAddr, babyUID string) string {
 	return strings.NewReplacer("{publicAddr}", publicAddr, "{babyUid}", babyUID).Replace(localStreamURLTemplate)
+}
+
+// hlsInputURL - where the HLS converter reads the stream: the RTMP server
+// over loopback, with the internal key. It used to read it from PublicAddr,
+// which can lead out through a proxy and back, and without a key, so it was
+// refused once the stream password was on.
+func (c *Camera) hlsInputURL() string {
+	if c.opts.RTMP == nil {
+		return ""
+	}
+	url := c.LocalStreamURL()
+	if _, port, err := net.SplitHostPort(c.opts.RTMP.ListenAddr); err == nil {
+		url = LocalStreamURL(net.JoinHostPort("127.0.0.1", port), c.UID())
+	}
+	if c.opts.RTMP.InternalKey != "" {
+		url += "?key=" + c.opts.RTMP.InternalKey
+	}
+	return url
 }
 
 // LocalStreamURL - where this camera streams to, or "" without RTMP

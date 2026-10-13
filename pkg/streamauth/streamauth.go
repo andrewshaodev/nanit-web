@@ -34,12 +34,15 @@ type Store struct {
 	settings Settings
 	// changed is closed, and replaced, whenever the settings change
 	changed chan struct{}
+	// internal - a key for the bridge's own HLS converter, new each start
+	// and never shown, so it can read the RTMP output with the password on
+	internal string
 }
 
 // Open loads the settings from path. A missing or unreadable file means the
 // password is off.
 func Open(path string) *Store {
-	s := &Store{path: path, changed: make(chan struct{})}
+	s := &Store{path: path, changed: make(chan struct{}), internal: newKey()}
 	data, err := os.ReadFile(path)
 	if err != nil {
 		if !errors.Is(err, os.ErrNotExist) {
@@ -119,13 +122,24 @@ func (s *Store) Required() (key string, required bool) {
 	return settings.Key, settings.Enabled
 }
 
-// Allows - whether key opens the streams: always, while the password is off
+// Allows - whether key opens the streams: always, while the password is
+// off, and the internal key always
 func (s *Store) Allows(key string) bool {
 	want, required := s.Required()
 	if !required {
 		return true
 	}
-	return subtle.ConstantTimeCompare([]byte(key), []byte(want)) == 1
+	return subtle.ConstantTimeCompare([]byte(key), []byte(want)) == 1 ||
+		subtle.ConstantTimeCompare([]byte(key), []byte(s.internal)) == 1
+}
+
+// InternalKey - the key the bridge itself uses to read its RTMP output; ""
+// for a nil store. It stays the same when the stream password changes.
+func (s *Store) InternalKey() string {
+	if s == nil {
+		return ""
+	}
+	return s.internal
 }
 
 // newKey - 26 random letters and digits (128 bits), which need no escaping

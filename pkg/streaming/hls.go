@@ -2,6 +2,7 @@ package streaming
 
 import (
 	"fmt"
+	"net/url"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -106,7 +107,7 @@ func (h *HLSTranscoder) Start() error {
 
 	log.Info().
 		Str("baby_uid", h.babyUID).
-		Str("rtmp_url", h.rtmpURL).
+		Str("rtmp_url", redactKey(h.rtmpURL)).
 		Str("hls_dir", h.hlsDir).
 		Int("retry_count", h.retryCount).
 		Msg("Starting HLS transcoding")
@@ -661,4 +662,18 @@ func (h *HLSTranscoder) restartFFmpeg() error {
 	go h.monitor(h.cmd, h.cmdExited)
 
 	return nil
+}
+
+// redactKey - an input URL for the log, without the ?key= it may carry
+func redactKey(raw string) string {
+	u, err := url.Parse(raw)
+	if err != nil {
+		return "(unparseable URL)"
+	}
+	if u.Query().Has("key") {
+		q := u.Query()
+		q.Set("key", "xxxxx")
+		u.RawQuery = q.Encode()
+	}
+	return u.String()
 }
