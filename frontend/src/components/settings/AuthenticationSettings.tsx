@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router';
 import type { AuthStatusResponse } from '@/types/api';
 import { api } from '@/lib/api';
-import { Info, Loader2 } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
 import {
   AlertDialog,
   AlertDialogCancel,
@@ -14,6 +14,9 @@ import {
 } from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { NoteRow, SettingRow } from './SettingRows';
+import NewCredentialInput from './NewCredentialInput';
+import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 
 interface WebAuthStatus {
@@ -30,34 +33,6 @@ interface AuthenticationSettingsProps {
   onMessage: (message: { type: 'success' | 'error'; text: string }) => void;
 }
 
-// A settings row: what it is on the left, its actions on the right
-function SettingRow({ title, description, meta, actions }: {
-  title: string
-  description: React.ReactNode
-  meta?: React.ReactNode
-  actions: React.ReactNode
-}) {
-  return (
-    <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-3">
-      <div className="min-w-0 space-y-0.5">
-        <p className="font-medium">{title}</p>
-        <div className="text-muted-foreground">{description}</div>
-        {meta && <p className="text-xs text-muted-foreground">{meta}</p>}
-      </div>
-      <div className="flex shrink-0 gap-2">{actions}</div>
-    </div>
-  )
-}
-
-// A quieter closing row for a note about the box above
-function NoteRow({ children }: { children: React.ReactNode }) {
-  return (
-    <div className="flex items-start gap-2 bg-muted/40 px-4 py-2 text-xs text-muted-foreground">
-      <Info className="mt-0.5 size-3.5 shrink-0" aria-hidden="true" />
-      <p>{children}</p>
-    </div>
-  )
-}
 
 export default function AuthenticationSettings({ 
   authStatus, 
@@ -204,26 +179,34 @@ export default function AuthenticationSettings({
           <section className="space-y-2">
             <h3 className="font-semibold">Web dashboard security</h3>
             <div className="divide-y rounded-md border bg-card">
+              {/* The switch comes first; setting the password is how it's
+                  turned on, and it only shows as on once one is set */}
               <SettingRow
-                title="Password protection"
-                description={webAuthStatus.password_set ? 'Password protection is enabled' : 'No password set'}
+                title="Require a password"
+                description={
+                  webAuthStatus.password_set
+                    ? 'On: the dashboard and its API ask for a password.'
+                    : 'Off: anyone who can reach the dashboard can use it.'
+                }
                 actions={
-                  !webAuthStatus.password_set ? (
-                    <Button size="sm" onClick={() => openPasswordForm('set')}>
-                      Set Password
-                    </Button>
-                  ) : (
-                    <>
-                      <Button variant="outline" size="sm" onClick={() => openPasswordForm('change')}>
-                        Change Password
-                      </Button>
-                      <Button variant="destructive" size="sm" onClick={() => openPasswordForm('remove')}>
-                        Remove Password
-                      </Button>
-                    </>
-                  )
+                  <Switch
+                    aria-label="Require a password for the dashboard"
+                    checked={webAuthStatus.password_set}
+                    onCheckedChange={(on) => openPasswordForm(on ? 'set' : 'remove')}
+                  />
                 }
               />
+              {webAuthStatus.password_set && (
+                <SettingRow
+                  title="Password"
+                  description="Change it any time; you'll need the current one."
+                  actions={
+                    <Button variant="outline" size="sm" onClick={() => openPasswordForm('change')}>
+                      Change Password
+                    </Button>
+                  }
+                />
+              )}
               {webAuthStatus.password_set && (
                 <NoteRow>
                   Forgot it? Reset it from inside the Docker container:{' '}
@@ -279,9 +262,9 @@ export default function AuthenticationSettings({
         <AlertDialogContent className="sm:max-w-md">
           <AlertDialogHeader>
             <AlertDialogTitle>
-              {formType === 'set' && 'Set Password'}
+              {formType === 'set' && 'Turn on password protection'}
               {formType === 'change' && 'Change Password'}
-              {formType === 'remove' && 'Remove Password'}
+              {formType === 'remove' && 'Turn off password protection'}
             </AlertDialogTitle>
           </AlertDialogHeader>
 
@@ -291,13 +274,10 @@ export default function AuthenticationSettings({
                 <Label htmlFor="password">
                   New Password
                 </Label>
-                <Input
-                  type="password"
+                <NewCredentialInput
                   id="password"
                   value={formData.password}
-                  onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                  required
-                  minLength={8}
+                  onChange={(password) => setFormData({ ...formData, password })}
                   placeholder="Enter a password (minimum 8 characters)"
                 />
               </div>
@@ -321,13 +301,10 @@ export default function AuthenticationSettings({
                   <Label htmlFor="newPassword">
                     New Password
                   </Label>
-                  <Input
-                    type="password"
+                  <NewCredentialInput
                     id="newPassword"
                     value={formData.newPassword}
-                    onChange={(e) => setFormData({ ...formData, newPassword: e.target.value })}
-                    required
-                    minLength={8}
+                    onChange={(newPassword) => setFormData({ ...formData, newPassword })}
                     placeholder="Enter new password (minimum 8 characters)"
                   />
                 </div>
@@ -347,7 +324,7 @@ export default function AuthenticationSettings({
                   required
                 />
                 <p className="text-sm text-destructive">
-                  This will permanently disable password protection.
+                  Enter the current password to turn protection off. The dashboard is then open to anyone who can reach it.
                 </p>
               </div>
             )}
@@ -360,9 +337,9 @@ export default function AuthenticationSettings({
                 type="submit"
                 variant={formType === 'remove' ? 'destructive' : 'default'}
               >
-                {formType === 'set' && 'Set Password'}
+                {formType === 'set' && 'Turn on'}
                 {formType === 'change' && 'Change Password'}
-                {formType === 'remove' && 'Remove Password'}
+                {formType === 'remove' && 'Turn off'}
               </Button>
             </AlertDialogFooter>
           </form>

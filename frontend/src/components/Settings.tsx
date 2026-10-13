@@ -162,7 +162,7 @@ export default function Settings() {
         <p className="text-muted-foreground">Manage your Nanit device configuration and preferences</p>
       </div>
 
-      {message && (
+      {message?.text && (
         <Alert variant={message.type === 'success' ? 'success' : 'destructive'}>
           {message.type === 'success' ? <CircleCheck /> : <CircleAlert />}
           <AlertDescription>{message.text}</AlertDescription>
