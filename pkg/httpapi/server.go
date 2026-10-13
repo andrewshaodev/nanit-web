@@ -7,7 +7,9 @@
 package httpapi
 
 import (
+	"bufio"
 	"encoding/json"
+	"net"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -20,6 +22,7 @@ import (
 	"github.com/andrewshaodev/nanit-web/pkg/client"
 	"github.com/andrewshaodev/nanit-web/pkg/history"
 	"github.com/andrewshaodev/nanit-web/pkg/httpapi/apitypes"
+	"github.com/andrewshaodev/nanit-web/pkg/relay"
 	"github.com/andrewshaodev/nanit-web/pkg/session"
 	"github.com/andrewshaodev/nanit-web/pkg/streaming"
 	"github.com/andrewshaodev/nanit-web/pkg/webauth"
@@ -55,13 +58,18 @@ type Server struct {
 	State    *baby.StateManager
 	Cameras  *camera.Registry
 	HLS      *streaming.HLSManager
-	History  *history.Tracker
-	WebAuth  *webauth.WebAuth
-	Nanit    *client.NanitClient
+	// Relay - each camera's live stream, for the live view; nil without one
+	Relay   *relay.Hub
+	History *history.Tracker
+	WebAuth *webauth.WebAuth
+	Nanit   *client.NanitClient
 	// SignedIn - called after a Nanit sign-in, to start the cameras
 	SignedIn func()
 	// StartedAt - for /health's uptime
 	StartedAt time.Time
+	// Stopping - closed when the bridge shuts down. Live views are hijacked
+	// connections, which the HTTP server's shutdown doesn't wait for or end.
+	Stopping <-chan struct{}
 }
 
 // sessionCookie - the dashboard session, set by /api/webauth/login
@@ -94,6 +102,7 @@ func (s *Server) Handler() http.Handler {
 	api.HandleFunc("POST /api/webauth/remove-password", s.handleRemovePassword)
 
 	api.HandleFunc("GET /api/stream/hls/{uid}/{file}", s.withBaby(s.handleHLSFile))
+	api.HandleFunc("GET /api/stream/live/{uid}", s.withBaby(s.handleLive))
 	// The dashboard sends these with a trailing slash
 	for _, path := range []string{"/api/stream/start", "/api/stream/start/{$}"} {
 		api.HandleFunc("POST "+path, s.handleStreamStart)
@@ -319,6 +328,11 @@ func (e *errorRewriter) WriteHeader(status int) {
 		return
 	}
 	e.ResponseWriter.WriteHeader(status)
+}
+
+// Hijack - for the live view's WebSocket
+func (e *errorRewriter) Hijack() (net.Conn, *bufio.ReadWriter, error) {
+	return http.NewResponseController(e.ResponseWriter).Hijack()
 }
 
 func (e *errorRewriter) Write(b []byte) (int, error) {

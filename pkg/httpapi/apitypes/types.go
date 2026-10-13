@@ -88,6 +88,16 @@ type StreamingInfoResponse struct {
 	HLS        HLSInfo  `json:"hls"`
 }
 
+// LiveMessage - the text messages of the live view's WebSocket,
+// GET /api/stream/live/{uid}. "waiting" while the camera isn't streaming,
+// then "stream", followed by the fMP4 init segment and fragments as binary
+// messages.
+type LiveMessage struct {
+	Type string `json:"type" tstype:"'waiting' | 'stream'"`
+	// MIME - for "stream": the type and codecs for MediaSource.addSourceBuffer
+	MIME string `json:"mime,omitempty"`
+}
+
 // ControlRequest - POST /api/control/night-light and /api/control/standby
 type ControlRequest struct {
 	BabyUID string `json:"baby_uid"`

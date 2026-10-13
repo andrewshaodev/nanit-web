@@ -40,6 +40,7 @@ var frontendRequests = []struct{ method, path string }{
 	{"GET", "/api/health/baby1"},
 	{"GET", "/api/streaming/info"},
 	{"GET", "/api/stream/hls/baby1/playlist.m3u8"},
+	{"GET", "/api/stream/live/baby1"},
 	{"GET", "/api/sound/baby1"},
 	{"POST", "/api/sound/baby1/play"},
 	{"POST", "/api/sound/baby1/stop"},

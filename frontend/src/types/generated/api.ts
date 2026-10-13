@@ -105,6 +105,19 @@ export interface StreamingInfoResponse {
   hls: HLSInfo;
 }
 /**
+ * LiveMessage - the text messages of the live view's WebSocket,
+ * GET /api/stream/live/{uid}. "waiting" while the camera isn't streaming,
+ * then "stream", followed by the fMP4 init segment and fragments as binary
+ * messages.
+ */
+export interface LiveMessage {
+  type: 'waiting' | 'stream';
+  /**
+   * MIME - for "stream": the type and codecs for MediaSource.addSourceBuffer
+   */
+  mime?: string;
+}
+/**
  * ControlRequest - POST /api/control/night-light and /api/control/standby
  */
 export interface ControlRequest {

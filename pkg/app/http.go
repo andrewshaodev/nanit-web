@@ -17,7 +17,7 @@ import (
 func (app *App) serveHTTP(ctx utils.GracefulContext) {
 	server := &http.Server{
 		Addr:    fmt.Sprintf(":%v", app.Opts.HTTPPort),
-		Handler: app.apiServer().Handler(),
+		Handler: app.apiServer(ctx.Done()).Handler(),
 		// The server had no timeouts, so a slow or stalled client held its
 		// connection open indefinitely
 		ReadHeaderTimeout: 10 * time.Second,
@@ -50,7 +50,7 @@ func (app *App) serveHTTP(ctx utils.GracefulContext) {
 }
 
 // apiServer - the dashboard and API, over the app's parts
-func (app *App) apiServer() *httpapi.Server {
+func (app *App) apiServer(stopping <-chan struct{}) *httpapi.Server {
 	config := httpapi.Config{
 		MQTTEnabled: app.MQTTConnection != nil,
 		SessionFile: app.Opts.SessionFile,
@@ -72,10 +72,12 @@ func (app *App) apiServer() *httpapi.Server {
 		State:     app.BabyStateManager,
 		Cameras:   app.Cameras,
 		HLS:       app.HLSManager,
+		Relay:     app.Relay,
 		History:   app.HistoryTracker,
 		WebAuth:   app.WebAuth,
 		Nanit:     app.RestClient,
 		SignedIn:  app.StartMonitoringServices,
 		StartedAt: app.startedAt,
+		Stopping:  stopping,
 	}
 }
