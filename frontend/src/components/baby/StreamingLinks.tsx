@@ -3,7 +3,7 @@ import { api } from '@/lib/api'
 import { useStreamingInfo } from '@/hooks/useStreamingInfo'
 import { copyToClipboard } from '@/lib/utils'
 import type { Baby } from '@/types/api'
-import { Check, ChevronRight, Copy, Globe, Link, Radio } from 'lucide-react'
+import { Cctv, Check, ChevronRight, Copy, Globe, Link, Radio, type LucideIcon } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 
@@ -40,14 +40,52 @@ function CopyButton({ text, label }: CopyButtonProps) {
   )
 }
 
+interface StreamCardProps {
+  icon: LucideIcon
+  title: string
+  description: string
+  url: string
+  copyLabel: string
+  // Shown instead of the URL when this output is off
+  disabled?: React.ReactNode
+}
+
+function StreamCard({ icon: Icon, title, description, url, copyLabel, disabled }: StreamCardProps) {
+  return (
+    <Card size="sm">
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <Icon className="size-4" />
+          {title}
+        </CardTitle>
+        <CardDescription>{description}</CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-3">
+        {disabled ? (
+          <p className="rounded-md border bg-muted p-3 text-sm text-muted-foreground">{disabled}</p>
+        ) : (
+          <>
+            <div className="bg-muted p-3 rounded-md border text-sm font-mono text-foreground overflow-x-auto whitespace-nowrap">
+              {url}
+            </div>
+            <CopyButton text={url} label={copyLabel} />
+          </>
+        )}
+      </CardContent>
+    </Card>
+  )
+}
+
+const envVar = (name: string) => <code className="font-mono text-foreground">{name}</code>
+
 export default function StreamingLinks({ baby }: StreamingLinksProps) {
   const [isExpanded, setIsExpanded] = useState(false)
 
-  // The RTMP address comes from the server (NANIT_RTMP_ADDR); it's rarely the
-  // host and port the dashboard is served from
+  // The RTSP and RTMP addresses come from the server (NANIT_RTMP_ADDR); they
+  // are rarely the host and port the dashboard is served from
   const { streamingInfo } = useStreamingInfo(isExpanded)
+  const rtspUrl = api.getRTSPUrl(baby.uid, streamingInfo)
   const rtmpUrl = api.getRTMPUrl(baby.uid, streamingInfo)
-  const rtmpDisabled = streamingInfo?.rtmp?.enabled === false
   const hlsUrl = api.getHLSUrl(baby.uid)
 
   return (
@@ -67,57 +105,43 @@ export default function StreamingLinks({ baby }: StreamingLinksProps) {
       </Button>
 
       {isExpanded && (
-        <div className="border-t p-4 space-y-4">
-          <div className="grid md:grid-cols-2 gap-4">
-            {/* RTMP Link */}
-            <Card size="sm">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Radio className="size-4" />
-                  RTMP Stream
-                </CardTitle>
-                <CardDescription>
-                  For Home Assistant, OBS, VLC, etc.
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                {rtmpDisabled ? (
-                  <p className="rounded-md border bg-muted p-3 text-sm text-muted-foreground">
-                    The built-in RTMP server is disabled. Set{' '}
-                    <code className="font-mono text-foreground">NANIT_RTMP_ENABLED=true</code> and{' '}
-                    <code className="font-mono text-foreground">NANIT_RTMP_ADDR</code> to use it.
-                  </p>
-                ) : (
+        <div className="border-t p-4">
+          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+            <StreamCard
+              icon={Cctv}
+              title="RTSP Stream"
+              description="For Frigate, go2rtc, NVRs and Home Assistant"
+              url={rtspUrl}
+              copyLabel="Copy RTSP URL"
+              disabled={
+                streamingInfo?.rtsp?.enabled === false && (
+                  <>The RTSP output is disabled. Set {envVar('NANIT_RTSP_ENABLED=true')} to use it.</>
+                )
+              }
+            />
+            <StreamCard
+              icon={Radio}
+              title="RTMP Stream"
+              description="For OBS, VLC and other RTMP players"
+              url={rtmpUrl}
+              copyLabel="Copy RTMP URL"
+              disabled={
+                streamingInfo?.rtmp?.enabled === false && (
                   <>
-                    <div className="bg-muted p-3 rounded-md border text-sm font-mono text-foreground overflow-x-auto whitespace-nowrap">
-                      {rtmpUrl}
-                    </div>
-                    <CopyButton text={rtmpUrl} label="Copy RTMP URL" />
+                    The built-in RTMP server is disabled. Set {envVar('NANIT_RTMP_ENABLED=true')} and{' '}
+                    {envVar('NANIT_RTMP_ADDR')} to use it.
                   </>
-                )}
-              </CardContent>
-            </Card>
-
-            {/* HLS Link */}
-            <Card size="sm">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Globe className="size-4" />
-                  HLS Stream
-                </CardTitle>
-                <CardDescription>
-                  For web browsers and modern apps
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <div className="bg-muted p-3 rounded-sm border text-sm font-mono text-foreground overflow-x-auto whitespace-nowrap">
-                  {hlsUrl}
-                </div>
-                <CopyButton text={hlsUrl} label="Copy HLS URL" />
-              </CardContent>
-            </Card>
+                )
+              }
+            />
+            <StreamCard
+              icon={Globe}
+              title="HLS Stream"
+              description="For web browsers and modern apps"
+              url={hlsUrl}
+              copyLabel="Copy HLS URL"
+            />
           </div>
-
         </div>
       )}
     </div>

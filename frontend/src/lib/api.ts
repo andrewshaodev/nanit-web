@@ -247,6 +247,18 @@ class ApiClient {
     return `rtmp://${host}:1935/local/${babyUid}`;
   }
 
+  // The RTSP output, for camera software. Without an address from the
+  // server (no NANIT_RTMP_ADDR to take the host from), the dashboard's own
+  // host and the default port are the best guess.
+  getRTSPUrl(babyUid: string, streamingInfo?: StreamingInfoResponse): string {
+    const template = streamingInfo?.rtsp?.url_template;
+    if (template) {
+      return template.replace('{baby_uid}', babyUid);
+    }
+    const host = typeof window !== 'undefined' ? window.location.hostname : 'localhost';
+    return `rtsp://${host}:8554/local/${babyUid}`;
+  }
+
   getHLSUrl(babyUid: string): string {
     // Same origin as the page, so it keeps working over HTTPS behind a reverse
     // proxy (a hardcoded http:// URL is blocked there as mixed content)

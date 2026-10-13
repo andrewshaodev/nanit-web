@@ -34,7 +34,8 @@ export default function StreamingSettings({ babies }: StreamingSettingsProps) {
         <AlertTitle>Streaming overview</AlertTitle>
         <AlertDescription>
           <ul className="list-disc space-y-0.5 pl-4">
-            <li><strong>RTMP:</strong> best for Home Assistant, OBS, VLC and other video software</li>
+            <li><strong>RTSP:</strong> best for Home Assistant, Frigate, go2rtc and other camera software</li>
+            <li><strong>RTMP:</strong> for OBS, VLC and other RTMP players</li>
             <li><strong>HLS:</strong> best for web browsers and mobile apps</li>
             <li>Start video streaming on the device before using these URLs</li>
           </ul>
@@ -59,13 +60,13 @@ export default function StreamingSettings({ babies }: StreamingSettingsProps) {
         <House />
         <AlertTitle>Home Assistant integration</AlertTitle>
         <AlertDescription className="space-y-2">
-          <p>To add these streams to Home Assistant, use the RTMP URLs in your camera configuration:</p>
+          <p>To add these streams to Home Assistant, use the RTSP URLs in your camera configuration:</p>
           <pre className="overflow-x-auto rounded-md border bg-muted p-3 font-mono text-xs text-foreground">
-            {haConfig(api.getRTMPUrl(babies[0].uid, streamingInfo))}
+            {haConfig(api.getRTSPUrl(babies[0].uid, streamingInfo))}
           </pre>
           <p className="text-xs">
             That&apos;s the first camera&apos;s address; each camera has its own (see its Streaming Links). The
-            address is NANIT_RTMP_ADDR, and it has to be reachable from both the camera and Home Assistant.
+            host comes from NANIT_RTMP_ADDR, and RTSP listens on port 8554 unless NANIT_RTSP_ADDR says otherwise.
           </p>
         </AlertDescription>
       </Alert>
