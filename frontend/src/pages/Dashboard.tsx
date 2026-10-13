@@ -9,7 +9,7 @@ import LoadingSpinner from '@/components/ui/LoadingSpinner'
 import ErrorMessage from '@/components/ui/ErrorMessage'
 import { api } from '@/lib/api'
 import { useStatus } from '@/hooks/useStatus'
-import { useCameraLayout } from '@/hooks/useCameraLayout'
+import { isWorking, useCameraLayout } from '@/hooks/useCameraLayout'
 import type { AuthStatusResponse, WebAuthStatusResponse } from '@/types/api'
 
 export default function Dashboard() {
@@ -124,6 +124,10 @@ export default function Dashboard() {
   }
 
   const sortedBabies = sortBabies(babies)
+  // Cameras that are off stay below working ones, so they only move
+  // among themselves
+  const canSwap = (a: number, b: number) =>
+    a >= 0 && b < sortedBabies.length && isWorking(sortedBabies[a]) === isWorking(sortedBabies[b])
 
   return (
     <MainLayout>
@@ -134,8 +138,8 @@ export default function Dashboard() {
             baby={baby}
             collapsed={isCollapsed(baby.uid)}
             onToggleCollapsed={() => toggleCollapsed(baby.uid)}
-            onMoveUp={index > 0 ? () => move(sortedBabies, baby.uid, -1) : undefined}
-            onMoveDown={index < sortedBabies.length - 1 ? () => move(sortedBabies, baby.uid, 1) : undefined}
+            onMoveUp={canSwap(index - 1, index) ? () => move(sortedBabies, baby.uid, -1) : undefined}
+            onMoveDown={canSwap(index, index + 1) ? () => move(sortedBabies, baby.uid, 1) : undefined}
           />
         ))}
       </div>

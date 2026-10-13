@@ -11,11 +11,11 @@ It isn't affiliated with Nanit. It uses Nanit's unofficial, reverse-engineered A
 - **One stream server, any number of viewers.** The camera can only stream to one place. One instance asks for it; other instances (a test copy on a laptop, say) take their video from that one instead of competing for the camera. See [Stream server and viewers](#stream-server-and-viewers).
 - **Passwords on everything that streams.** An optional dashboard password covers the dashboard, its live view and HLS; an optional stream password covers RTSP and RTMP.
 - **Readings.** Temperature, humidity, the camera's day/night mode, and night light state, updated live.
-- **Controls.** Night light, standby, and the camera's built-in sounds (White Noise, Birds, Waves, Wind) with play/stop, a timer and speaker volume.
+- **Controls.** Night light (tap its reading to switch it), standby, and the camera's built-in sounds (White Noise, Birds, Waves, Wind) with play/stop, a timer and speaker volume.
 - **Device details.** Firmware, settings, and the camera's WiFi network, signal strength and channel.
 - **History.** Temperature and humidity charts, and a day/night timeline that marks the time nothing was recorded, over 1 hour to 30 days, stored in SQLite.
-- **Crying log, with recordings.** With [Frigate](https://frigate.video) listening to the stream for crying, each crying spell shows on the camera's card as it happens, with how long it lasted and its recording. See [Crying spells from Frigate](#crying-spells-from-frigate).
-- **Dashboard.** Light and dark themes (Catppuccin Latte and Mocha, following the device or set by hand). Several cameras can be collapsed and reordered, per browser.
+- **Crying log, with recordings.** With [Frigate](https://frigate.video) listening to the stream for crying, each crying spell shows on the camera's card as it happens, with how long it lasted and its recording, 10 to a page. See [Crying spells from Frigate](#crying-spells-from-frigate).
+- **Dashboard.** Light and dark themes (Catppuccin Latte and Mocha, following the device or set by hand). Several cameras can be collapsed and reordered, per browser; cameras that are off or in standby are listed after working ones.
 - **Sign-in.** Nanit's email/password and 2FA (text or email code) from the dashboard, plus an optional password on the dashboard itself.
 - **MQTT.** Readings and switch topics for Home Assistant or anything else. See [MQTT](#mqtt).
 
@@ -155,7 +155,7 @@ In Frigate, listen for `crying` on the camera, make it an alert (`review.alerts.
 - `NANIT_FRIGATE_CAMERAS` to which Frigate camera is which baby. The baby UIDs are in **Settings → Devices**.
 - MQTT, on the same broker as Frigate (`NANIT_MQTT_*`), so spells show up as they happen. The broker user needs to read `frigate/reviews`. Without MQTT, the bridge checks Frigate every 5 minutes instead.
 
-Each spell is one of Frigate's review items. The bridge keeps the times in its history database, as long as the rest of the history (`NANIT_HISTORY_RETENTION_DAYS`), and asks Frigate for the recording when it's played, from 30 s before the first cry to 30 s after the last. Recordings last only as long as Frigate keeps them. The history database must be on (`NANIT_HISTORY_ENABLED`).
+Each spell is one of Frigate's review items. The bridge keeps the times in its history database, as long as the rest of the history (`NANIT_HISTORY_RETENTION_DAYS`), and plays the recording straight from Frigate as HLS, from 30 s before the first cry to 30 s after the last, so nothing is copied and it can be seeked on any browser. Recordings last only as long as Frigate keeps them. The history database must be on (`NANIT_HISTORY_ENABLED`).
 
 ## Troubleshooting
 

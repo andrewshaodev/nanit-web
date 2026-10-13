@@ -33,6 +33,13 @@ function save(layout: CameraLayout) {
   window.dispatchEvent(new CustomEvent(CHANGED_EVENT, { detail: layout }))
 }
 
+// Whether a camera is on and reachable: connected through Nanit, not in
+// standby, and sending video or readings. A camera that's powered off still
+// shows as connected, as the connection is to Nanit's servers.
+export function isWorking(baby: Baby): boolean {
+  return baby.websocket_alive && !baby.standby && (baby.stream_state === 2 || (baby.is_night ?? null) !== null)
+}
+
 export function useCameraLayout() {
   const [layout, setLayout] = useState<CameraLayout>(load)
 
@@ -56,15 +63,16 @@ export function useCameraLayout() {
     save(next)
   }, [])
 
-  // Saved order first; cameras not in it yet (new ones) follow in Nanit's order
+  // Working cameras before ones that are off. Within each, the saved order
+  // first; cameras not in it yet (new ones) follow in Nanit's order.
   const sortBabies = useCallback((babies: Baby[]): Baby[] => {
     const rank = (uid: string) => {
       const i = layout.order.indexOf(uid)
       return i === -1 ? Number.MAX_SAFE_INTEGER : i
     }
     return babies
-      .map((baby, nanitIndex) => ({ baby, nanitIndex }))
-      .toSorted((a, b) => rank(a.baby.uid) - rank(b.baby.uid) || a.nanitIndex - b.nanitIndex)
+      .map((baby, nanitIndex) => ({ baby, nanitIndex, off: Number(!isWorking(baby)) }))
+      .toSorted((a, b) => a.off - b.off || rank(a.baby.uid) - rank(b.baby.uid) || a.nanitIndex - b.nanitIndex)
       .map(({ baby }) => baby)
   }, [layout.order])
 

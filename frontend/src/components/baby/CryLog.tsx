@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import useSWR from 'swr'
-import { Baby as BabyIcon, CircleAlert, Play, X } from 'lucide-react'
+import { Baby as BabyIcon, ChevronLeft, ChevronRight, CircleAlert, Play, X } from 'lucide-react'
 import { api } from '@/lib/api'
 import { useSectionCollapsed } from '@/hooks/useSectionCollapsed'
 import type { Baby, CriesResponse, Cry } from '@/types/api'
@@ -49,11 +49,56 @@ function byDay(cries: Cry[]): [string, Cry[]][] {
 
 const crying = (cry: Cry) => cry.end === null
 
+const PAGE_SIZE = 10
+
+// The page numbers to offer: the first, the last, and the ones either side
+// of the current one, with null for a gap
+function pageNumbers(current: number, count: number): (number | null)[] {
+  const shown = [...new Set([0, current - 1, current, current + 1, count - 1])]
+    .filter((p) => p >= 0 && p < count)
+    .toSorted((a, b) => a - b)
+  return shown.flatMap((p, i) => (i > 0 && p - shown[i - 1] > 1 ? [null, p] : [p]))
+}
+
+// Previous, the page numbers, and next
+function Pager({ page, count, onChange }: { page: number; count: number; onChange: (page: number) => void }) {
+  return (
+    <nav className="flex items-center justify-center gap-1" aria-label="Crying log pages">
+      <Button size="sm" variant="ghost" onClick={() => onChange(page - 1)} disabled={page === 0} aria-label="Previous page">
+        <ChevronLeft />
+      </Button>
+      {pageNumbers(page, count).map((p, i) =>
+        p === null ? (
+          <span key={`gap-${i}`} className="px-1 text-muted-foreground" aria-hidden="true">
+            …
+          </span>
+        ) : (
+          <Button
+            key={p}
+            size="sm"
+            variant={p === page ? 'secondary' : 'ghost'}
+            className="min-w-8 tabular-nums"
+            onClick={() => onChange(p)}
+            aria-label={`Page ${p + 1}`}
+            aria-current={p === page ? 'page' : undefined}
+          >
+            {p + 1}
+          </Button>
+        ),
+      )}
+      <Button size="sm" variant="ghost" onClick={() => onChange(page + 1)} disabled={page === count - 1} aria-label="Next page">
+        <ChevronRight />
+      </Button>
+    </nav>
+  )
+}
+
 // The crying spells Frigate heard, with their recordings. Hidden when the
 // bridge isn't set up with Frigate.
 export default function CryLog({ baby }: { baby: Baby }) {
   const [hours, setHours] = useState('24')
   const [playing, setPlaying] = useState<string | null>(null)
+  const [requestedPage, setPage] = useState(0)
   const [collapsed, toggleCollapsed] = useSectionCollapsed('cries', baby.uid)
 
   const { data, error } = useSWR<CriesResponse>(
@@ -73,6 +118,10 @@ export default function CryLog({ baby }: { baby: Baby }) {
   // As of the last fetch, which is every few seconds while crying
   const asOf = data.end_time
   const total = cries.reduce((sum, c) => sum + ((c.end ?? asOf) - c.start), 0)
+  // Latest first, 10 to a page. Kept in range as spells come and go.
+  const pageCount = Math.max(1, Math.ceil(cries.length / PAGE_SIZE))
+  const page = Math.min(requestedPage, pageCount - 1)
+  const shown = cries.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE)
   const range = timeframes.find((t) => t.value === hours)?.label.toLowerCase() ?? ''
 
   return (
@@ -99,7 +148,13 @@ export default function CryLog({ baby }: { baby: Baby }) {
             {range}
           </span>
         ) : (
-          <Select value={hours} onValueChange={setHours}>
+          <Select
+            value={hours}
+            onValueChange={(value) => {
+              setHours(value)
+              setPage(0)
+            }}
+          >
             <SelectTrigger size="sm" className="w-36 bg-background" aria-label="Timeframe">
               <SelectValue />
             </SelectTrigger>
@@ -129,7 +184,7 @@ export default function CryLog({ baby }: { baby: Baby }) {
               : `${cries.length} ${cries.length === 1 ? 'spell' : 'spells'}, ${formatDuration(total)} in all, in the ${range}.`}
           </p>
 
-          {byDay(cries).map(([day, dayCries]) => (
+          {byDay(shown).map(([day, dayCries]) => (
             <div key={day} className="space-y-1">
               <h4 className="text-xs font-semibold text-muted-foreground">{day}</h4>
               <ul className="divide-y rounded-md border">
@@ -169,6 +224,8 @@ export default function CryLog({ baby }: { baby: Baby }) {
               </ul>
             </div>
           ))}
+
+          {pageCount > 1 && <Pager page={page} count={pageCount} onChange={setPage} />}
         </div>
       )}
     </section>

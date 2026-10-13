@@ -83,16 +83,6 @@ export default function ControlPanel({ baby }: ControlPanelProps) {
     setLoadingStates(prev => ({ ...prev, [action]: loading }))
   }
 
-  const handleNightLightToggle = async () => {
-    setLoading('nightlight', true)
-    try {
-      await api.toggleNightLight(baby.uid)
-      // Optionally refresh status here
-    } finally {
-      setLoading('nightlight', false)
-    }
-  }
-
   const handleStandbyToggle = async () => {
     setLoading('standby', true)
     try {
@@ -119,14 +109,6 @@ export default function ControlPanel({ baby }: ControlPanelProps) {
       )}
       
       <div className="grid grid-cols-2 gap-2">
-        <ControlButton
-          onClick={handleNightLightToggle}
-          disabled={isDisabled}
-          loading={loadingStates.nightlight || false}
-        >
-          {baby.night_light ? 'Turn Off Night Light' : 'Turn On Night Light'}
-        </ControlButton>
-        
         <ControlButton
           onClick={handleStandbyToggle}
           disabled={isDisabled}
