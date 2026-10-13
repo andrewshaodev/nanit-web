@@ -61,23 +61,24 @@ func (app *App) apiServer(stopping <-chan struct{}) *httpapi.Server {
 		config.RTMPPublicAddr = app.Opts.RTMP.PublicAddr
 	}
 	config.StreamServer = app.Opts.StreamServer
-	config.StreamFrom = app.Opts.StreamFrom
 	if app.Opts.RTSP != nil {
 		config.RTSPEnabled = true
 		config.RTSPPublicAddr = app.Opts.RTSP.PublicAddr
 	}
 	return &httpapi.Server{
-		Config:    config,
-		Sessions:  app.SessionStore,
-		State:     app.BabyStateManager,
-		Cameras:   app.Cameras,
-		HLS:       app.HLSManager,
-		Relay:     app.Relay,
-		History:   app.HistoryTracker,
-		WebAuth:   app.WebAuth,
-		Nanit:     app.RestClient,
-		SignedIn:  app.StartMonitoringServices,
-		StartedAt: app.startedAt,
-		Stopping:  stopping,
+		Config:       config,
+		Sessions:     app.SessionStore,
+		State:        app.BabyStateManager,
+		Cameras:      app.Cameras,
+		HLS:          app.HLSManager,
+		Relay:        app.Relay,
+		StreamAuth:   app.StreamAuth,
+		StreamSource: app.StreamSource,
+		History:      app.HistoryTracker,
+		WebAuth:      app.WebAuth,
+		Nanit:        app.RestClient,
+		SignedIn:     app.StartMonitoringServices,
+		StartedAt:    app.startedAt,
+		Stopping:     stopping,
 	}
 }

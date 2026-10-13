@@ -2,6 +2,7 @@ package app
 
 import (
 	"fmt"
+	"path/filepath"
 	"sync/atomic"
 	"time"
 
@@ -14,7 +15,9 @@ import (
 	"github.com/andrewshaodev/nanit-web/pkg/rtmpserver"
 	"github.com/andrewshaodev/nanit-web/pkg/rtspserver"
 	"github.com/andrewshaodev/nanit-web/pkg/session"
+	"github.com/andrewshaodev/nanit-web/pkg/streamauth"
 	"github.com/andrewshaodev/nanit-web/pkg/streaming"
+	"github.com/andrewshaodev/nanit-web/pkg/streamsource"
 	"github.com/andrewshaodev/nanit-web/pkg/utils"
 	"github.com/andrewshaodev/nanit-web/pkg/webauth"
 	"github.com/rs/zerolog/log"
@@ -29,7 +32,12 @@ type App struct {
 	MQTTConnection   *mqtt.Connection
 	HLSManager       *streaming.HLSManager
 	// Relay - each camera's live stream, for every output
-	Relay          *relay.Hub
+	Relay *relay.Hub
+	// StreamAuth - the optional password on the RTSP and RTMP outputs
+	StreamAuth *streamauth.Store
+	// StreamSource - where a viewer takes its video from; nil on the stream
+	// server
+	StreamSource   *streamsource.Store
 	HistoryTracker *history.Tracker
 	WebAuth        *webauth.WebAuth
 	Cameras        *camera.Registry
@@ -71,6 +79,11 @@ func NewApp(opts Opts) (*App, error) {
 		},
 		HLSManager: streaming.NewHLSManager(opts.DataDirectories.BaseDir + "/hls"),
 		WebAuth:    webauth.NewWebAuth(opts.WebAuth.PasswordFile),
+		StreamAuth: streamauth.Open(filepath.Join(opts.DataDirectories.BaseDir, "stream_auth.json")),
+	}
+	// A viewer's stream server, set in the dashboard
+	if !opts.StreamServer {
+		instance.StreamSource = streamsource.Open(filepath.Join(opts.DataDirectories.BaseDir, "stream_source.json"))
 	}
 
 	instance.Relay = relay.NewHub(instance.BabyStateManager)
@@ -79,7 +92,7 @@ func NewApp(opts Opts) (*App, error) {
 		instance.MQTTConnection = mqtt.NewConnection(*opts.MQTT)
 	}
 
-	cameraOpts := camera.Options{StreamServer: opts.StreamServer, StreamFrom: opts.StreamFrom, EventPolling: camera.EventPollingOptions{
+	cameraOpts := camera.Options{StreamServer: opts.StreamServer, EventPolling: camera.EventPollingOptions{
 		Enabled:        opts.EventPolling.Enabled,
 		Interval:       opts.EventPolling.PollingInterval,
 		MessageTimeout: opts.EventPolling.MessageTimeout,
@@ -88,11 +101,12 @@ func NewApp(opts Opts) (*App, error) {
 		cameraOpts.RTMP = &camera.RTMPOptions{PublicAddr: opts.RTMP.PublicAddr, AutoStart: opts.RTMP.AutoStart}
 	}
 	instance.Cameras = camera.NewRegistry(cameraOpts, camera.Deps{
-		State: instance.BabyStateManager,
-		Nanit: instance.RestClient,
-		HLS:   instance.HLSManager,
-		MQTT:  instance.MQTTConnection,
-		Relay: instance.Relay,
+		State:  instance.BabyStateManager,
+		Nanit:  instance.RestClient,
+		HLS:    instance.HLSManager,
+		MQTT:   instance.MQTTConnection,
+		Relay:  instance.Relay,
+		Source: instance.StreamSource,
 	})
 
 	// Initialize historical data tracker
@@ -217,7 +231,7 @@ func (app *App) startSharedServices(ctx utils.GracefulContext) {
 		ctx.RunAsChild(func(childCtx utils.GracefulContext) {
 			// Logged rather than stopping the app: in a container that would
 			// restart it, reconnecting to Nanit, in a loop
-			if err := rtmpserver.Serve(childCtx, app.Opts.RTMP.ListenAddr, app.Relay); err != nil {
+			if err := rtmpserver.Serve(childCtx, app.Opts.RTMP.ListenAddr, app.Relay, app.StreamAuth); err != nil {
 				log.Error().Err(err).Msg("RTMP server failed; video is unavailable")
 			}
 		})
@@ -225,7 +239,7 @@ func (app *App) startSharedServices(ctx utils.GracefulContext) {
 
 	if app.Opts.RTSP != nil {
 		ctx.RunAsChild(func(childCtx utils.GracefulContext) {
-			if err := rtspserver.Serve(childCtx, app.Opts.RTSP.ListenAddr, app.Relay); err != nil {
+			if err := rtspserver.Serve(childCtx, app.Opts.RTSP.ListenAddr, app.Relay, app.StreamAuth); err != nil {
 				log.Error().Err(err).Msg("RTSP server failed; RTSP players can't connect")
 			}
 		})

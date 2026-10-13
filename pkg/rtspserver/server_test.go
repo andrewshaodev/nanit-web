@@ -2,12 +2,14 @@ package rtspserver
 
 import (
 	"net"
+	"path/filepath"
 	"sync/atomic"
 	"testing"
 	"time"
 
 	"github.com/andrewshaodev/nanit-web/pkg/baby"
 	"github.com/andrewshaodev/nanit-web/pkg/relay"
+	"github.com/andrewshaodev/nanit-web/pkg/streamauth"
 	"github.com/andrewshaodev/nanit-web/pkg/utils"
 	"github.com/bluenviron/gortsplib/v5"
 	"github.com/bluenviron/gortsplib/v5/pkg/base"
@@ -42,10 +44,14 @@ func freeAddr(t *testing.T) string {
 
 // startServer runs the RTSP server on a hub, until the test ends
 func startServer(t *testing.T, hub *relay.Hub) string {
+	return startServerWithAuth(t, hub, nil)
+}
+
+func startServerWithAuth(t *testing.T, hub *relay.Hub, auth *streamauth.Store) string {
 	t.Helper()
 	addr := freeAddr(t)
 	runner := utils.RunWithGracefulCancel(func(ctx utils.GracefulContext) {
-		_ = Serve(ctx, addr, hub)
+		_ = Serve(ctx, addr, hub, auth)
 	})
 	t.Cleanup(runner.Cancel)
 	require.Eventually(t, func() bool {
@@ -89,7 +95,12 @@ func publish(t *testing.T, hub *relay.Hub) *relay.Publisher {
 // play connects an RTSP player over TCP, and counts the packets per track
 func play(t *testing.T, addr string) (desc *description.Session, video, audio *atomic.Int64, err error) {
 	t.Helper()
-	u, err := base.ParseURL("rtsp://" + addr + "/local/baby1")
+	return playURL(t, "rtsp://"+addr+"/local/baby1")
+}
+
+func playURL(t *testing.T, rawURL string) (desc *description.Session, video, audio *atomic.Int64, err error) {
+	t.Helper()
+	u, err := base.ParseURL(rawURL)
 	require.NoError(t, err)
 	tcp := gortsplib.ProtocolTCP
 	c := &gortsplib.Client{Scheme: u.Scheme, Host: u.Host, Protocol: &tcp}
@@ -175,4 +186,38 @@ func TestStreamFollowsThePublisher(t *testing.T) {
 	_, video, _, err = play(t, addr)
 	require.NoError(t, err)
 	assert.Eventually(t, func() bool { return video.Load() > 3 }, 5*time.Second, 20*time.Millisecond)
+}
+
+// With the stream password on, players sign in as streamauth.User with the
+// key, and a new key disconnects them
+func TestStreamPassword(t *testing.T) {
+	hub := relay.NewHub(baby.NewStateManager())
+	auth := streamauth.Open(filepath.Join(t.TempDir(), "stream_auth.json"))
+	settings, err := auth.SetEnabled(true)
+	require.NoError(t, err)
+	addr := startServerWithAuth(t, hub, auth)
+	publish(t, hub)
+
+	_, _, _, err = play(t, addr)
+	assert.ErrorContains(t, err, "401", "no password")
+	_, _, _, err = playURL(t, "rtsp://nanit:wrong@"+addr+"/local/baby1")
+	assert.Error(t, err, "wrong password")
+
+	_, video, _, err := playURL(t, "rtsp://nanit:"+settings.Key+"@"+addr+"/local/baby1")
+	require.NoError(t, err)
+	require.Eventually(t, func() bool { return video.Load() > 3 }, 5*time.Second, 20*time.Millisecond)
+
+	_, err = auth.Regenerate()
+	require.NoError(t, err)
+	// Packets stop once the stream is closed
+	time.Sleep(200 * time.Millisecond)
+	stopped := video.Load()
+	time.Sleep(300 * time.Millisecond)
+	assert.Equal(t, stopped, video.Load(), "the player is disconnected")
+
+	// Turning it off opens the streams again
+	_, err = auth.SetEnabled(false)
+	require.NoError(t, err)
+	_, _, _, err = play(t, addr)
+	assert.NoError(t, err)
 }

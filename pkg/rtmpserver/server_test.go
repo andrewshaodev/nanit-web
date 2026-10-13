@@ -9,6 +9,7 @@ import (
 
 	"github.com/andrewshaodev/nanit-web/pkg/baby"
 	"github.com/andrewshaodev/nanit-web/pkg/relay"
+	"github.com/andrewshaodev/nanit-web/pkg/streamauth"
 	"github.com/andrewshaodev/nanit-web/pkg/utils"
 	"github.com/bluenviron/gortmplib"
 	"github.com/bluenviron/gortmplib/pkg/codecs"
@@ -41,12 +42,16 @@ var (
 const testBabyUID = "baby1"
 
 func startTestServer(t *testing.T) (addr string, states *baby.StateManager) {
+	return startTestServerWithAuth(t, nil)
+}
+
+func startTestServerWithAuth(t *testing.T, auth *streamauth.Store) (addr string, states *baby.StateManager) {
 	lis, err := net.Listen("tcp", "127.0.0.1:0")
 	require.NoError(t, err)
 	t.Cleanup(func() { lis.Close() })
 
 	states = baby.NewStateManager()
-	go newRtmpHandler(relay.NewHub(states)).serve(lis)
+	go newRtmpHandler(relay.NewHub(states), auth).serve(lis)
 	return lis.Addr().String(), states
 }
 
@@ -74,7 +79,11 @@ func dial(t *testing.T, addr, path string, publish bool) *gortmplib.Client {
 // startPlayer - connects a player and reads the stream description. The
 // returned reader has a callback for every track, as gortmplib requires.
 func startPlayer(t *testing.T, addr string) (*gortmplib.Reader, error) {
-	player, err := tryDial(t, addr, "/local/"+testBabyUID, false)
+	return startPlayerAt(t, addr, "/local/"+testBabyUID)
+}
+
+func startPlayerAt(t *testing.T, addr, path string) (*gortmplib.Reader, error) {
+	player, err := tryDial(t, addr, path, false)
 	if err != nil {
 		return nil, err
 	}
@@ -277,7 +286,7 @@ func TestServeClosesItsListener(t *testing.T) {
 
 	served := make(chan error, 1)
 	runner := utils.RunWithGracefulCancel(func(ctx utils.GracefulContext) {
-		served <- Serve(ctx, addr, relay.NewHub(baby.NewStateManager()))
+		served <- Serve(ctx, addr, relay.NewHub(baby.NewStateManager()), nil)
 	})
 	require.Eventually(t, func() bool {
 		conn, err := net.Dial("tcp", addr)

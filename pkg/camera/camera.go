@@ -15,6 +15,7 @@ import (
 	"github.com/andrewshaodev/nanit-web/pkg/mqtt"
 	"github.com/andrewshaodev/nanit-web/pkg/pull"
 	"github.com/andrewshaodev/nanit-web/pkg/relay"
+	"github.com/andrewshaodev/nanit-web/pkg/streamsource"
 	"github.com/andrewshaodev/nanit-web/pkg/utils"
 	"github.com/rs/zerolog/log"
 )
@@ -33,9 +34,8 @@ type Options struct {
 
 	// StreamServer - this instance asks the camera to stream. Only one
 	// instance may: the others are viewers, which never ask, and take the
-	// server's stream from StreamFrom (a URL with {baby_uid} in it).
+	// server's stream from the stream server set in the dashboard.
 	StreamServer bool
-	StreamFrom   string
 }
 
 // RTMPOptions - the RTMP server the camera streams to
@@ -63,6 +63,8 @@ type Deps struct {
 	MQTT *mqtt.Connection
 	// Relay - the camera's live stream, for a viewer to publish into
 	Relay *relay.Hub
+	// Source - where a viewer pulls the stream server's video from
+	Source *streamsource.Store
 }
 
 // requester - the part of a websocket connection that commands need, so
@@ -141,10 +143,9 @@ func (c *Camera) Run(ctx utils.GracefulContext) {
 	}
 
 	// A viewer's video: the stream server's stream
-	if !c.opts.StreamServer && c.opts.StreamFrom != "" && c.deps.Relay != nil {
-		url := pull.URL(c.opts.StreamFrom, uid)
+	if !c.opts.StreamServer && c.deps.Source != nil && c.deps.Relay != nil {
 		ctx.RunAsChild(func(childCtx utils.GracefulContext) {
-			pull.Run(childCtx, url, uid, c.deps.Relay)
+			pull.Run(childCtx, uid, c.deps.Source, c.deps.Relay)
 		})
 	}
 

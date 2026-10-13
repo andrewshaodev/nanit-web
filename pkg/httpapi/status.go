@@ -54,20 +54,24 @@ func (s *Server) handleStreamingInfo(w http.ResponseWriter, r *http.Request) {
 	}
 	res := apitypes.StreamingInfoResponse{
 		Role:       role,
-		StreamFrom: s.Config.StreamFrom,
+		StreamFrom: s.streamFrom(),
 		RTMP:       apitypes.RTMPInfo{Enabled: s.Config.RTMPPublicAddr != ""},
 		HLS:        apitypes.HLSInfo{Enabled: true, URLTemplate: hlsURLTemplate},
+		Password:   s.streamPassword(),
 	}
 	if s.Config.RTSPEnabled {
 		res.RTSP = apitypes.RTSPInfo{Enabled: true, PublicAddr: s.Config.RTSPPublicAddr}
 		if s.Config.RTSPPublicAddr != "" {
-			res.RTSP.URLTemplate = "rtsp://" + s.Config.RTSPPublicAddr + "/local/{baby_uid}"
+			res.RTSP.URLTemplate = "rtsp://" + rtspUserInfo(res.Password) + s.Config.RTSPPublicAddr + "/local/{baby_uid}"
 		}
 	}
 	if res.RTMP.Enabled {
 		res.RTMP.PublicAddr = s.Config.RTMPPublicAddr
 		// The baby UID left as a placeholder, so clients can fill it in
 		res.RTMP.URLTemplate = camera.LocalStreamURL(s.Config.RTMPPublicAddr, "{baby_uid}")
+		if res.Password.Enabled {
+			res.RTMP.URLTemplate += "?key=" + res.Password.Key
+		}
 	}
 	writeJSON(w, res)
 }

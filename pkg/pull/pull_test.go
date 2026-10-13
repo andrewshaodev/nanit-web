@@ -2,12 +2,17 @@ package pull
 
 import (
 	"net"
+	"path/filepath"
+	"strconv"
+	"strings"
 	"testing"
 	"time"
 
 	"github.com/andrewshaodev/nanit-web/pkg/baby"
 	"github.com/andrewshaodev/nanit-web/pkg/relay"
 	"github.com/andrewshaodev/nanit-web/pkg/rtspserver"
+	"github.com/andrewshaodev/nanit-web/pkg/streamauth"
+	"github.com/andrewshaodev/nanit-web/pkg/streamsource"
 	"github.com/andrewshaodev/nanit-web/pkg/utils"
 	"github.com/bluenviron/mediacommon/v2/pkg/codecs/mpeg4audio"
 	"github.com/stretchr/testify/assert"
@@ -34,6 +39,10 @@ func run(t *testing.T, f func(utils.GracefulContext)) {
 
 // startStreamServer - a server hub, with its RTSP output on a free port
 func startStreamServer(t *testing.T) (*relay.Hub, string) {
+	return startStreamServerWithAuth(t, nil)
+}
+
+func startStreamServerWithAuth(t *testing.T, auth *streamauth.Store) (*relay.Hub, string) {
 	t.Helper()
 	lis, err := net.Listen("tcp", "127.0.0.1:0")
 	require.NoError(t, err)
@@ -41,7 +50,7 @@ func startStreamServer(t *testing.T) (*relay.Hub, string) {
 	lis.Close()
 
 	hub := relay.NewHub(baby.NewStateManager())
-	run(t, func(ctx utils.GracefulContext) { _ = rtspserver.Serve(ctx, addr, hub) })
+	run(t, func(ctx utils.GracefulContext) { _ = rtspserver.Serve(ctx, addr, hub, auth) })
 	require.Eventually(t, func() bool {
 		conn, err := net.Dial("tcp", addr)
 		if err == nil {
@@ -50,6 +59,19 @@ func startStreamServer(t *testing.T) (*relay.Hub, string) {
 		return err == nil
 	}, 5*time.Second, 10*time.Millisecond)
 	return hub, addr
+}
+
+// source - a viewer's stream server settings, pointing at addr
+func source(t *testing.T, addr, key string) *streamsource.Store {
+	t.Helper()
+	host, port, err := net.SplitHostPort(addr)
+	require.NoError(t, err)
+	p, err := strconv.Atoi(port)
+	require.NoError(t, err)
+	src := streamsource.Open(filepath.Join(t.TempDir(), "stream_source.json"))
+	_, err = src.Set(streamsource.Source{Host: host, Port: p, Key: key})
+	require.NoError(t, err)
+	return src
 }
 
 // camera publishes into the server hub like the camera does, until stopped
@@ -97,7 +119,7 @@ func TestViewerReceivesTheServersStream(t *testing.T) {
 	viewerStates := baby.NewStateManager()
 	viewerHub := relay.NewHub(viewerStates)
 	run(t, func(ctx utils.GracefulContext) {
-		Run(ctx, URL("rtsp://"+addr+"/local/{baby_uid}", "baby1"), "baby1", viewerHub)
+		Run(ctx, "baby1", source(t, addr, ""), viewerHub)
 	})
 
 	var stream relay.Stream
@@ -145,7 +167,7 @@ func TestViewerFollowsTheServer(t *testing.T) {
 	viewerStates := baby.NewStateManager()
 	viewerHub := relay.NewHub(viewerStates)
 	run(t, func(ctx utils.GracefulContext) {
-		Run(ctx, URL("rtsp://"+addr+"/local/{baby_uid}", "baby1"), "baby1", viewerHub)
+		Run(ctx, "baby1", source(t, addr, ""), viewerHub)
 	})
 	require.Eventually(t, func() bool { return viewerHub.Publishing("baby1") }, 5*time.Second, 20*time.Millisecond)
 
@@ -155,4 +177,65 @@ func TestViewerFollowsTheServer(t *testing.T) {
 
 	camera(t, serverHub)
 	assert.Eventually(t, func() bool { return viewerHub.Publishing("baby1") }, 15*time.Second, 50*time.Millisecond)
+}
+
+// A viewer of a server with the stream password gives it in its address
+func TestViewerSignsIn(t *testing.T) {
+	auth := streamauth.Open(filepath.Join(t.TempDir(), "stream_auth.json"))
+	settings, err := auth.SetEnabled(true)
+	require.NoError(t, err)
+	serverHub, addr := startStreamServerWithAuth(t, auth)
+	camera(t, serverHub)
+
+	viewerHub := relay.NewHub(baby.NewStateManager())
+	run(t, func(ctx utils.GracefulContext) {
+		Run(ctx, "baby1", source(t, addr, settings.Key), viewerHub)
+	})
+	assert.Eventually(t, func() bool { return viewerHub.Publishing("baby1") }, 5*time.Second, 20*time.Millisecond)
+}
+
+// A wrong key is reported in words, and saving the right one reconnects
+// without waiting out the backoff
+func TestStatusAndReconnectOnChange(t *testing.T) {
+	auth := streamauth.Open(filepath.Join(t.TempDir(), "stream_auth.json"))
+	settings, err := auth.SetEnabled(true)
+	require.NoError(t, err)
+	serverHub, addr := startStreamServerWithAuth(t, auth)
+	camera(t, serverHub)
+
+	src := source(t, addr, "wrong")
+	viewerHub := relay.NewHub(baby.NewStateManager())
+	run(t, func(ctx utils.GracefulContext) { Run(ctx, "baby1", src, viewerHub) })
+
+	require.Eventually(t, func() bool {
+		st, ok := src.Status("baby1")
+		return ok && !st.Receiving && strings.Contains(st.Error, "key")
+	}, 5*time.Second, 20*time.Millisecond, "a wrong key is explained")
+
+	host, port, _ := net.SplitHostPort(addr)
+	p, _ := strconv.Atoi(port)
+	_, err = src.Set(streamsource.Source{Host: host, Port: p, Key: settings.Key})
+	require.NoError(t, err)
+	assert.Eventually(t, func() bool {
+		st, ok := src.Status("baby1")
+		return ok && st.Receiving && viewerHub.Publishing("baby1")
+	}, 3*time.Second, 20*time.Millisecond, "the new key is used straight away")
+}
+
+// With no stream server set, a viewer waits, and starts once one is
+func TestWaitsForASource(t *testing.T) {
+	serverHub, addr := startStreamServer(t)
+	camera(t, serverHub)
+
+	src := streamsource.Open(filepath.Join(t.TempDir(), "stream_source.json"))
+	viewerHub := relay.NewHub(baby.NewStateManager())
+	run(t, func(ctx utils.GracefulContext) { Run(ctx, "baby1", src, viewerHub) })
+	time.Sleep(200 * time.Millisecond)
+	assert.False(t, viewerHub.Publishing("baby1"))
+
+	host, port, _ := net.SplitHostPort(addr)
+	p, _ := strconv.Atoi(port)
+	_, err := src.Set(streamsource.Source{Host: host, Port: p})
+	require.NoError(t, err)
+	assert.Eventually(t, func() bool { return viewerHub.Publishing("baby1") }, 3*time.Second, 20*time.Millisecond)
 }

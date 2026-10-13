@@ -4,6 +4,10 @@
       "enabled": true,
       "url_template": "/api/stream/hls/{baby_uid}/playlist.m3u8"
     },
+    "password": {
+      "enabled": false,
+      "user": "nanit"
+    },
     "role": "server",
     "rtmp": {
       "enabled": true,

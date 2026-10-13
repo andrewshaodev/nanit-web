@@ -1,6 +1,7 @@
 // Package rtspserver - each camera's stream over RTSP, the format camera
 // software (Frigate, go2rtc, NVRs, Home Assistant) expects. The stream comes
-// from the relay hub as is: H.264 and AAC, with no transcoding.
+// from the relay hub as is: H.264 and AAC, with no transcoding. With the
+// stream password on, players sign in as streamauth.User with the key.
 package rtspserver
 
 import (
@@ -12,6 +13,7 @@ import (
 	"time"
 
 	"github.com/andrewshaodev/nanit-web/pkg/relay"
+	"github.com/andrewshaodev/nanit-web/pkg/streamauth"
 	"github.com/andrewshaodev/nanit-web/pkg/utils"
 	"github.com/bluenviron/gortsplib/v5"
 	"github.com/bluenviron/gortsplib/v5/pkg/base"
@@ -19,6 +21,7 @@ import (
 	"github.com/bluenviron/gortsplib/v5/pkg/format"
 	"github.com/bluenviron/gortsplib/v5/pkg/format/rtph264"
 	"github.com/bluenviron/gortsplib/v5/pkg/format/rtpmpeg4audio"
+	"github.com/bluenviron/gortsplib/v5/pkg/liberrors"
 	"github.com/rs/zerolog/log"
 )
 
@@ -29,8 +32,9 @@ var pathRX = regexp.MustCompile(`^/?local/([a-z0-9_-]+)(/.*)?$`)
 // server - one RTSP stream per camera that is publishing to the hub,
 // created when a player first asks for it
 type server struct {
-	hub *relay.Hub
-	srv *gortsplib.Server
+	hub  *relay.Hub
+	auth *streamauth.Store // nil: no password
+	srv  *gortsplib.Server
 
 	mu      sync.Mutex
 	streams map[string]*cameraStream
@@ -43,8 +47,8 @@ type cameraStream struct {
 
 // Serve runs the RTSP server on addr until ctx ends. It is TCP only, so a
 // container needs just the one port.
-func Serve(ctx utils.GracefulContext, addr string, hub *relay.Hub) error {
-	s := &server{hub: hub, streams: map[string]*cameraStream{}}
+func Serve(ctx utils.GracefulContext, addr string, hub *relay.Hub, auth *streamauth.Store) error {
+	s := &server{hub: hub, auth: auth, streams: map[string]*cameraStream{}}
 	s.srv = &gortsplib.Server{
 		Handler:      s,
 		RTSPAddress:  addr,
@@ -58,6 +62,9 @@ func Serve(ctx utils.GracefulContext, addr string, hub *relay.Hub) error {
 
 	waitErr := make(chan error, 1)
 	go func() { waitErr <- s.srv.Wait() }()
+	if auth != nil {
+		go s.closeOnPasswordChange(ctx)
+	}
 
 	select {
 	case <-ctx.Done():
@@ -72,8 +79,39 @@ func Serve(ctx utils.GracefulContext, addr string, hub *relay.Hub) error {
 	}
 }
 
+// closeOnPasswordChange ends every stream when the password is turned on or
+// off or its key changes, so players already watching have to sign in with
+// the new settings
+func (s *server) closeOnPasswordChange(ctx utils.GracefulContext) {
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case <-s.auth.Changed():
+			log.Info().Msg("Stream password changed, disconnecting RTSP players")
+			s.closeAll()
+		}
+	}
+}
+
+// signedIn - whether a request carries the stream password, when one is set
+func (s *server) signedIn(conn *gortsplib.ServerConn, req *base.Request) bool {
+	key, required := s.auth.Required()
+	return !required || conn.VerifyCredentials(req, streamauth.User, key)
+}
+
+// unauthorized asks the player to sign in, or closes the connection if it
+// gave the wrong password. A new one each time: the library adds the
+// sign-in challenge to its headers.
+func unauthorized() *base.Response {
+	return &base.Response{StatusCode: base.StatusUnauthorized}
+}
+
 // OnDescribe - a player asks what a camera's stream carries
 func (s *server) OnDescribe(ctx *gortsplib.ServerHandlerOnDescribeCtx) (*base.Response, *gortsplib.ServerStream, error) {
+	if !s.signedIn(ctx.Conn, ctx.Request) {
+		return unauthorized(), nil, liberrors.ErrServerAuth{}
+	}
 	stream := s.streamFor(ctx.Path, true)
 	if stream == nil {
 		return &base.Response{StatusCode: base.StatusNotFound}, nil, nil
@@ -83,6 +121,9 @@ func (s *server) OnDescribe(ctx *gortsplib.ServerHandlerOnDescribeCtx) (*base.Re
 
 // OnSetup - a player picks the tracks to receive
 func (s *server) OnSetup(ctx *gortsplib.ServerHandlerOnSetupCtx) (*base.Response, *gortsplib.ServerStream, error) {
+	if !s.signedIn(ctx.Conn, ctx.Request) {
+		return unauthorized(), nil, liberrors.ErrServerAuth{}
+	}
 	stream := s.streamFor(ctx.Path, false)
 	if stream == nil {
 		return &base.Response{StatusCode: base.StatusNotFound}, nil, nil

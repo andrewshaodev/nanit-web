@@ -77,15 +77,61 @@ type HLSInfo struct {
 	URLTemplate string `json:"url_template"`
 }
 
+// StreamPasswordInfo - the optional password on the RTSP and RTMP outputs.
+// RTSP players sign in as User with Key as the password; RTMP players add
+// ?key=Key to the address. The URL templates include them while it's on.
+type StreamPasswordInfo struct {
+	Enabled bool   `json:"enabled"`
+	User    string `json:"user"`
+	Key     string `json:"key,omitempty"`
+}
+
+// StreamPasswordRequest - PUT /api/streaming/password
+type StreamPasswordRequest struct {
+	Enabled bool `json:"enabled"`
+}
+
+// StreamSourceRequest - PUT /api/streaming/source: a viewer's stream
+// server. An empty host means none (no video).
+type StreamSourceRequest struct {
+	Host string `json:"host"`
+	// Port - 8554 when 0
+	Port int    `json:"port"`
+	Key  string `json:"key"`
+}
+
+// StreamSourceCamera - how one camera's video from the stream server is
+// going
+type StreamSourceCamera struct {
+	BabyUID   string `json:"baby_uid"`
+	Name      string `json:"name"`
+	Receiving bool   `json:"receiving"`
+	// Error - why not, the last time it tried; empty while receiving or
+	// before the first try
+	Error string `json:"error,omitempty"`
+	// Since - Unix seconds of the last change; 0 before the first try
+	Since int64 `json:"since"`
+}
+
+// StreamSourceResponse - GET and PUT /api/streaming/source
+type StreamSourceResponse struct {
+	Host    string               `json:"host"`
+	Port    int                  `json:"port"`
+	Key     string               `json:"key,omitempty"`
+	Cameras []StreamSourceCamera `json:"cameras"`
+}
+
 // StreamingInfoResponse - GET /api/streaming/info
 type StreamingInfoResponse struct {
 	// Role - "server" asks the cameras to stream; a "viewer" takes the
-	// server's stream from StreamFrom
+	// server's stream from StreamFrom, set in Settings → Streaming
 	Role       string   `json:"role" tstype:"'server' | 'viewer'"`
 	StreamFrom string   `json:"stream_from,omitempty"`
 	RTMP       RTMPInfo `json:"rtmp"`
 	RTSP       RTSPInfo `json:"rtsp"`
 	HLS        HLSInfo  `json:"hls"`
+	// Password - on the RTSP and RTMP outputs
+	Password StreamPasswordInfo `json:"password"`
 }
 
 // LiveMessage - the text messages of the live view's WebSocket,

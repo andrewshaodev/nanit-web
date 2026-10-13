@@ -18,6 +18,9 @@ import type {
   StreamStartResponse,
   StreamStatusResponse,
   StreamingInfoResponse,
+  StreamPasswordInfo,
+  StreamSourceRequest,
+  StreamSourceResponse,
   WebAuthStatusResponse,
   WebAuthResponse,
   HealthResponse,
@@ -231,6 +234,31 @@ class ApiClient {
     return this.request<StreamingInfoResponse>('/streaming/info');
   }
 
+  // The password on the RTSP and RTMP outputs. Turning it on the first time
+  // makes a key.
+  async setStreamPassword(enabled: boolean): Promise<StreamPasswordInfo> {
+    return this.request<StreamPasswordInfo>('/streaming/password', {
+      method: 'PUT',
+      body: JSON.stringify({ enabled }),
+    });
+  }
+
+  // A viewer's stream server, and how each camera's video from it is going
+  async getStreamSource(): Promise<StreamSourceResponse> {
+    return this.request<StreamSourceResponse>('/streaming/source');
+  }
+
+  async setStreamSource(source: StreamSourceRequest): Promise<StreamSourceResponse> {
+    return this.request<StreamSourceResponse>('/streaming/source', {
+      method: 'PUT',
+      body: JSON.stringify(source),
+    });
+  }
+
+  async regenerateStreamPassword(): Promise<StreamPasswordInfo> {
+    return this.request<StreamPasswordInfo>('/streaming/password/regenerate', { method: 'POST' });
+  }
+
   // Utility methods
 
   // The RTMP server listens on NANIT_RTMP_ADDR, which is usually a different
@@ -256,7 +284,9 @@ class ApiClient {
       return template.replace('{baby_uid}', babyUid);
     }
     const host = typeof window !== 'undefined' ? window.location.hostname : 'localhost';
-    return `rtsp://${host}:8554/local/${babyUid}`;
+    const password = streamingInfo?.password;
+    const credentials = password?.enabled && password.key ? `${password.user}:${password.key}@` : '';
+    return `rtsp://${credentials}${host}:8554/local/${babyUid}`;
   }
 
   getHLSUrl(babyUid: string): string {

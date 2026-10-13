@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/andrewshaodev/nanit-web/pkg/relay"
+	"github.com/andrewshaodev/nanit-web/pkg/streamauth"
 	"github.com/andrewshaodev/nanit-web/pkg/utils"
 	"github.com/bluenviron/gortmplib"
 	"github.com/bluenviron/gortmplib/pkg/codecs"
@@ -31,14 +32,16 @@ const (
 )
 
 // rtmpHandler - the camera publishes into the relay hub over RTMP, and RTMP
-// players watch it
+// players watch it. With the stream password on, players add ?key= to the
+// address; the camera's push never needs it.
 type rtmpHandler struct {
-	hub *relay.Hub
+	hub  *relay.Hub
+	auth *streamauth.Store // nil: no password
 }
 
 // Serve runs the RTMP server on addr until ctx ends, then closes its
 // listener. The listener used to stay open for the life of the process.
-func Serve(ctx utils.GracefulContext, addr string, hub *relay.Hub) error {
+func Serve(ctx utils.GracefulContext, addr string, hub *relay.Hub, auth *streamauth.Store) error {
 	lis, err := net.Listen("tcp", addr)
 	if err != nil {
 		return fmt.Errorf("failed to start RTMP server on %s: %w", addr, err)
@@ -51,7 +54,7 @@ func Serve(ctx utils.GracefulContext, addr string, hub *relay.Hub) error {
 		lis.Close()
 	}()
 
-	err = newRtmpHandler(hub).serve(lis)
+	err = newRtmpHandler(hub, auth).serve(lis)
 	if errors.Is(err, net.ErrClosed) {
 		log.Info().Msg("RTMP server stopped")
 		return nil
@@ -59,8 +62,8 @@ func Serve(ctx utils.GracefulContext, addr string, hub *relay.Hub) error {
 	return err
 }
 
-func newRtmpHandler(hub *relay.Hub) *rtmpHandler {
-	return &rtmpHandler{hub: hub}
+func newRtmpHandler(hub *relay.Hub, auth *streamauth.Store) *rtmpHandler {
+	return &rtmpHandler{hub: hub, auth: auth}
 }
 
 // serve - accepts connections until the listener is closed
@@ -117,6 +120,10 @@ func (s *rtmpHandler) handleConnection(nc net.Conn) {
 	if sc.Publish {
 		s.handlePublisher(babyUID, nc, sc, sublog)
 	} else {
+		if !s.auth.Allows(sc.URL.Query().Get("key")) {
+			sublog.Warn().Msg("RTMP player refused: missing or wrong stream password key")
+			return
+		}
 		s.handleSubscriber(babyUID, nc, sc, sublog)
 	}
 }
@@ -174,6 +181,13 @@ func (s *rtmpHandler) handlePublisher(babyUID string, nc net.Conn, sc *gortmplib
 }
 
 func (s *rtmpHandler) handleSubscriber(babyUID string, nc net.Conn, sc *gortmplib.ServerConn, sublog zerolog.Logger) {
+	// A change to the stream password disconnects players, so they have to
+	// connect again with the new settings
+	var passwordChanged <-chan struct{}
+	if s.auth != nil {
+		passwordChanged = s.auth.Changed()
+	}
+
 	stream, sub, ok := s.hub.Subscribe(babyUID)
 	if !ok {
 		sublog.Warn().Msg("No stream publisher registered yet, closing subscriber stream")
@@ -238,6 +252,10 @@ func (s *rtmpHandler) handleSubscriber(babyUID string, nc net.Conn, sc *gortmpli
 
 		case <-gone:
 			sublog.Debug().Msg("Stream subscriber disconnected")
+			return
+
+		case <-passwordChanged:
+			sublog.Info().Msg("Stream password changed, disconnecting RTMP player")
 			return
 		}
 	}

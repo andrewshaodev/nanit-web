@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/andrewshaodev/nanit-web/pkg/baby"
+	"github.com/andrewshaodev/nanit-web/pkg/utils"
 	"github.com/rs/zerolog/log"
 )
 
@@ -181,36 +182,11 @@ func (store *Store) Save() error {
 		return jsonErr
 	}
 
-	if err := writeFileAtomic(store.Filename, data); err != nil {
+	if err := utils.WriteFileAtomic(store.Filename, data); err != nil {
 		log.Error().Str("filename", store.Filename).Err(err).Msg("Unable to write app session file")
 		return err
 	}
 	return nil
-}
-
-// writeFileAtomic replaces path with data, readable only by its owner. The
-// session holds the Nanit tokens, and it was written in place with mode
-// 0644, so a crash mid-write could leave it truncated and signed out.
-func writeFileAtomic(path string, data []byte) error {
-	// CreateTemp makes the file 0600, and a unique name per write
-	tmp, err := os.CreateTemp(filepath.Dir(path), filepath.Base(path)+".tmp-*")
-	if err != nil {
-		return err
-	}
-	defer os.Remove(tmp.Name()) // no-op once renamed
-
-	if _, err := tmp.Write(data); err != nil {
-		tmp.Close()
-		return err
-	}
-	if err := tmp.Sync(); err != nil {
-		tmp.Close()
-		return err
-	}
-	if err := tmp.Close(); err != nil {
-		return err
-	}
-	return os.Rename(tmp.Name(), path)
 }
 
 // InitSessionStore - Initializes new application session store

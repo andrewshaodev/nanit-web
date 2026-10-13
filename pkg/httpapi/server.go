@@ -24,7 +24,9 @@ import (
 	"github.com/andrewshaodev/nanit-web/pkg/httpapi/apitypes"
 	"github.com/andrewshaodev/nanit-web/pkg/relay"
 	"github.com/andrewshaodev/nanit-web/pkg/session"
+	"github.com/andrewshaodev/nanit-web/pkg/streamauth"
 	"github.com/andrewshaodev/nanit-web/pkg/streaming"
+	"github.com/andrewshaodev/nanit-web/pkg/streamsource"
 	"github.com/andrewshaodev/nanit-web/pkg/webauth"
 	"github.com/rs/zerolog/log"
 )
@@ -39,9 +41,8 @@ type Config struct {
 	RTSPEnabled    bool
 	RTSPPublicAddr string
 	// StreamServer - whether this instance asks the cameras to stream;
-	// otherwise it's a viewer of StreamFrom
+	// otherwise it's a viewer of the stream server in StreamSource
 	StreamServer bool
-	StreamFrom   string
 	MQTTEnabled  bool
 	// SessionFile - the saved Nanit session
 	SessionFile string
@@ -59,10 +60,15 @@ type Server struct {
 	Cameras  *camera.Registry
 	HLS      *streaming.HLSManager
 	// Relay - each camera's live stream, for the live view; nil without one
-	Relay   *relay.Hub
-	History *history.Tracker
-	WebAuth *webauth.WebAuth
-	Nanit   *client.NanitClient
+	Relay *relay.Hub
+	// StreamAuth - the optional password on the RTSP and RTMP outputs; nil
+	// without one
+	StreamAuth *streamauth.Store
+	// StreamSource - a viewer's stream server; nil on the stream server
+	StreamSource *streamsource.Store
+	History      *history.Tracker
+	WebAuth      *webauth.WebAuth
+	Nanit        *client.NanitClient
 	// SignedIn - called after a Nanit sign-in, to start the cameras
 	SignedIn func()
 	// StartedAt - for /health's uptime
@@ -82,6 +88,10 @@ func (s *Server) Handler() http.Handler {
 	api.HandleFunc("GET /api/status", s.handleStatus)
 	api.HandleFunc("GET /api/babies", s.handleBabies)
 	api.HandleFunc("GET /api/streaming/info", s.handleStreamingInfo)
+	api.HandleFunc("PUT /api/streaming/password", s.handleStreamPasswordSet)
+	api.HandleFunc("POST /api/streaming/password/regenerate", s.handleStreamPasswordRegenerate)
+	api.HandleFunc("GET /api/streaming/source", s.handleStreamSourceGet)
+	api.HandleFunc("PUT /api/streaming/source", s.handleStreamSourceSet)
 	api.HandleFunc("GET /api/device-info/{uid}", s.withBaby(s.handleDeviceInfo))
 	api.HandleFunc("GET /api/health/{uid}", s.withBaby(s.handleHealth))
 

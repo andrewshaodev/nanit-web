@@ -7,10 +7,10 @@ package pull
 import (
 	"errors"
 	"fmt"
-	"strings"
 	"time"
 
 	"github.com/andrewshaodev/nanit-web/pkg/relay"
+	"github.com/andrewshaodev/nanit-web/pkg/streamsource"
 	"github.com/andrewshaodev/nanit-web/pkg/utils"
 	"github.com/bluenviron/gortsplib/v5"
 	"github.com/bluenviron/gortsplib/v5/pkg/base"
@@ -29,26 +29,42 @@ const (
 	readTimeout = 10 * time.Second
 )
 
-// URL - the template with the baby's UID filled in
-func URL(template, babyUID string) string {
-	return strings.ReplaceAll(template, "{baby_uid}", babyUID)
-}
+// errSourceChanged - the stream server settings changed mid-pull
+var errSourceChanged = errors.New("the stream server settings changed")
 
-// Run pulls url into the hub as babyUID's stream until ctx ends,
-// reconnecting with backoff whenever the server's stream isn't there
-func Run(ctx utils.GracefulContext, url, babyUID string, hub *relay.Hub) {
-	sublog := log.With().Str("baby_uid", babyUID).Str("from", url).Logger()
+// Run pulls the camera's stream from the stream server set in src into the
+// hub, until ctx ends. It reconnects with backoff whenever the server's
+// stream isn't there, and straight away when the settings change. With no
+// server set, it waits for one.
+func Run(ctx utils.GracefulContext, babyUID string, src *streamsource.Store, hub *relay.Hub) {
 	backoff := retryMin
 	// A camera that's off fails the same way on every try: say so once
 	lastErr := ""
 	for {
+		changed := src.Changed()
+		source := src.Get()
+		if !source.Configured() {
+			select {
+			case <-ctx.Done():
+				return
+			case <-changed:
+				continue
+			}
+		}
+
+		sublog := log.With().Str("baby_uid", babyUID).Str("from", source.Redacted(babyUID)).Logger()
 		started := time.Now()
-		err := pullOnce(ctx, url, babyUID, hub)
+		err := pullOnce(ctx, changed, source.URL(babyUID), babyUID, src, hub)
 		select {
 		case <-ctx.Done():
 			return
 		default:
 		}
+		if errors.Is(err, errSourceChanged) {
+			backoff, lastErr = retryMin, ""
+			continue
+		}
+		src.SetStatus(babyUID, false, err)
 		// A pull that ran a while was healthy: start over from the shortest
 		// wait, and report the next failure again
 		if time.Since(started) > time.Minute {
@@ -65,6 +81,9 @@ func Run(ctx utils.GracefulContext, url, babyUID string, hub *relay.Hub) {
 		select {
 		case <-ctx.Done():
 			return
+		case <-changed:
+			backoff, lastErr = retryMin, ""
+			continue
 		case <-time.After(backoff):
 		}
 		backoff = min(backoff*2, retryMax)
@@ -72,10 +91,10 @@ func Run(ctx utils.GracefulContext, url, babyUID string, hub *relay.Hub) {
 }
 
 // pullOnce plays the server's stream until it ends or fails
-func pullOnce(ctx utils.GracefulContext, url, babyUID string, hub *relay.Hub) error {
+func pullOnce(ctx utils.GracefulContext, changed <-chan struct{}, url, babyUID string, src *streamsource.Store, hub *relay.Hub) error {
 	u, err := base.ParseURL(url)
 	if err != nil {
-		return fmt.Errorf("bad NANIT_STREAM_FROM %q: %w", url, err)
+		return fmt.Errorf("bad stream server address: %w", err)
 	}
 	tcp := gortsplib.ProtocolTCP
 	c := &gortsplib.Client{Scheme: u.Scheme, Host: u.Host, Protocol: &tcp, ReadTimeout: readTimeout}
@@ -115,7 +134,8 @@ func pullOnce(ctx utils.GracefulContext, url, babyUID string, hub *relay.Hub) er
 
 	p := hub.Publish(babyUID, stream)
 	defer p.Close()
-	log.Info().Str("baby_uid", babyUID).Str("from", url).Msg("Receiving video from the stream server")
+	src.SetStatus(babyUID, true, nil)
+	log.Info().Str("baby_uid", babyUID).Str("from", src.Get().Redacted(babyUID)).Msg("Receiving video from the stream server")
 
 	videoDec, err := videoFormat.CreateDecoder()
 	if err != nil {
@@ -170,6 +190,10 @@ func pullOnce(ctx utils.GracefulContext, url, babyUID string, hub *relay.Hub) er
 		c.Close()
 		<-waitErr
 		return nil
+	case <-changed:
+		c.Close()
+		<-waitErr
+		return errSourceChanged
 	case err := <-waitErr:
 		return err
 	}

@@ -91,18 +91,77 @@ export interface HLSInfo {
   url_template: string;
 }
 /**
+ * StreamPasswordInfo - the optional password on the RTSP and RTMP outputs.
+ * RTSP players sign in as User with Key as the password; RTMP players add
+ * ?key=Key to the address. The URL templates include them while it's on.
+ */
+export interface StreamPasswordInfo {
+  enabled: boolean;
+  user: string;
+  key?: string;
+}
+/**
+ * StreamPasswordRequest - PUT /api/streaming/password
+ */
+export interface StreamPasswordRequest {
+  enabled: boolean;
+}
+/**
+ * StreamSourceRequest - PUT /api/streaming/source: a viewer's stream
+ * server. An empty host means none (no video).
+ */
+export interface StreamSourceRequest {
+  host: string;
+  /**
+   * Port - 8554 when 0
+   */
+  port: number /* int */;
+  key: string;
+}
+/**
+ * StreamSourceCamera - how one camera's video from the stream server is
+ * going
+ */
+export interface StreamSourceCamera {
+  baby_uid: string;
+  name: string;
+  receiving: boolean;
+  /**
+   * Error - why not, the last time it tried; empty while receiving or
+   * before the first try
+   */
+  error?: string;
+  /**
+   * Since - Unix seconds of the last change; 0 before the first try
+   */
+  since: number /* int64 */;
+}
+/**
+ * StreamSourceResponse - GET and PUT /api/streaming/source
+ */
+export interface StreamSourceResponse {
+  host: string;
+  port: number /* int */;
+  key?: string;
+  cameras: StreamSourceCamera[];
+}
+/**
  * StreamingInfoResponse - GET /api/streaming/info
  */
 export interface StreamingInfoResponse {
   /**
    * Role - "server" asks the cameras to stream; a "viewer" takes the
-   * server's stream from StreamFrom
+   * server's stream from StreamFrom, set in Settings → Streaming
    */
   role: 'server' | 'viewer';
   stream_from?: string;
   rtmp: RTMPInfo;
   rtsp: RTSPInfo;
   hls: HLSInfo;
+  /**
+   * Password - on the RTSP and RTMP outputs
+   */
+  password: StreamPasswordInfo;
 }
 /**
  * LiveMessage - the text messages of the live view's WebSocket,

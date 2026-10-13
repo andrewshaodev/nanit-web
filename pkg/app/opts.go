@@ -19,9 +19,9 @@ type Opts struct {
 	RTMP   *RTMPOpts
 	RTSP   *RTSPOpts
 	// StreamServer - this instance asks the cameras to stream; only one
-	// may. Others are viewers, taking the server's stream from StreamFrom.
+	// may. Others are viewers, taking the server's stream from the stream
+	// server set in the dashboard.
 	StreamServer bool
-	StreamFrom   string
 	EventPolling EventPollingOpts
 	History      HistoryOpts
 	WebAuth      WebAuthOpts
