@@ -63,6 +63,14 @@ type RTMPInfo struct {
 	URLTemplate string `json:"url_template,omitempty"`
 }
 
+// RTSPInfo - where the RTSP stream is served, when it is. Without a
+// PublicAddr, players use the dashboard's host on port 8554 by default.
+type RTSPInfo struct {
+	Enabled     bool   `json:"enabled"`
+	PublicAddr  string `json:"public_addr,omitempty"`
+	URLTemplate string `json:"url_template,omitempty"`
+}
+
 // HLSInfo - where the dashboard's video comes from
 type HLSInfo struct {
 	Enabled     bool   `json:"enabled"`
@@ -72,6 +80,7 @@ type HLSInfo struct {
 // StreamingInfoResponse - GET /api/streaming/info
 type StreamingInfoResponse struct {
 	RTMP RTMPInfo `json:"rtmp"`
+	RTSP RTSPInfo `json:"rtsp"`
 	HLS  HLSInfo  `json:"hls"`
 }
 

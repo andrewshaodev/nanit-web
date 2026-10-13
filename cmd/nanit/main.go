@@ -3,6 +3,7 @@ package main
 import (
 	"flag"
 	"fmt"
+	"net"
 	"os"
 	"os/signal"
 	"path/filepath"
@@ -86,6 +87,19 @@ func main() {
 			ListenAddr: m[1],
 			PublicAddr: publicAddr,
 			AutoStart:  utils.EnvVarBool("NANIT_RTMP_AUTO_START", true),
+		}
+	}
+
+	if utils.EnvVarBool("NANIT_RTSP_ENABLED", true) {
+		listen := utils.EnvVarStr("NANIT_RTSP_ADDR", ":8554")
+		opts.RTSP = &app.RTSPOpts{ListenAddr: listen}
+		// Players reach it on the host the camera reaches RTMP on
+		if opts.RTMP != nil {
+			host, _, err1 := net.SplitHostPort(opts.RTMP.PublicAddr)
+			_, port, err2 := net.SplitHostPort(listen)
+			if err1 == nil && err2 == nil {
+				opts.RTSP.PublicAddr = net.JoinHostPort(host, port)
+			}
 		}
 	}
 

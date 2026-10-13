@@ -8,6 +8,11 @@
       "enabled": true,
       "public_addr": "192.0.2.1:1935",
       "url_template": "rtmp://192.0.2.1:1935/local/{baby_uid}"
+    },
+    "rtsp": {
+      "enabled": true,
+      "public_addr": "192.0.2.1:8554",
+      "url_template": "rtsp://192.0.2.1:8554/local/{baby_uid}"
     }
   },
   "status": 200

@@ -31,6 +31,10 @@ type Config struct {
 	// RTMPPublicAddr - where cameras and players reach the RTMP server; ""
 	// when it's off
 	RTMPPublicAddr string
+	// RTSPEnabled - whether the RTSP output runs, and RTSPPublicAddr where
+	// players reach it ("" when unknown: the dashboard uses its own host)
+	RTSPEnabled    bool
+	RTSPPublicAddr string
 	MQTTEnabled    bool
 	// SessionFile - the saved Nanit session
 	SessionFile string

@@ -52,6 +52,12 @@ func (s *Server) handleStreamingInfo(w http.ResponseWriter, r *http.Request) {
 		RTMP: apitypes.RTMPInfo{Enabled: s.Config.RTMPPublicAddr != ""},
 		HLS:  apitypes.HLSInfo{Enabled: true, URLTemplate: hlsURLTemplate},
 	}
+	if s.Config.RTSPEnabled {
+		res.RTSP = apitypes.RTSPInfo{Enabled: true, PublicAddr: s.Config.RTSPPublicAddr}
+		if s.Config.RTSPPublicAddr != "" {
+			res.RTSP.URLTemplate = "rtsp://" + s.Config.RTSPPublicAddr + "/local/{baby_uid}"
+		}
+	}
 	if res.RTMP.Enabled {
 		res.RTMP.PublicAddr = s.Config.RTMPPublicAddr
 		// The baby UID left as a placeholder, so clients can fill it in

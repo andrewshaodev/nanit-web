@@ -12,6 +12,7 @@ import (
 	"github.com/andrewshaodev/nanit-web/pkg/mqtt"
 	"github.com/andrewshaodev/nanit-web/pkg/relay"
 	"github.com/andrewshaodev/nanit-web/pkg/rtmpserver"
+	"github.com/andrewshaodev/nanit-web/pkg/rtspserver"
 	"github.com/andrewshaodev/nanit-web/pkg/session"
 	"github.com/andrewshaodev/nanit-web/pkg/streaming"
 	"github.com/andrewshaodev/nanit-web/pkg/utils"
@@ -221,12 +222,19 @@ func (app *App) startSharedServices(ctx utils.GracefulContext) {
 		})
 	}
 
+	if app.Opts.RTSP != nil {
+		ctx.RunAsChild(func(childCtx utils.GracefulContext) {
+			if err := rtspserver.Serve(childCtx, app.Opts.RTSP.ListenAddr, app.Relay); err != nil {
+				log.Error().Err(err).Msg("RTSP server failed; RTSP players can't connect")
+			}
+		})
+	}
+
 	if app.MQTTConnection != nil {
 		ctx.RunAsChild(func(childCtx utils.GracefulContext) {
 			app.MQTTConnection.Run(app.BabyStateManager, childCtx)
 		})
 	}
-
 }
 
 // setupHistoryTracking configures historical data tracking for state changes

@@ -17,6 +17,7 @@ type Opts struct {
 	WebDir       string
 	MQTT         *mqtt.Opts
 	RTMP         *RTMPOpts
+	RTSP         *RTSPOpts
 	EventPolling EventPollingOpts
 	History      HistoryOpts
 	WebAuth      WebAuthOpts
@@ -33,6 +34,16 @@ type NanitCredentials struct {
 type DataDirectories struct {
 	BaseDir    string
 	HistoryDir string
+}
+
+// RTMPOpts - options for RTMP streaming
+// RTSPOpts - the RTSP output, for camera software
+type RTSPOpts struct {
+	// :Port, or IP:Port, to listen on
+	ListenAddr string
+
+	// IP:Port players use, shown in the dashboard; "" when unknown
+	PublicAddr string
 }
 
 // RTMPOpts - options for RTMP streaming

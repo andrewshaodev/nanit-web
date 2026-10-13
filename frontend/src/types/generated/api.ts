@@ -75,6 +75,15 @@ export interface RTMPInfo {
   url_template?: string;
 }
 /**
+ * RTSPInfo - where the RTSP stream is served, when it is. Without a
+ * PublicAddr, players use the dashboard's host on port 8554 by default.
+ */
+export interface RTSPInfo {
+  enabled: boolean;
+  public_addr?: string;
+  url_template?: string;
+}
+/**
  * HLSInfo - where the dashboard's video comes from
  */
 export interface HLSInfo {
@@ -86,6 +95,7 @@ export interface HLSInfo {
  */
 export interface StreamingInfoResponse {
   rtmp: RTMPInfo;
+  rtsp: RTSPInfo;
   hls: HLSInfo;
 }
 /**
