@@ -2,8 +2,10 @@ import { useState } from 'react'
 import useSWR from 'swr'
 import { Baby as BabyIcon, CircleAlert, Play, X } from 'lucide-react'
 import { api } from '@/lib/api'
+import { useSectionCollapsed } from '@/hooks/useSectionCollapsed'
 import type { Baby, CriesResponse, Cry } from '@/types/api'
 import { Button } from '@/components/ui/button'
+import CollapseButton from './CollapseButton'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 
 const timeframes = [
@@ -51,6 +53,7 @@ const crying = (cry: Cry) => cry.end === null
 export default function CryLog({ baby }: { baby: Baby }) {
   const [hours, setHours] = useState('24')
   const [playing, setPlaying] = useState<string | null>(null)
+  const [collapsed, toggleCollapsed] = useSectionCollapsed('cries', baby.uid)
 
   const { data, error } = useSWR<CriesResponse>(
     `/cries/${baby.uid}?hours=${hours}`,
@@ -73,8 +76,11 @@ export default function CryLog({ baby }: { baby: Baby }) {
 
   return (
     <section className="border-t border-ctp-peach/25">
-      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-ctp-peach/25 bg-ctp-peach/10 px-4 py-1.5">
+      <div
+        className={`flex flex-wrap items-center justify-between gap-2 bg-ctp-peach/10 py-1.5 pr-4 pl-2 ${collapsed ? '' : 'border-b border-ctp-peach/25'}`}
+      >
         <h3 className="flex items-center gap-2 font-semibold">
+          <CollapseButton collapsed={collapsed} onToggle={toggleCollapsed} label="crying log" />
           <BabyIcon className="size-4 text-ctp-peach" aria-hidden="true" />
           Crying
           {now && (
@@ -84,81 +90,92 @@ export default function CryLog({ baby }: { baby: Baby }) {
             </span>
           )}
         </h3>
-        <Select value={hours} onValueChange={setHours}>
-          <SelectTrigger size="sm" className="w-36 bg-background" aria-label="Timeframe">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            {timeframes.map((t) => (
-              <SelectItem key={t.value} value={t.value}>
-                {t.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
-
-      <div className="space-y-3 p-4">
-        {error && (
-          <p className="flex items-center gap-1.5 text-sm text-destructive">
-            <CircleAlert className="size-4 shrink-0" aria-hidden="true" />
-            Couldn&apos;t load the crying log
-          </p>
+        {collapsed ? (
+          // Still polled, so the badge and this line stay current
+          <span className="text-xs text-muted-foreground tabular-nums">
+            {cries.length === 0 ? 'None' : `${cries.length} ${cries.length === 1 ? 'spell' : 'spells'}, ${formatDuration(total)}`}
+            {' in the '}
+            {range}
+          </span>
+        ) : (
+          <Select value={hours} onValueChange={setHours}>
+            <SelectTrigger size="sm" className="w-36 bg-background" aria-label="Timeframe">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {timeframes.map((t) => (
+                <SelectItem key={t.value} value={t.value}>
+                  {t.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         )}
-
-        <p className="text-sm text-muted-foreground">
-          {cries.length === 0
-            ? `No crying heard in the ${range}.`
-            : `${cries.length} ${cries.length === 1 ? 'spell' : 'spells'}, ${formatDuration(total)} in all, in the ${range}.`}
-        </p>
-
-        {byDay(cries).map(([day, dayCries]) => (
-          <div key={day} className="space-y-1">
-            <h4 className="text-xs font-semibold text-muted-foreground">{day}</h4>
-            <ul className="divide-y rounded-md border">
-              {dayCries.map((cry) => {
-                const start = new Date(cry.start * 1000)
-                const open = playing === cry.review_id
-                return (
-                  <li key={cry.review_id}>
-                    <div className="flex items-center justify-between gap-2 px-3 py-1.5">
-                      <span className="text-sm tabular-nums">
-                        <span className="font-medium">{timeOfDay(start)}</span>
-                        <span className="text-muted-foreground">
-                          {' · '}
-                          {crying(cry)
-                            ? `crying for ${formatDuration(asOf - cry.start)} so far`
-                            : formatDuration(cry.end! - cry.start)}
-                        </span>
-                      </span>
-                      <Button
-                        size="sm"
-                        variant={open ? 'secondary' : 'ghost'}
-                        onClick={() => setPlaying(open ? null : cry.review_id)}
-                        aria-expanded={open}
-                      >
-                        {open ? <X /> : <Play />}
-                        {open ? 'Close' : 'Recording'}
-                      </Button>
-                    </div>
-                    {open && (
-                      // The recording starts 30 s before the first cry
-                      // oxlint-disable-next-line jsx-a11y/media-has-caption
-                      <video
-                        className="max-h-[60vh] w-full bg-black"
-                        src={api.cryClipUrl(baby.uid, cry.review_id)}
-                        controls
-                        autoPlay
-                        playsInline
-                      />
-                    )}
-                  </li>
-                )
-              })}
-            </ul>
-          </div>
-        ))}
       </div>
+
+      {!collapsed && (
+        <div className="space-y-3 p-4">
+          {error && (
+            <p className="flex items-center gap-1.5 text-sm text-destructive">
+              <CircleAlert className="size-4 shrink-0" aria-hidden="true" />
+              Couldn&apos;t load the crying log
+            </p>
+          )}
+
+          <p className="text-sm text-muted-foreground">
+            {cries.length === 0
+              ? `No crying heard in the ${range}.`
+              : `${cries.length} ${cries.length === 1 ? 'spell' : 'spells'}, ${formatDuration(total)} in all, in the ${range}.`}
+          </p>
+
+          {byDay(cries).map(([day, dayCries]) => (
+            <div key={day} className="space-y-1">
+              <h4 className="text-xs font-semibold text-muted-foreground">{day}</h4>
+              <ul className="divide-y rounded-md border">
+                {dayCries.map((cry) => {
+                  const start = new Date(cry.start * 1000)
+                  const open = playing === cry.review_id
+                  return (
+                    <li key={cry.review_id}>
+                      <div className="flex items-center justify-between gap-2 px-3 py-1.5">
+                        <span className="text-sm tabular-nums">
+                          <span className="font-medium">{timeOfDay(start)}</span>
+                          <span className="text-muted-foreground">
+                            {' · '}
+                            {crying(cry)
+                              ? `crying for ${formatDuration(asOf - cry.start)} so far`
+                              : formatDuration(cry.end! - cry.start)}
+                          </span>
+                        </span>
+                        <Button
+                          size="sm"
+                          variant={open ? 'secondary' : 'ghost'}
+                          onClick={() => setPlaying(open ? null : cry.review_id)}
+                          aria-expanded={open}
+                        >
+                          {open ? <X /> : <Play />}
+                          {open ? 'Close' : 'Recording'}
+                        </Button>
+                      </div>
+                      {open && (
+                        // The recording starts 30 s before the first cry
+                        // oxlint-disable-next-line jsx-a11y/media-has-caption
+                        <video
+                          className="max-h-[60vh] w-full bg-black"
+                          src={api.cryClipUrl(baby.uid, cry.review_id)}
+                          controls
+                          autoPlay
+                          playsInline
+                        />
+                      )}
+                    </li>
+                  )
+                })}
+              </ul>
+            </div>
+          ))}
+        </div>
+      )}
     </section>
   )
 }

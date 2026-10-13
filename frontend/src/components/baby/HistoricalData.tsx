@@ -4,9 +4,11 @@ import { api } from '@/lib/api'
 import { getTimeRange } from '@/lib/utils'
 import { useHistoricalData } from '@/hooks/useHistoricalData'
 import { useTemperatureUnit } from '@/hooks/useTemperatureUnit'
+import { useSectionCollapsed } from '@/hooks/useSectionCollapsed'
 import type { Baby } from '@/types/api'
 import TemperatureHumidityChart from '@/components/charts/TemperatureHumidityChart'
 import DayNightChart from '@/components/charts/DayNightChart'
+import CollapseButton from './CollapseButton'
 import { Button } from '@/components/ui/button'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
@@ -66,7 +68,27 @@ function SummaryTable({ rows }: { rows: [string, string, string, string][] }) {
   )
 }
 
+// Collapsed, it's only the header, and the charts' data isn't fetched
 export default function HistoricalData({ baby }: HistoricalDataProps) {
+  const [collapsed, toggleCollapsed] = useSectionCollapsed('history', baby.uid)
+
+  if (collapsed) {
+    return (
+      <section className="border-t border-ctp-mauve/25">
+        <div className="flex items-center bg-ctp-mauve/10 py-1.5 pr-4 pl-2">
+          <h3 className="flex items-center gap-2 font-semibold">
+            <CollapseButton collapsed onToggle={toggleCollapsed} label="history" />
+            <ChartLine className="size-4 text-ctp-mauve" aria-hidden="true" />
+            History
+          </h3>
+        </div>
+      </section>
+    )
+  }
+  return <ExpandedHistory baby={baby} onCollapse={toggleCollapsed} />
+}
+
+function ExpandedHistory({ baby, onCollapse }: HistoricalDataProps & { onCollapse: () => void }) {
   const [selectedTimeframe, setSelectedTimeframe] = useState('24h')
   const [isResetting, setIsResetting] = useState(false)
   const [resetFailed, setResetFailed] = useState(false)
@@ -100,8 +122,9 @@ export default function HistoricalData({ baby }: HistoricalDataProps) {
   return (
     // The camera box's second section, with its own GitHub-style header row
     <section className="border-t border-ctp-mauve/25">
-      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-ctp-mauve/25 bg-ctp-mauve/10 px-4 py-1.5">
+      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-ctp-mauve/25 bg-ctp-mauve/10 py-1.5 pr-4 pl-2">
         <h3 className="flex items-center gap-2 font-semibold">
+          <CollapseButton collapsed={false} onToggle={onCollapse} label="history" />
           <ChartLine className="size-4 text-ctp-mauve" aria-hidden="true" />
           History
         </h3>
