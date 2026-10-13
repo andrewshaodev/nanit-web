@@ -213,15 +213,13 @@ func (s *rtmpHandler) handleSubscriber(babyUID string, nc net.Conn, sc *gortmpli
 	sublog.Debug().Msg("New stream subscriber connected")
 
 	// A subscriber has nothing more to say once it is playing, so the only
-	// thing a read can tell us is that it has gone
+	// thing a read can tell us is that it has gone. The writer reads the
+	// connection itself (since gortmplib 1.0.4), and Wait returns when that
+	// read fails; reading it here as well raced with it.
 	gone := make(chan struct{})
 	go func() {
 		defer close(gone)
-		for {
-			if _, err := sc.Read(); err != nil {
-				return
-			}
-		}
+		_ = w.Wait()
 	}()
 
 	for {
