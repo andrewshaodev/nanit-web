@@ -1,6 +1,7 @@
 package app
 
 import (
+	"github.com/andrewshaodev/nanit-web/pkg/frigate"
 	"github.com/andrewshaodev/nanit-web/pkg/mqtt"
 	"time"
 )
@@ -24,7 +25,9 @@ type Opts struct {
 	StreamServer bool
 	EventPolling EventPollingOpts
 	History      HistoryOpts
-	WebAuth      WebAuthOpts
+	// Frigate - where crying spells come from; nil without Frigate
+	Frigate *frigate.Opts
+	WebAuth WebAuthOpts
 }
 
 // NanitCredentials - user credentials for Nanit account

@@ -25,6 +25,10 @@ export type DayNightChange = history.DayNightChange
 export type DayNightAnalytics = history.DayNightAnalytics
 export type DayNightPeriod = history.DayNightPeriod
 
+// Crying spells from Frigate, from /api/cries/{baby_uid}
+export type Cry = history.Cry
+export type CriesResponse = api.CriesResponse
+
 export type ControlRequest = api.ControlRequest
 export type ControlResponse = api.ControlResponse
 

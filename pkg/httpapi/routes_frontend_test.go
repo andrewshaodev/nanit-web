@@ -28,6 +28,8 @@ var frontendRequests = []struct{ method, path string }{
 	{"GET", "/api/history/summary/baby1?start=0&end=1"},
 	{"GET", "/api/history/day-night/baby1?start=0&end=1"},
 	{"DELETE", "/api/history/reset/baby1"},
+	{"GET", "/api/cries/baby1?start=0&end=1"},
+	{"GET", "/api/cries/baby1/1700000000.0-abc/clip.mp4"},
 	{"POST", "/api/control/night-light"},
 	{"POST", "/api/control/standby"},
 	{"POST", "/api/auth/login"},

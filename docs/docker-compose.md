@@ -23,6 +23,9 @@ services:
       # NANIT_MQTT_BROKER_URL: "tcp://homeassistant:1883"
       # NANIT_MQTT_USERNAME: "nanit"
       # NANIT_MQTT_PASSWORD: "..."
+      # Optional: crying spells from Frigate, on the same Docker network
+      # NANIT_FRIGATE_URL: "http://frigate:5000"
+      # NANIT_FRIGATE_CAMERAS: "nursery=<baby_uid>"
     volumes:
       - ./data:/data
     healthcheck:

@@ -108,3 +108,23 @@ export interface DayNightChange {
   to_night: boolean;
   duration_mins: number /* int64 */;
 }
+/**
+ * Cry - one crying spell, as Frigate's audio detection heard it. Frigate
+ * keeps the recording for a while; this record of it stays as long as the
+ * rest of the history.
+ */
+export interface Cry {
+  /**
+   * ReviewID - Frigate's review item, which has the recording
+   */
+  review_id: string;
+  baby_uid: string;
+  /**
+   * Start - Unix seconds, when crying was first heard
+   */
+  start: number /* float64 */;
+  /**
+   * End - when crying was last heard; null while it goes on
+   */
+  end?: number | null;
+}

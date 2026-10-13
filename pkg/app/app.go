@@ -9,6 +9,7 @@ import (
 	"github.com/andrewshaodev/nanit-web/pkg/baby"
 	"github.com/andrewshaodev/nanit-web/pkg/camera"
 	"github.com/andrewshaodev/nanit-web/pkg/client"
+	"github.com/andrewshaodev/nanit-web/pkg/frigate"
 	"github.com/andrewshaodev/nanit-web/pkg/history"
 	"github.com/andrewshaodev/nanit-web/pkg/mqtt"
 	"github.com/andrewshaodev/nanit-web/pkg/relay"
@@ -39,9 +40,11 @@ type App struct {
 	// server
 	StreamSource   *streamsource.Store
 	HistoryTracker *history.Tracker
-	WebAuth        *webauth.WebAuth
-	Cameras        *camera.Registry
-	mainContext    utils.GracefulContext // Store main application context
+	// Frigate - crying spells from Frigate; nil without it
+	Frigate     *frigate.Service
+	WebAuth     *webauth.WebAuth
+	Cameras     *camera.Registry
+	mainContext utils.GracefulContext // Store main application context
 
 	// Set once RTMP and MQTT have been started. Signing in again used to
 	// start them, and every camera, a second time.
@@ -118,6 +121,21 @@ func NewApp(opts Opts) (*App, error) {
 		instance.HistoryTracker = historyTracker
 	}
 
+	// Spells are kept in the history database, and arrive over MQTT
+	if opts.Frigate != nil {
+		if !instance.HistoryTracker.IsEnabled() {
+			log.Warn().Msg("NANIT_FRIGATE_URL is set, but crying spells need history tracking on (NANIT_HISTORY_ENABLED)")
+		} else {
+			instance.Frigate = frigate.New(*opts.Frigate, instance.HistoryTracker)
+			if instance.MQTTConnection != nil {
+				instance.MQTTConnection.Listen(instance.Frigate.ReviewsTopic(), instance.Frigate.HandleReview)
+			} else {
+				log.Warn().Msg("Without MQTT, crying spells only show up when Frigate is checked, every few minutes")
+			}
+			log.Info().Interface("cameras", opts.Frigate.Cameras).Msg("Recording crying spells from Frigate")
+		}
+	}
+
 	return instance, nil
 }
 
@@ -134,6 +152,10 @@ func (app *App) Run(ctx utils.GracefulContext) {
 		app.mainContext = servicesCtx
 
 		app.setupHistoryTracking(servicesCtx)
+
+		if app.Frigate != nil {
+			servicesCtx.RunAsChild(app.Frigate.Run)
+		}
 
 		servicesCtx.RunAsChild(app.serveHTTP)
 

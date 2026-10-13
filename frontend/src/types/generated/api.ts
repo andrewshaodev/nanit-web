@@ -342,6 +342,21 @@ export interface SensorHistoryResponse {
   count: number /* int */;
 }
 /**
+ * CriesResponse - GET /api/cries/{uid}: the crying spells Frigate heard in
+ * the range, latest first
+ */
+export interface CriesResponse {
+  /**
+   * Enabled - whether the bridge records spells from Frigate; without
+   * it, Cries is empty
+   */
+  enabled: boolean;
+  baby_uid: string;
+  start_time: number /* int64 */;
+  end_time: number /* int64 */;
+  cries: history.Cry[];
+}
+/**
  * EventsHistoryResponse - GET /api/history/events/{uid}
  */
 export interface EventsHistoryResponse {

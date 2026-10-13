@@ -291,6 +291,18 @@ type SensorHistoryResponse struct {
 	Count     int                     `json:"count"`
 }
 
+// CriesResponse - GET /api/cries/{uid}: the crying spells Frigate heard in
+// the range, latest first
+type CriesResponse struct {
+	// Enabled - whether the bridge records spells from Frigate; without
+	// it, Cries is empty
+	Enabled   bool          `json:"enabled"`
+	BabyUID   string        `json:"baby_uid"`
+	StartTime int64         `json:"start_time"`
+	EndTime   int64         `json:"end_time"`
+	Cries     []history.Cry `json:"cries"`
+}
+
 // EventsHistoryResponse - GET /api/history/events/{uid}
 type EventsHistoryResponse struct {
 	BabyUID   string          `json:"baby_uid"`

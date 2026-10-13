@@ -6,6 +6,7 @@ import SensorGrid from './SensorGrid'
 import ControlPanel from './ControlPanel'
 import SoundPanel from './SoundPanel'
 import HistoricalData from './HistoricalData'
+import CryLog from './CryLog'
 
 interface BabyCardProps {
   baby: Baby
@@ -44,6 +45,7 @@ export default function BabyCard({ baby, collapsed, onToggleCollapsed, onMoveUp,
             </div>
           </div>
 
+          <CryLog baby={baby} />
           <HistoricalData baby={baby} />
         </>
       )}

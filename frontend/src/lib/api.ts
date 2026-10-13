@@ -5,6 +5,7 @@ import type {
   SensorDataResponse,
   // EventsDataResponse,  // Disabled motion/sound activity
   HistorySummary,
+  CriesResponse,
   DayNightAnalytics,
   ControlRequest,
   ControlResponse,
@@ -298,6 +299,17 @@ class ApiClient {
 
   // The camera's built-in sounds. Every call reaches the camera; nothing plays
   // unless play() is called.
+  // Crying spells Frigate heard between start and end (Unix seconds)
+  async getCries(babyUid: string, start: number, end: number): Promise<CriesResponse> {
+    const params = new URLSearchParams({ start: String(start), end: String(end) });
+    return this.request<CriesResponse>(`/cries/${babyUid}?${params}`);
+  }
+
+  // A spell's recording, for a <video> element
+  cryClipUrl(babyUid: string, reviewId: string): string {
+    return `${API_BASE}/api/cries/${babyUid}/${encodeURIComponent(reviewId)}/clip.mp4`;
+  }
+
   async getSound(babyUid: string): Promise<SoundStatus> {
     return this.request<SoundStatus>(`/sound/${babyUid}`);
   }

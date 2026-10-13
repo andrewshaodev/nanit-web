@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/andrewshaodev/nanit-web/pkg/app"
+	"github.com/andrewshaodev/nanit-web/pkg/frigate"
 	"github.com/andrewshaodev/nanit-web/pkg/mqtt"
 	"github.com/andrewshaodev/nanit-web/pkg/utils"
 	"github.com/andrewshaodev/nanit-web/pkg/webauth"
@@ -121,6 +122,20 @@ func main() {
 			Username:    utils.EnvVarStr("NANIT_MQTT_USERNAME", ""),
 			Password:    utils.EnvVarStr("NANIT_MQTT_PASSWORD", ""),
 			TopicPrefix: utils.EnvVarStr("NANIT_MQTT_PREFIX", "nanit"),
+		}
+	}
+
+	// Crying spells from Frigate's audio detection
+	if frigateURL := utils.EnvVarStr("NANIT_FRIGATE_URL", ""); frigateURL != "" {
+		cameras, err := frigate.ParseCameras(utils.EnvVarStr("NANIT_FRIGATE_CAMERAS", ""))
+		if err != nil {
+			log.Error().Err(err).Msg("Invalid NANIT_FRIGATE_CAMERAS. Expected Frigate camera names and baby UIDs, such as 'nursery=bb36bfe3'")
+			os.Exit(1)
+		}
+		opts.Frigate = &frigate.Opts{
+			URL:         frigateURL,
+			TopicPrefix: utils.EnvVarStr("NANIT_FRIGATE_PREFIX", "frigate"),
+			Cameras:     cameras,
 		}
 	}
 

@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"path/filepath"
 	"time"
 
 	"github.com/andrewshaodev/nanit-web/pkg/httpapi"
@@ -75,6 +76,8 @@ func (app *App) apiServer(stopping <-chan struct{}) *httpapi.Server {
 		StreamAuth:   app.StreamAuth,
 		StreamSource: app.StreamSource,
 		History:      app.HistoryTracker,
+		Frigate:      app.Frigate,
+		ClipCacheDir: filepath.Join(app.Opts.DataDirectories.BaseDir, "cry_clips"),
 		WebAuth:      app.WebAuth,
 		Nanit:        app.RestClient,
 		SignedIn:     app.StartMonitoringServices,

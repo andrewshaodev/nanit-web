@@ -93,3 +93,16 @@ type DayNightChange struct {
 	ToNight      bool  `json:"to_night"`
 	DurationMins int64 `json:"duration_mins"`
 }
+
+// Cry - one crying spell, as Frigate's audio detection heard it. Frigate
+// keeps the recording for a while; this record of it stays as long as the
+// rest of the history.
+type Cry struct {
+	// ReviewID - Frigate's review item, which has the recording
+	ReviewID string `json:"review_id"`
+	BabyUID  string `json:"baby_uid"`
+	// Start - Unix seconds, when crying was first heard
+	Start float64 `json:"start"`
+	// End - when crying was last heard; null while it goes on
+	End *float64 `json:"end" tstype:"number | null"`
+}

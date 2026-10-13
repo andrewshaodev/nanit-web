@@ -39,3 +39,16 @@ CREATE INDEX IF NOT EXISTS idx_state_changes_baby_time ON state_changes(baby_uid
 CREATE INDEX IF NOT EXISTS idx_sensor_readings_created ON sensor_readings(created_at);
 CREATE INDEX IF NOT EXISTS idx_events_created ON events(created_at);
 CREATE INDEX IF NOT EXISTS idx_state_changes_created ON state_changes(created_at);
+
+-- Crying spells, from Frigate's audio detection: one row per Frigate review.
+-- Times are Unix seconds with fractions, as Frigate sends them.
+CREATE TABLE IF NOT EXISTS cries (
+    review_id TEXT PRIMARY KEY,  -- Frigate's review id
+    baby_uid TEXT NOT NULL,
+    start_time REAL NOT NULL,
+    end_time REAL,               -- the last cry heard; NULL while still crying
+    created_at INTEGER DEFAULT (strftime('%s', 'now'))
+);
+
+CREATE INDEX IF NOT EXISTS idx_cries_baby_time ON cries(baby_uid, start_time);
+CREATE INDEX IF NOT EXISTS idx_cries_created ON cries(created_at);

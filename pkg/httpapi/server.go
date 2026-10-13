@@ -20,6 +20,7 @@ import (
 	"github.com/andrewshaodev/nanit-web/pkg/baby"
 	"github.com/andrewshaodev/nanit-web/pkg/camera"
 	"github.com/andrewshaodev/nanit-web/pkg/client"
+	"github.com/andrewshaodev/nanit-web/pkg/frigate"
 	"github.com/andrewshaodev/nanit-web/pkg/history"
 	"github.com/andrewshaodev/nanit-web/pkg/httpapi/apitypes"
 	"github.com/andrewshaodev/nanit-web/pkg/relay"
@@ -67,6 +68,10 @@ type Server struct {
 	// StreamSource - a viewer's stream server; nil on the stream server
 	StreamSource *streamsource.Store
 	History      *history.Tracker
+	// Frigate - crying spells and their recordings; nil without Frigate
+	Frigate *frigate.Service
+	// ClipCacheDir - where complete recordings are kept for a day
+	ClipCacheDir string
 	WebAuth      *webauth.WebAuth
 	Nanit        *client.NanitClient
 	// SignedIn - called after a Nanit sign-in, to start the cameras
@@ -127,6 +132,9 @@ func (s *Server) Handler() http.Handler {
 	api.HandleFunc("GET /api/history/summary/{uid}", s.withBaby(s.withHistory(s.handleHistorySummary)))
 	api.HandleFunc("GET /api/history/day-night/{uid}", s.withBaby(s.withHistory(s.handleHistoryDayNight)))
 	api.HandleFunc("DELETE /api/history/reset/{uid}", s.withBaby(s.withHistory(s.handleHistoryReset)))
+
+	api.HandleFunc("GET /api/cries/{uid}", s.withBaby(s.handleCries))
+	api.HandleFunc("GET /api/cries/{uid}/{review}/clip.mp4", s.withBaby(s.handleCryClip))
 
 	mux := http.NewServeMux()
 	// Signed out, a request under /api/ gets 401 before the API's routing

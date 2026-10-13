@@ -2,6 +2,7 @@ package mqtt
 
 import (
 	"fmt"
+	"maps"
 	"net/url"
 	"strings"
 	"sync"
@@ -30,6 +31,9 @@ type Connection struct {
 	mu       sync.Mutex
 	handlers map[string]registration
 	nextID   int
+
+	// Other topics the bridge listens to, such as Frigate's
+	listeners map[string]func(payload []byte)
 }
 
 type registration struct {
@@ -87,6 +91,33 @@ func (conn *Connection) RegisterBaby(babyUID string, h CommandHandlers) (unregis
 		// A reconnect may have registered a newer connection meanwhile
 		if conn.handlers[babyUID].id == id {
 			delete(conn.handlers, babyUID)
+		}
+	}
+}
+
+// Listen calls handle with each message on topic, from the next connect on.
+// Call it before Run.
+func (conn *Connection) Listen(topic string, handle func(payload []byte)) {
+	conn.mu.Lock()
+	defer conn.mu.Unlock()
+	if conn.listeners == nil {
+		conn.listeners = map[string]func([]byte){}
+	}
+	conn.listeners[topic] = handle
+}
+
+func (conn *Connection) subscribeToListeners() {
+	conn.mu.Lock()
+	listeners := maps.Clone(conn.listeners)
+	conn.mu.Unlock()
+
+	for topic, handle := range listeners {
+		log.Debug().Str("topic", topic).Msg("Subscribing to topic")
+		token := conn.client.Subscribe(topic, 0, func(_ MQTT.Client, msg MQTT.Message) {
+			handle(msg.Payload())
+		})
+		if token.Wait() && token.Error() != nil {
+			log.Error().Err(token.Error()).Str("topic", topic).Msg("Failed to subscribe to topic")
 		}
 	}
 }
@@ -196,6 +227,7 @@ func runMqtt(conn *Connection, attempt utils.AttemptContext) {
 	})
 
 	conn.subscribeToCommands()
+	conn.subscribeToListeners()
 
 	// Wait until interrupt signal is received
 	<-attempt.Done()

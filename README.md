@@ -14,6 +14,7 @@ It isn't affiliated with Nanit. It uses Nanit's unofficial, reverse-engineered A
 - **Controls.** Night light, standby, and the camera's built-in sounds (White Noise, Birds, Waves, Wind) with play/stop, a timer and speaker volume.
 - **Device details.** Firmware, settings, and the camera's WiFi network, signal strength and channel.
 - **History.** Temperature and humidity charts, and a day/night timeline that marks the time nothing was recorded, over 1 hour to 30 days, stored in SQLite.
+- **Crying log, with recordings.** With [Frigate](https://frigate.video) listening to the stream for crying, each crying spell shows on the camera's card as it happens, with how long it lasted and its recording. See [Crying spells from Frigate](#crying-spells-from-frigate).
 - **Dashboard.** Light and dark themes (Catppuccin Latte and Mocha, following the device or set by hand). Several cameras can be collapsed and reordered, per browser.
 - **Sign-in.** Nanit's email/password and 2FA (text or email code) from the dashboard, plus an optional password on the dashboard itself.
 - **MQTT.** Readings and switch topics for Home Assistant or anything else. See [MQTT](#mqtt).
@@ -70,6 +71,9 @@ Settings are environment variables, apart from the passwords and a viewer's stre
 | `NANIT_MQTT_USERNAME` / `NANIT_MQTT_PASSWORD` | | Broker credentials |
 | `NANIT_MQTT_CLIENT_ID` | `nanit` | MQTT client ID |
 | `NANIT_MQTT_PREFIX` | `nanit` | Topic prefix |
+| `NANIT_FRIGATE_URL` | | Frigate's API, e.g. `http://frigate:5000`, to show crying spells (see [Crying spells from Frigate](#crying-spells-from-frigate)) |
+| `NANIT_FRIGATE_CAMERAS` | | Frigate camera names and the babies they watch, e.g. `nursery=bb36bfe3,travel=380fb4f2` |
+| `NANIT_FRIGATE_PREFIX` | `frigate` | Frigate's MQTT topic prefix |
 | `NANIT_EVENTS_POLLING` | `false` | Poll Nanit for motion and sound events (see [MQTT](#mqtt)) |
 | `NANIT_EVENTS_POLLING_INTERVAL` | `30` | Seconds between polls |
 | `NANIT_EVENTS_MESSAGE_TIMEOUT` | `300` | Ignore events older than this many seconds |
@@ -140,6 +144,18 @@ With `NANIT_MQTT_ENABLED=true`, readings are published to `<prefix>/babies/<baby
 Publish `true` or `false` to `<prefix>/babies/<baby_uid>/night_light/switch` or `.../standby/switch` to control them.
 
 This build doesn't send Home Assistant MQTT discovery messages, so add these as [MQTT sensors and switches](https://www.home-assistant.io/integrations/sensor.mqtt/) in your configuration. Your baby UIDs are shown in **Settings → Devices**.
+
+### Crying spells from Frigate
+
+[Frigate](https://frigate.video) can watch the bridge's RTSP output and listen for crying with its audio detection. The bridge then keeps a log of each crying spell, and the camera's card shows it: when each spell started, how long it lasted, whether the baby is crying now, and the recording.
+
+In Frigate, listen for `crying` on the camera, make it an alert (`review.alerts.labels: [crying]`) and record alerts. Then set:
+
+- `NANIT_FRIGATE_URL` to Frigate's API. Port 5000 has no password, so reach it only over a Docker network, never published.
+- `NANIT_FRIGATE_CAMERAS` to which Frigate camera is which baby. The baby UIDs are in **Settings → Devices**.
+- MQTT, on the same broker as Frigate (`NANIT_MQTT_*`), so spells show up as they happen. The broker user needs to read `frigate/reviews`. Without MQTT, the bridge checks Frigate every 5 minutes instead.
+
+Each spell is one of Frigate's review items. The bridge keeps the times in its history database, as long as the rest of the history (`NANIT_HISTORY_RETENTION_DAYS`), and asks Frigate for the recording when it's played, from 30 s before the first cry to 30 s after the last. Recordings last only as long as Frigate keeps them. The history database must be on (`NANIT_HISTORY_ENABLED`).
 
 ## Troubleshooting
 

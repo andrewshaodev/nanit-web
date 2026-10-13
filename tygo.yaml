@@ -12,6 +12,7 @@ packages:
       baby.DeviceInfo: "baby.DeviceInfo"
       history.SensorReading: "history.SensorReading"
       history.Event: "history.Event"
+      history.Cry: "history.Cry"
       history.DayNightAnalytics: "history.DayNightAnalytics"
       streaming.StreamError: "streaming.StreamError"
   - path: "github.com/andrewshaodev/nanit-web/pkg/baby"

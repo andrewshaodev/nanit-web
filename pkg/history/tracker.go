@@ -563,7 +563,7 @@ func (t *Tracker) Cleanup(retentionDays int) error {
 
 	cutoffTime := time.Now().AddDate(0, 0, -retentionDays).Unix()
 
-	tables := []string{"sensor_readings", "events", "state_changes"}
+	tables := []string{"sensor_readings", "events", "state_changes", "cries"}
 	totalDeleted := 0
 
 	for _, table := range tables {
@@ -599,7 +599,7 @@ func (t *Tracker) ResetData(babyUID string) (int, error) {
 		return 0, fmt.Errorf("historical tracking disabled")
 	}
 
-	tables := []string{"sensor_readings", "events", "state_changes"}
+	tables := []string{"sensor_readings", "events", "state_changes", "cries"}
 	totalDeleted := 0
 
 	for _, table := range tables {
@@ -627,6 +627,72 @@ func (t *Tracker) ResetData(babyUID string) (int, error) {
 	}
 
 	return totalDeleted, nil
+}
+
+// RecordCry saves a crying spell, or updates it: Frigate sends the same
+// review again as it goes on and when it ends. An end, once known, is kept.
+func (t *Tracker) RecordCry(c Cry) error {
+	if !t.enabled {
+		return nil
+	}
+	_, err := t.db.Exec(`
+		INSERT INTO cries (review_id, baby_uid, start_time, end_time)
+		VALUES (?, ?, ?, ?)
+		ON CONFLICT(review_id) DO UPDATE SET
+			baby_uid = excluded.baby_uid,
+			start_time = excluded.start_time,
+			end_time = COALESCE(excluded.end_time, cries.end_time)
+	`, c.ReviewID, c.BabyUID, c.Start, c.End)
+	if err != nil {
+		return fmt.Errorf("failed to record cry %s: %w", c.ReviewID, err)
+	}
+	return nil
+}
+
+// GetCries - the crying spells that overlap the range, latest first
+func (t *Tracker) GetCries(babyUID string, startTime, endTime int64) ([]Cry, error) {
+	if !t.enabled {
+		return nil, fmt.Errorf("historical tracking disabled")
+	}
+	rows, err := t.db.Query(`
+		SELECT review_id, baby_uid, start_time, end_time
+		FROM cries
+		WHERE baby_uid = ? AND start_time <= ? AND (end_time IS NULL OR end_time >= ?)
+		ORDER BY start_time DESC
+		LIMIT 1000
+	`, babyUID, endTime, startTime)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	cries := []Cry{}
+	for rows.Next() {
+		var c Cry
+		if err := rows.Scan(&c.ReviewID, &c.BabyUID, &c.Start, &c.End); err != nil {
+			return nil, err
+		}
+		cries = append(cries, c)
+	}
+	return cries, rows.Err()
+}
+
+// GetCry - one crying spell, by Frigate's review id
+func (t *Tracker) GetCry(reviewID string) (Cry, bool, error) {
+	if !t.enabled {
+		return Cry{}, false, fmt.Errorf("historical tracking disabled")
+	}
+	var c Cry
+	err := t.db.QueryRow(`
+		SELECT review_id, baby_uid, start_time, end_time FROM cries WHERE review_id = ?
+	`, reviewID).Scan(&c.ReviewID, &c.BabyUID, &c.Start, &c.End)
+	if err == sql.ErrNoRows {
+		return Cry{}, false, nil
+	}
+	if err != nil {
+		return Cry{}, false, err
+	}
+	return c, true, nil
 }
 
 // IsEnabled returns whether historical tracking is enabled
