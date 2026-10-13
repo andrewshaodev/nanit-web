@@ -35,7 +35,11 @@ type Config struct {
 	// players reach it ("" when unknown: the dashboard uses its own host)
 	RTSPEnabled    bool
 	RTSPPublicAddr string
-	MQTTEnabled    bool
+	// StreamServer - whether this instance asks the cameras to stream;
+	// otherwise it's a viewer of StreamFrom
+	StreamServer bool
+	StreamFrom   string
+	MQTTEnabled  bool
 	// SessionFile - the saved Nanit session
 	SessionFile string
 	// WebDir - the built dashboard (index.html and assets/)

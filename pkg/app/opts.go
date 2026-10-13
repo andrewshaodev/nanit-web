@@ -14,10 +14,14 @@ type Opts struct {
 	// Version - the commit the binary was built from, when CI stamped it
 	Version string
 	// WebDir - the built dashboard (index.html and assets/)
-	WebDir       string
-	MQTT         *mqtt.Opts
-	RTMP         *RTMPOpts
-	RTSP         *RTSPOpts
+	WebDir string
+	MQTT   *mqtt.Opts
+	RTMP   *RTMPOpts
+	RTSP   *RTSPOpts
+	// StreamServer - this instance asks the cameras to stream; only one
+	// may. Others are viewers, taking the server's stream from StreamFrom.
+	StreamServer bool
+	StreamFrom   string
 	EventPolling EventPollingOpts
 	History      HistoryOpts
 	WebAuth      WebAuthOpts

@@ -29,7 +29,17 @@ const (
 	streamRetryMax = 15 * time.Minute
 
 	streamEventQueueSize = 64
+
+	// Two stream servers on one camera take its stream from each other: a
+	// publisher that keeps ending soon after it starts is the sign
+	stolenStreamWithin = 2 * time.Minute
+	stolenStreamWindow = 10 * time.Minute
+	stolenStreamCount  = 3
+	stolenStreamPause  = 15 * time.Minute
 )
+
+// stolenStreamMessage - the device alert for two stream servers
+const stolenStreamMessage = "Another bridge may be taking this camera's stream. Only one may have NANIT_STREAM_SERVER=true; the others watch it with NANIT_STREAM_FROM."
 
 // errConnectionLimit - Nanit turned the stream down because too many apps
 // are connected to the account
@@ -115,6 +125,14 @@ func (c *Camera) runStream(ctx utils.GracefulContext) {
 		requesting bool
 		retry      <-chan time.Time
 		backoff    = c.streamRetryMin
+		// When the current publisher started, and recent publishers that
+		// ended soon after starting
+		publishedAt time.Time
+		shortLived  []time.Time
+		// Set while the two-servers alert is showing
+		flagged bool
+		// Fires once a publisher has lasted long enough to count as settled
+		settled <-chan time.Time
 	)
 
 	startTranscoding := func() {
@@ -129,7 +147,9 @@ func (c *Camera) runStream(ctx utils.GracefulContext) {
 	}
 
 	request := func(why string) {
-		if conn == nil || requesting {
+		// Only the stream server asks the camera to stream. A viewer takes
+		// the server's stream, and asking would take it from the server.
+		if !c.opts.StreamServer || conn == nil || requesting {
 			return
 		}
 		// The state is the authority on publishing. Its changes reach this
@@ -156,6 +176,14 @@ func (c *Camera) runStream(ctx utils.GracefulContext) {
 		case <-ctx.Done():
 			return
 
+		case <-settled:
+			settled = nil
+			if flagged {
+				flagged = false
+				c.setStreamingError("")
+				sublog.Info().Msg("The camera's stream is steady again")
+			}
+
 		case <-retry:
 			retry = nil
 			request("retrying a failed request")
@@ -178,6 +206,8 @@ func (c *Camera) runStream(ctx utils.GracefulContext) {
 				}
 				publishing = e.publishing
 				if publishing {
+					publishedAt = time.Now()
+					settled = time.After(stolenStreamWithin)
 					backoff = c.streamRetryMin
 					retry = nil
 					startTranscoding()
@@ -185,6 +215,14 @@ func (c *Camera) runStream(ctx utils.GracefulContext) {
 					// Nothing is feeding the transcoder any more
 					if c.deps.HLS != nil {
 						c.deps.HLS.StopTranscoding(uid)
+					}
+					if c.streamTakenElsewhere(&shortLived, publishedAt, conn != nil) {
+						sublog.Warn().Dur("pause", stolenStreamPause).Msg("Another bridge may be taking this camera's stream; pausing requests")
+						c.setStreamingError(stolenStreamMessage)
+						flagged = true
+						settled = nil
+						retry = time.After(stolenStreamPause)
+						continue
 					}
 					if c.autoStart() {
 						request("stream stopped")
@@ -217,6 +255,34 @@ func (c *Camera) runStream(ctx utils.GracefulContext) {
 			}
 		}
 	}
+}
+
+// streamTakenElsewhere records a publisher ending, and reports whether
+// publishers have kept ending soon after starting while the camera was
+// connected: another stream server asking the camera for its stream
+func (c *Camera) streamTakenElsewhere(shortLived *[]time.Time, publishedAt time.Time, connected bool) bool {
+	if !c.opts.StreamServer || !connected || publishedAt.IsZero() || time.Since(publishedAt) > stolenStreamWithin {
+		return false
+	}
+	now := time.Now()
+	recent := (*shortLived)[:0]
+	for _, t := range *shortLived {
+		if now.Sub(t) < stolenStreamWindow {
+			recent = append(recent, t)
+		}
+	}
+	recent = append(recent, now)
+	*shortLived = recent
+	if len(recent) < stolenStreamCount {
+		return false
+	}
+	*shortLived = nil
+	return true
+}
+
+// setStreamingError - shown as a device alert in the dashboard
+func (c *Camera) setStreamingError(message string) {
+	c.deps.State.Update(c.UID(), baby.State{DeviceInfo: &baby.DeviceInfo{StreamingError: &message}})
 }
 
 // requestLocalStreaming asks the camera to start or stop streaming to

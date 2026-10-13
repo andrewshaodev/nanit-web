@@ -13,6 +13,8 @@ import (
 	"github.com/andrewshaodev/nanit-web/pkg/client"
 	"github.com/andrewshaodev/nanit-web/pkg/message"
 	"github.com/andrewshaodev/nanit-web/pkg/mqtt"
+	"github.com/andrewshaodev/nanit-web/pkg/pull"
+	"github.com/andrewshaodev/nanit-web/pkg/relay"
 	"github.com/andrewshaodev/nanit-web/pkg/utils"
 	"github.com/rs/zerolog/log"
 )
@@ -28,6 +30,12 @@ type Options struct {
 	// RTMP - nil when the RTMP server is off
 	RTMP         *RTMPOptions
 	EventPolling EventPollingOptions
+
+	// StreamServer - this instance asks the camera to stream. Only one
+	// instance may: the others are viewers, which never ask, and take the
+	// server's stream from StreamFrom (a URL with {baby_uid} in it).
+	StreamServer bool
+	StreamFrom   string
 }
 
 // RTMPOptions - the RTMP server the camera streams to
@@ -53,6 +61,8 @@ type Deps struct {
 	HLS   transcoder
 	// MQTT - nil when MQTT is off
 	MQTT *mqtt.Connection
+	// Relay - the camera's live stream, for a viewer to publish into
+	Relay *relay.Hub
 }
 
 // requester - the part of a websocket connection that commands need, so
@@ -128,6 +138,14 @@ func (c *Camera) Run(ctx utils.GracefulContext) {
 
 	if c.opts.RTMP != nil {
 		ctx.RunAsChild(c.runStream)
+	}
+
+	// A viewer's video: the stream server's stream
+	if !c.opts.StreamServer && c.opts.StreamFrom != "" && c.deps.Relay != nil {
+		url := pull.URL(c.opts.StreamFrom, uid)
+		ctx.RunAsChild(func(childCtx utils.GracefulContext) {
+			pull.Run(childCtx, url, uid, c.deps.Relay)
+		})
 	}
 
 	if c.opts.EventPolling.Enabled {
@@ -278,8 +296,9 @@ func (c *Camera) runWebsocket(conn *client.WebsocketConnection, childCtx utils.G
 	c.sendStreamEvent(connectionChanged{nil})
 
 	// Stop local streaming on a deliberate shutdown, while the socket can
-	// still carry the request
-	if c.opts.RTMP != nil {
+	// still carry the request. Only the stream server does: a viewer's
+	// stream is the server's, and stopping it would cut the server off.
+	if c.opts.RTMP != nil && c.opts.StreamServer {
 		state := stateManager.GetBabyState(uid)
 		if state.GetIsWebsocketAlive() && state.GetStreamState() == baby.StreamState_Alive {
 			requestLocalStreaming(uid, c.LocalStreamURL(), client.Streaming_STOPPED, conn, stateManager)

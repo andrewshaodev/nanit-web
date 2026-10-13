@@ -60,6 +60,8 @@ func (app *App) apiServer() *httpapi.Server {
 	if app.Opts.RTMP != nil {
 		config.RTMPPublicAddr = app.Opts.RTMP.PublicAddr
 	}
+	config.StreamServer = app.Opts.StreamServer
+	config.StreamFrom = app.Opts.StreamFrom
 	if app.Opts.RTSP != nil {
 		config.RTSPEnabled = true
 		config.RTSPPublicAddr = app.Opts.RTSP.PublicAddr

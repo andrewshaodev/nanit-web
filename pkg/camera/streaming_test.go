@@ -56,15 +56,21 @@ type streamTest struct {
 	stop  func()
 }
 
-// startStreamLoop runs a camera's stream loop, with retries in milliseconds
+// startStreamLoop runs a stream server camera's stream loop, with retries in
+// milliseconds
 func startStreamLoop(t *testing.T, autoStart bool) *streamTest {
+	t.Helper()
+	return startStreamLoopAs(t, autoStart, true)
+}
+
+func startStreamLoopAs(t *testing.T, autoStart, server bool) *streamTest {
 	t.Helper()
 	st := &streamTest{
 		conn:  &fakeConn{responses: map[client.RequestType]*client.Response{}, errs: map[client.RequestType]error{}},
 		hls:   &fakeTranscoder{},
 		state: baby.NewStateManager(),
 	}
-	st.cam = New(baby.Baby{UID: "baby1"}, Options{RTMP: &RTMPOptions{PublicAddr: "192.0.2.1:1935", AutoStart: autoStart}},
+	st.cam = New(baby.Baby{UID: "baby1"}, Options{RTMP: &RTMPOptions{PublicAddr: "192.0.2.1:1935", AutoStart: autoStart}, StreamServer: server},
 		Deps{State: st.state, HLS: st.hls})
 	st.cam.streamRetryMin = 20 * time.Millisecond
 	st.cam.streamRetryMax = 40 * time.Millisecond
@@ -192,4 +198,38 @@ func TestStreamStoppedAfterDisconnectIsNotRequestedAgain(t *testing.T) {
 	st.cam.sendStreamEvent(connectionChanged{nil})
 	st.publish(false)
 	never(t, "a request after disconnecting", func() bool { n, _ := st.streamRequests(); return n > 0 })
+}
+
+// A viewer never asks the camera to stream, whatever happens: asking would
+// take the stream from the server. It still transcodes the server's stream
+// when that arrives.
+func TestViewerNeverAsksTheCamera(t *testing.T) {
+	st := startStreamLoopAs(t, true, false)
+	st.connect()
+	require.NoError(t, st.cam.RequestStream())
+	never(t, "a request from a viewer", func() bool { n, _ := st.streamRequests(); return n > 0 })
+
+	st.publish(true)
+	eventually(t, "HLS for the server's stream", func() bool { s, _ := st.hls.counts(); return s == 1 })
+	st.publish(false)
+	never(t, "a request after the stream stops", func() bool { n, _ := st.streamRequests(); return n > 0 })
+}
+
+// Two stream servers take the camera's stream from each other. A publisher
+// that keeps ending soon after it starts pauses the requests, and says so.
+func TestStreamTakenElsewherePausesRequests(t *testing.T) {
+	st := startStreamLoop(t, true)
+	st.connect()
+	for i := range stolenStreamCount {
+		eventually(t, "a request", func() bool { n, _ := st.streamRequests(); return n == i+1 })
+		st.publish(true)
+		eventually(t, "HLS", func() bool { s, _ := st.hls.counts(); return s == i+1 })
+		st.publish(false)
+	}
+
+	never(t, "a request while paused", func() bool { n, _ := st.streamRequests(); return n > stolenStreamCount })
+	eventually(t, "the alert", func() bool {
+		info := st.state.GetBabyState("baby1").GetDeviceInfo()
+		return info.StreamingError != nil && *info.StreamingError == stolenStreamMessage
+	})
 }

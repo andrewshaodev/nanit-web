@@ -94,6 +94,12 @@ export interface HLSInfo {
  * StreamingInfoResponse - GET /api/streaming/info
  */
 export interface StreamingInfoResponse {
+  /**
+   * Role - "server" asks the cameras to stream; a "viewer" takes the
+   * server's stream from StreamFrom
+   */
+  role: 'server' | 'viewer';
+  stream_from?: string;
   rtmp: RTMPInfo;
   rtsp: RTSPInfo;
   hls: HLSInfo;

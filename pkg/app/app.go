@@ -79,7 +79,7 @@ func NewApp(opts Opts) (*App, error) {
 		instance.MQTTConnection = mqtt.NewConnection(*opts.MQTT)
 	}
 
-	cameraOpts := camera.Options{EventPolling: camera.EventPollingOptions{
+	cameraOpts := camera.Options{StreamServer: opts.StreamServer, StreamFrom: opts.StreamFrom, EventPolling: camera.EventPollingOptions{
 		Enabled:        opts.EventPolling.Enabled,
 		Interval:       opts.EventPolling.PollingInterval,
 		MessageTimeout: opts.EventPolling.MessageTimeout,
@@ -92,6 +92,7 @@ func NewApp(opts Opts) (*App, error) {
 		Nanit: instance.RestClient,
 		HLS:   instance.HLSManager,
 		MQTT:  instance.MQTTConnection,
+		Relay: instance.Relay,
 	})
 
 	// Initialize historical data tracker

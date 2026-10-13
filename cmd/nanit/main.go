@@ -90,6 +90,18 @@ func main() {
 		}
 	}
 
+	// Only one instance asks the cameras to stream; the others watch it
+	opts.StreamServer = utils.EnvVarBool("NANIT_STREAM_SERVER", false)
+	opts.StreamFrom = utils.EnvVarStr("NANIT_STREAM_FROM", "")
+	switch {
+	case opts.StreamServer:
+		log.Info().Msg("Stream server: this instance asks the cameras to stream")
+	case opts.StreamFrom != "":
+		log.Info().Str("from", opts.StreamFrom).Msg("Viewer: taking video from the stream server")
+	default:
+		log.Warn().Msg("Viewer without NANIT_STREAM_FROM: no video. Set NANIT_STREAM_SERVER=true on the one instance that should ask the cameras to stream")
+	}
+
 	if utils.EnvVarBool("NANIT_RTSP_ENABLED", true) {
 		listen := utils.EnvVarStr("NANIT_RTSP_ADDR", ":8554")
 		opts.RTSP = &app.RTSPOpts{ListenAddr: listen}

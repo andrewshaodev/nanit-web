@@ -79,9 +79,13 @@ type HLSInfo struct {
 
 // StreamingInfoResponse - GET /api/streaming/info
 type StreamingInfoResponse struct {
-	RTMP RTMPInfo `json:"rtmp"`
-	RTSP RTSPInfo `json:"rtsp"`
-	HLS  HLSInfo  `json:"hls"`
+	// Role - "server" asks the cameras to stream; a "viewer" takes the
+	// server's stream from StreamFrom
+	Role       string   `json:"role" tstype:"'server' | 'viewer'"`
+	StreamFrom string   `json:"stream_from,omitempty"`
+	RTMP       RTMPInfo `json:"rtmp"`
+	RTSP       RTSPInfo `json:"rtsp"`
+	HLS        HLSInfo  `json:"hls"`
 }
 
 // ControlRequest - POST /api/control/night-light and /api/control/standby

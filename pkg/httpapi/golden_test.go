@@ -74,6 +74,7 @@ func goldenState(t *testing.T) (*Server, http.Handler) {
 	app.History = tracker
 	app.Config.RTMPPublicAddr = "192.0.2.1:1935"
 	app.Config.RTSPEnabled = true
+	app.Config.StreamServer = true
 	app.Config.RTSPPublicAddr = "192.0.2.1:8554"
 	require.NoError(t, os.WriteFile(app.Config.SessionFile, []byte("{}"), 0600))
 

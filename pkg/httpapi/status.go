@@ -48,9 +48,15 @@ func (s *Server) handleBabies(w http.ResponseWriter, r *http.Request) {
 // have to be told the real address rather than guessing it from the browser
 // location.
 func (s *Server) handleStreamingInfo(w http.ResponseWriter, r *http.Request) {
+	role := "viewer"
+	if s.Config.StreamServer {
+		role = "server"
+	}
 	res := apitypes.StreamingInfoResponse{
-		RTMP: apitypes.RTMPInfo{Enabled: s.Config.RTMPPublicAddr != ""},
-		HLS:  apitypes.HLSInfo{Enabled: true, URLTemplate: hlsURLTemplate},
+		Role:       role,
+		StreamFrom: s.Config.StreamFrom,
+		RTMP:       apitypes.RTMPInfo{Enabled: s.Config.RTMPPublicAddr != ""},
+		HLS:        apitypes.HLSInfo{Enabled: true, URLTemplate: hlsURLTemplate},
 	}
 	if s.Config.RTSPEnabled {
 		res.RTSP = apitypes.RTSPInfo{Enabled: true, PublicAddr: s.Config.RTSPPublicAddr}
