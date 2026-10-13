@@ -72,7 +72,19 @@ func (t *Tracker) initSchema() error {
 		return fmt.Errorf("failed to execute schema: %v", err)
 	}
 
-	return nil
+	// Columns added since a table was first made
+	return t.addColumn("cries", "camera", "TEXT NOT NULL DEFAULT ''")
+}
+
+// addColumn adds a column to a table made before it was in the schema
+func (t *Tracker) addColumn(table, column, definition string) error {
+	var n int
+	err := t.db.QueryRow(`SELECT COUNT(*) FROM pragma_table_info(?) WHERE name = ?`, table, column).Scan(&n)
+	if err != nil || n > 0 {
+		return err
+	}
+	_, err = t.db.Exec(fmt.Sprintf("ALTER TABLE %s ADD COLUMN %s %s", table, column, definition))
+	return err
 }
 
 // Close closes the database connection
@@ -636,13 +648,14 @@ func (t *Tracker) RecordCry(c Cry) error {
 		return nil
 	}
 	_, err := t.db.Exec(`
-		INSERT INTO cries (review_id, baby_uid, start_time, end_time)
-		VALUES (?, ?, ?, ?)
+		INSERT INTO cries (review_id, baby_uid, camera, start_time, end_time)
+		VALUES (?, ?, ?, ?, ?)
 		ON CONFLICT(review_id) DO UPDATE SET
 			baby_uid = excluded.baby_uid,
+			camera = excluded.camera,
 			start_time = excluded.start_time,
 			end_time = COALESCE(excluded.end_time, cries.end_time)
-	`, c.ReviewID, c.BabyUID, c.Start, c.End)
+	`, c.ReviewID, c.BabyUID, c.Camera, c.Start, c.End)
 	if err != nil {
 		return fmt.Errorf("failed to record cry %s: %w", c.ReviewID, err)
 	}
@@ -655,7 +668,7 @@ func (t *Tracker) GetCries(babyUID string, startTime, endTime int64) ([]Cry, err
 		return nil, fmt.Errorf("historical tracking disabled")
 	}
 	rows, err := t.db.Query(`
-		SELECT review_id, baby_uid, start_time, end_time
+		SELECT review_id, baby_uid, camera, start_time, end_time
 		FROM cries
 		WHERE baby_uid = ? AND start_time <= ? AND (end_time IS NULL OR end_time >= ?)
 		ORDER BY start_time DESC
@@ -669,7 +682,7 @@ func (t *Tracker) GetCries(babyUID string, startTime, endTime int64) ([]Cry, err
 	cries := []Cry{}
 	for rows.Next() {
 		var c Cry
-		if err := rows.Scan(&c.ReviewID, &c.BabyUID, &c.Start, &c.End); err != nil {
+		if err := rows.Scan(&c.ReviewID, &c.BabyUID, &c.Camera, &c.Start, &c.End); err != nil {
 			return nil, err
 		}
 		cries = append(cries, c)
@@ -684,8 +697,8 @@ func (t *Tracker) GetCry(reviewID string) (Cry, bool, error) {
 	}
 	var c Cry
 	err := t.db.QueryRow(`
-		SELECT review_id, baby_uid, start_time, end_time FROM cries WHERE review_id = ?
-	`, reviewID).Scan(&c.ReviewID, &c.BabyUID, &c.Start, &c.End)
+		SELECT review_id, baby_uid, camera, start_time, end_time FROM cries WHERE review_id = ?
+	`, reviewID).Scan(&c.ReviewID, &c.BabyUID, &c.Camera, &c.Start, &c.End)
 	if err == sql.ErrNoRows {
 		return Cry{}, false, nil
 	}

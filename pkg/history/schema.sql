@@ -47,6 +47,7 @@ CREATE TABLE IF NOT EXISTS cries (
     baby_uid TEXT NOT NULL,
     start_time REAL NOT NULL,
     end_time REAL,               -- the last cry heard; NULL while still crying
+    camera TEXT NOT NULL DEFAULT '', -- the Frigate camera that heard it
     created_at INTEGER DEFAULT (strftime('%s', 'now'))
 );
 

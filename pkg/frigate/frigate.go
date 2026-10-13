@@ -12,8 +12,8 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"io"
 	"net/http"
+	"net/http/httputil"
 	"net/url"
 	"regexp"
 	"slices"
@@ -30,8 +30,8 @@ import (
 // CryLabel - Frigate's audio label for crying
 const CryLabel = "crying"
 
-// ClipPadding - seconds of recording kept either side of a spell's clip, so
-// it starts before the first cry
+// ClipPadding - seconds of recording shown either side of a spell, so it
+// starts before the first cry
 const ClipPadding = 30
 
 // How often the review API is checked for spells MQTT missed, and how far
@@ -114,15 +114,20 @@ type Service struct {
 	opts   Opts
 	cries  Recorder
 	client *http.Client
+	vod    *httputil.ReverseProxy
 }
 
 // New - a service that saves spells to cries
-func New(opts Opts, cries Recorder) *Service {
+func New(opts Opts, cries Recorder) (*Service, error) {
 	opts.URL = strings.TrimRight(opts.URL, "/")
+	base, err := url.Parse(opts.URL)
+	if err != nil || (base.Scheme != "http" && base.Scheme != "https") || base.Host == "" {
+		return nil, fmt.Errorf("frigate's URL %q isn't an http:// or https:// address", opts.URL)
+	}
 	if opts.TopicPrefix == "" {
 		opts.TopicPrefix = "frigate"
 	}
-	return &Service{opts: opts, cries: cries, client: &http.Client{}}
+	return &Service{opts: opts, cries: cries, client: &http.Client{}, vod: newVODProxy(base)}, nil
 }
 
 // ReviewsTopic - the MQTT topic Frigate sends review items on
@@ -137,7 +142,7 @@ func (s *Service) cry(r Review) (history.Cry, bool) {
 	if !ok || r.Severity != "alert" || !slices.Contains(r.Data.Audio, CryLabel) || !ValidReviewID(r.ID) {
 		return history.Cry{}, false
 	}
-	return history.Cry{ReviewID: r.ID, BabyUID: uid, Start: r.StartTime, End: r.EndTime}, true
+	return history.Cry{ReviewID: r.ID, BabyUID: uid, Camera: r.Camera, Start: r.StartTime, End: r.EndTime}, true
 }
 
 // HandleReview saves the spell in a message on ReviewsTopic
@@ -226,17 +231,55 @@ func (s *Service) Sync(ctx context.Context, after time.Time) error {
 	return nil
 }
 
-// Clip - a spell's recording as MP4, with ClipPadding either side. The
-// caller closes it.
-func (s *Service) Clip(ctx context.Context, reviewID string) (io.ReadCloser, error) {
-	if !ValidReviewID(reviewID) {
-		return nil, fmt.Errorf("invalid review id")
+// vodFilePattern - the files of Frigate's HLS recordings: the playlists,
+// and the init and media segments they name, all side by side
+var vodFilePattern = regexp.MustCompile(`^[A-Za-z0-9_-]{1,64}\.(m3u8|mp4|m4s)$`)
+
+// ValidVODFile - whether file is one of an HLS recording's
+func ValidVODFile(file string) bool {
+	return vodFilePattern.MatchString(file)
+}
+
+type vodPathKey struct{}
+
+// ServeVOD passes on one file of camera's recording between start and end
+// (Unix seconds), as HLS from Frigate: index.m3u8 first, then the files it
+// names. Frigate builds them from its recordings on request, and serves
+// ranges, so the player can seek without anything being kept here.
+func (s *Service) ServeVOD(w http.ResponseWriter, r *http.Request, camera string, start, end int64, file string) {
+	path := fmt.Sprintf("/vod/%s/start/%d/end/%d/%s", url.PathEscape(camera), start, end, file)
+	s.vod.ServeHTTP(w, r.WithContext(context.WithValue(r.Context(), vodPathKey{}, path)))
+}
+
+// newVODProxy - the proxy ServeVOD uses: only the file's path, Range and
+// the like go to Frigate, not the dashboard's cookies
+func newVODProxy(base *url.URL) *httputil.ReverseProxy {
+	return &httputil.ReverseProxy{
+		Rewrite: func(pr *httputil.ProxyRequest) {
+			pr.SetURL(base)
+			pr.Out.URL.Path = base.Path + pr.In.Context().Value(vodPathKey{}).(string)
+			pr.Out.URL.RawPath = ""
+			pr.Out.URL.RawQuery = ""
+			pr.Out.Header.Del("Cookie")
+			pr.Out.Header.Del("Authorization")
+		},
+		ModifyResponse: func(res *http.Response) error {
+			// Behind the dashboard password, so never kept by a shared cache.
+			// The playlist of a spell still going changes as Frigate saves more.
+			if strings.HasSuffix(res.Request.URL.Path, ".m3u8") {
+				res.Header.Set("Cache-Control", "private, no-store")
+			} else {
+				res.Header.Set("Cache-Control", "private, max-age=3600")
+			}
+			return nil
+		},
+		ErrorHandler: func(w http.ResponseWriter, r *http.Request, err error) {
+			if r.Context().Err() == nil {
+				log.Error().Err(err).Msg("Failed to get a crying spell's recording from Frigate")
+			}
+			w.WriteHeader(http.StatusBadGateway)
+		},
 	}
-	res, err := s.get(ctx, fmt.Sprintf("/api/review/%s/clip.mp4?padding=%d", reviewID, ClipPadding))
-	if err != nil {
-		return nil, err
-	}
-	return res.Body, nil
 }
 
 // get - a request to Frigate's API, failing on anything but a 200

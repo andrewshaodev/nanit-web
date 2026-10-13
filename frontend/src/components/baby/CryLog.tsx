@@ -6,6 +6,7 @@ import { useSectionCollapsed } from '@/hooks/useSectionCollapsed'
 import type { Baby, CriesResponse, Cry } from '@/types/api'
 import { Button } from '@/components/ui/button'
 import CollapseButton from './CollapseButton'
+import CryRecording from './CryRecording'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 
 const timeframes = [
@@ -158,15 +159,9 @@ export default function CryLog({ baby }: { baby: Baby }) {
                         </Button>
                       </div>
                       {open && (
-                        // The recording starts 30 s before the first cry
-                        // oxlint-disable-next-line jsx-a11y/media-has-caption
-                        <video
-                          className="max-h-[60vh] w-full bg-black"
-                          src={api.cryClipUrl(baby.uid, cry.review_id)}
-                          controls
-                          autoPlay
-                          playsInline
-                        />
+                        // The recording starts 30 s before the first cry, and
+                        // one still going stops at the moment it was opened
+                        <CryRecording src={api.cryRecordingUrl(baby.uid, cry.review_id, Date.now() / 1000)} />
                       )}
                     </li>
                   )

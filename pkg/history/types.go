@@ -101,6 +101,8 @@ type Cry struct {
 	// ReviewID - Frigate's review item, which has the recording
 	ReviewID string `json:"review_id"`
 	BabyUID  string `json:"baby_uid"`
+	// Camera - the Frigate camera that heard it, which has the recording
+	Camera string `json:"-"`
 	// Start - Unix seconds, when crying was first heard
 	Start float64 `json:"start"`
 	// End - when crying was last heard; null while it goes on

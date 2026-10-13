@@ -2,6 +2,7 @@ package app
 
 import (
 	"fmt"
+	"os"
 	"path/filepath"
 	"sync/atomic"
 	"time"
@@ -126,12 +127,17 @@ func NewApp(opts Opts) (*App, error) {
 		instance.HistoryTracker = historyTracker
 	}
 
+	// Recordings older versions downloaded; they now play straight from Frigate
+	_ = os.RemoveAll(filepath.Join(opts.DataDirectories.BaseDir, "cry_clips"))
+
 	// Spells are kept in the history database, and arrive over MQTT
 	if opts.Frigate != nil {
 		if !instance.HistoryTracker.IsEnabled() {
 			log.Warn().Msg("NANIT_FRIGATE_URL is set, but crying spells need history tracking on (NANIT_HISTORY_ENABLED)")
+		} else if service, err := frigate.New(*opts.Frigate, instance.HistoryTracker); err != nil {
+			log.Error().Err(err).Msg("Not recording crying spells")
 		} else {
-			instance.Frigate = frigate.New(*opts.Frigate, instance.HistoryTracker)
+			instance.Frigate = service
 			if instance.MQTTConnection != nil {
 				instance.MQTTConnection.Listen(instance.Frigate.ReviewsTopic(), instance.Frigate.HandleReview)
 			} else {

@@ -70,10 +70,8 @@ type Server struct {
 	History      *history.Tracker
 	// Frigate - crying spells and their recordings; nil without Frigate
 	Frigate *frigate.Service
-	// ClipCacheDir - where complete recordings are kept for a day
-	ClipCacheDir string
-	WebAuth      *webauth.WebAuth
-	Nanit        *client.NanitClient
+	WebAuth *webauth.WebAuth
+	Nanit   *client.NanitClient
 	// SignedIn - called after a Nanit sign-in, to start the cameras
 	SignedIn func()
 	// StartedAt - for /health's uptime
@@ -134,7 +132,7 @@ func (s *Server) Handler() http.Handler {
 	api.HandleFunc("DELETE /api/history/reset/{uid}", s.withBaby(s.withHistory(s.handleHistoryReset)))
 
 	api.HandleFunc("GET /api/cries/{uid}", s.withBaby(s.handleCries))
-	api.HandleFunc("GET /api/cries/{uid}/{review}/clip.mp4", s.withBaby(s.handleCryClip))
+	api.HandleFunc("GET /api/cries/{uid}/{review}/vod/{until}/{file}", s.withBaby(s.handleCryVOD))
 
 	mux := http.NewServeMux()
 	// Signed out, a request under /api/ gets 401 before the API's routing

@@ -305,9 +305,10 @@ class ApiClient {
     return this.request<CriesResponse>(`/cries/${babyUid}?${params}`);
   }
 
-  // A spell's recording, for a <video> element
-  cryClipUrl(babyUid: string, reviewId: string): string {
-    return `${API_BASE}/api/cries/${babyUid}/${encodeURIComponent(reviewId)}/clip.mp4`;
+  // A spell's recording, as an HLS playlist. until (Unix seconds) is where a
+  // spell still going stops; an ended one runs to its end.
+  cryRecordingUrl(babyUid: string, reviewId: string, until: number): string {
+    return `${API_BASE}/api/cries/${babyUid}/${encodeURIComponent(reviewId)}/vod/${Math.floor(until)}/index.m3u8`;
   }
 
   async getSound(babyUid: string): Promise<SoundStatus> {
