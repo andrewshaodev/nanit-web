@@ -5,10 +5,9 @@ import (
 	"fmt"
 	"net"
 	"regexp"
-	"sync"
 	"time"
 
-	"github.com/andrewshaodev/nanit-web/pkg/baby"
+	"github.com/andrewshaodev/nanit-web/pkg/relay"
 	"github.com/andrewshaodev/nanit-web/pkg/utils"
 	"github.com/bluenviron/gortmplib"
 	"github.com/bluenviron/gortmplib/pkg/codecs"
@@ -31,15 +30,15 @@ const (
 	subscriberWriteTimeout = 10 * time.Second
 )
 
+// rtmpHandler - the camera publishes into the relay hub over RTMP, and RTMP
+// players watch it
 type rtmpHandler struct {
-	babyStateManager  *baby.StateManager
-	broadcastersMu    sync.RWMutex
-	broadcastersByUID map[string]*broadcaster
+	hub *relay.Hub
 }
 
 // Serve runs the RTMP server on addr until ctx ends, then closes its
 // listener. The listener used to stay open for the life of the process.
-func Serve(ctx utils.GracefulContext, addr string, babyStateManager *baby.StateManager) error {
+func Serve(ctx utils.GracefulContext, addr string, hub *relay.Hub) error {
 	lis, err := net.Listen("tcp", addr)
 	if err != nil {
 		return fmt.Errorf("failed to start RTMP server on %s: %w", addr, err)
@@ -52,7 +51,7 @@ func Serve(ctx utils.GracefulContext, addr string, babyStateManager *baby.StateM
 		lis.Close()
 	}()
 
-	err = newRtmpHandler(babyStateManager).serve(lis)
+	err = newRtmpHandler(hub).serve(lis)
 	if errors.Is(err, net.ErrClosed) {
 		log.Info().Msg("RTMP server stopped")
 		return nil
@@ -60,11 +59,8 @@ func Serve(ctx utils.GracefulContext, addr string, babyStateManager *baby.StateM
 	return err
 }
 
-func newRtmpHandler(babyStateManager *baby.StateManager) *rtmpHandler {
-	return &rtmpHandler{
-		broadcastersByUID: make(map[string]*broadcaster),
-		babyStateManager:  babyStateManager,
-	}
+func newRtmpHandler(hub *relay.Hub) *rtmpHandler {
+	return &rtmpHandler{hub: hub}
 }
 
 // serve - accepts connections until the listener is closed
@@ -134,31 +130,13 @@ func (s *rtmpHandler) handlePublisher(babyUID string, nc net.Conn, sc *gortmplib
 		return
 	}
 
-	b := newBroadcaster(r.Tracks())
-
-	// The value is in whole seconds, so once a second is as fresh as it gets
-	var lastPacketUnix int64
-	markPacket := func() {
-		if now := time.Now().Unix(); now != lastPacketUnix {
-			lastPacketUnix = now
-			s.babyStateManager.Update(babyUID, *baby.NewState().SetLastVideoPacketTime(now))
-		}
-	}
-
+	var stream relay.Stream
 	for _, track := range r.Tracks() {
-		switch track.Codec.(type) {
+		switch codec := track.Codec.(type) {
 		case *codecs.H264:
-			r.OnDataH264(track, func(pts time.Duration, dts time.Duration, au [][]byte) {
-				markPacket()
-				b.broadcast(frame{track: track, pts: pts, dts: dts, video: au, keyframe: h264.IsRandomAccess(au)})
-			})
-
+			stream.H264 = &relay.H264{SPS: codec.SPS, PPS: codec.PPS}
 		case *codecs.MPEG4Audio:
-			r.OnDataMPEG4Audio(track, func(pts time.Duration, au []byte) {
-				markPacket()
-				b.broadcast(frame{track: track, pts: pts, audio: au})
-			})
-
+			stream.AAC = codec.Config
 		default:
 			// Every track needs a data callback, or the reader crashes on its
 			// first packet. The cam sends only H264 and AAC, so refuse anything
@@ -168,47 +146,59 @@ func (s *rtmpHandler) handlePublisher(babyUID string, nc net.Conn, sc *gortmplib
 		}
 	}
 
-	s.setPublisher(babyUID, b)
+	p := s.hub.Publish(babyUID, stream)
+	defer p.Close()
 	sublog.Info().Msg("New stream publisher connected")
-	s.babyStateManager.Update(babyUID, *baby.NewState().SetStreamState(baby.StreamState_Alive).SetStreamRequestState(baby.StreamRequestState_NotRequested))
+
+	for _, track := range r.Tracks() {
+		switch track.Codec.(type) {
+		case *codecs.H264:
+			r.OnDataH264(track, func(pts time.Duration, dts time.Duration, au [][]byte) {
+				p.Broadcast(relay.Frame{PTS: pts, DTS: dts, Video: au, Keyframe: h264.IsRandomAccess(au)})
+			})
+		case *codecs.MPEG4Audio:
+			r.OnDataMPEG4Audio(track, func(pts time.Duration, au []byte) {
+				p.Broadcast(relay.Frame{PTS: pts, DTS: pts, Audio: au})
+			})
+		}
+	}
 
 	for {
 		// Both directions: reading can mean writing acknowledgements back
 		nc.SetDeadline(time.Now().Add(publisherReadTimeout))
 		if err := r.Read(); err != nil {
 			sublog.Warn().Err(err).Msg("Publisher stream closed unexpectedly")
-			// A publisher that was replaced leaves the stream state to the one
-			// that replaced it
-			if s.clearPublisher(babyUID, b) {
-				s.babyStateManager.Update(babyUID, *baby.NewState().SetStreamState(baby.StreamState_Unhealthy).SetLastVideoPacketTime(0))
-			}
-			b.close()
 			return
 		}
 	}
 }
 
 func (s *rtmpHandler) handleSubscriber(babyUID string, nc net.Conn, sc *gortmplib.ServerConn, sublog zerolog.Logger) {
-	b := s.getPublisher(babyUID)
-	if b == nil {
+	stream, sub, ok := s.hub.Subscribe(babyUID)
+	if !ok {
 		sublog.Warn().Msg("No stream publisher registered yet, closing subscriber stream")
 		return
 	}
+	defer sub.Close()
+
+	var video, audio *gortmplib.Track
+	var tracks []*gortmplib.Track
+	if stream.H264 != nil {
+		video = &gortmplib.Track{Codec: &codecs.H264{SPS: stream.H264.SPS, PPS: stream.H264.PPS}}
+		tracks = append(tracks, video)
+	}
+	if stream.AAC != nil {
+		audio = &gortmplib.Track{Codec: &codecs.MPEG4Audio{Config: stream.AAC}}
+		tracks = append(tracks, audio)
+	}
 
 	nc.SetDeadline(time.Now().Add(subscriberWriteTimeout))
-	w := &gortmplib.Writer{Conn: sc, Tracks: b.tracks}
+	w := &gortmplib.Writer{Conn: sc, Tracks: tracks}
 	if err := w.Initialize(); err != nil {
 		sublog.Debug().Err(err).Msg("Unable to describe the stream to subscriber")
 		return
 	}
 	nc.SetDeadline(time.Time{})
-
-	sub := b.subscribe()
-	if sub == nil {
-		sublog.Debug().Msg("Publisher quit before the subscriber could join")
-		return
-	}
-	defer b.unsubscribe(sub)
 
 	sublog.Debug().Msg("New stream subscriber connected")
 
@@ -224,9 +214,9 @@ func (s *rtmpHandler) handleSubscriber(babyUID string, nc net.Conn, sc *gortmpli
 
 	for {
 		select {
-		case f, open := <-sub.frames:
+		case f, open := <-sub.Frames:
 			if !open {
-				if sub.fellBehind.Load() {
+				if sub.FellBehind() {
 					sublog.Warn().Msg("Closing subscriber that could not keep up with the stream")
 				} else {
 					sublog.Debug().Msg("Closing subscriber because publisher quit")
@@ -235,7 +225,13 @@ func (s *rtmpHandler) handleSubscriber(babyUID string, nc net.Conn, sc *gortmpli
 			}
 
 			nc.SetWriteDeadline(time.Now().Add(subscriberWriteTimeout))
-			if err := f.writeTo(w); err != nil {
+			var err error
+			if f.Video != nil {
+				err = w.WriteH264(video, f.PTS, f.DTS, f.Video)
+			} else {
+				err = w.WriteMPEG4Audio(audio, f.PTS, f.Audio)
+			}
+			if err != nil {
 				sublog.Debug().Err(err).Msg("Unable to write to stream subscriber")
 				return
 			}
@@ -245,38 +241,4 @@ func (s *rtmpHandler) handleSubscriber(babyUID string, nc net.Conn, sc *gortmpli
 			return
 		}
 	}
-}
-
-// setPublisher - makes b the baby's publisher. The cam opening a second
-// publisher connection replaces the first, whose subscribers are closed so
-// they reconnect to the new stream.
-func (s *rtmpHandler) setPublisher(babyUID string, b *broadcaster) {
-	s.broadcastersMu.Lock()
-	existing, hadExisting := s.broadcastersByUID[babyUID]
-	s.broadcastersByUID[babyUID] = b
-	s.broadcastersMu.Unlock()
-
-	if hadExisting {
-		log.Warn().Str("baby_uid", babyUID).Msg("Baby already has active publisher, closing existing subscribers")
-		existing.close()
-	}
-}
-
-func (s *rtmpHandler) getPublisher(babyUID string) *broadcaster {
-	s.broadcastersMu.RLock()
-	defer s.broadcastersMu.RUnlock()
-	return s.broadcastersByUID[babyUID]
-}
-
-// clearPublisher - removes b as the baby's publisher, reporting whether it
-// still was
-func (s *rtmpHandler) clearPublisher(babyUID string, b *broadcaster) bool {
-	s.broadcastersMu.Lock()
-	defer s.broadcastersMu.Unlock()
-
-	if s.broadcastersByUID[babyUID] != b {
-		return false
-	}
-	delete(s.broadcastersByUID, babyUID)
-	return true
 }

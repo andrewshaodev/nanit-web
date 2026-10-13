@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/andrewshaodev/nanit-web/pkg/baby"
+	"github.com/andrewshaodev/nanit-web/pkg/relay"
 	"github.com/andrewshaodev/nanit-web/pkg/utils"
 	"github.com/bluenviron/gortmplib"
 	"github.com/bluenviron/gortmplib/pkg/codecs"
@@ -45,7 +46,7 @@ func startTestServer(t *testing.T) (addr string, states *baby.StateManager) {
 	t.Cleanup(func() { lis.Close() })
 
 	states = baby.NewStateManager()
-	go newRtmpHandler(states).serve(lis)
+	go newRtmpHandler(relay.NewHub(states)).serve(lis)
 	return lis.Addr().String(), states
 }
 
@@ -276,7 +277,7 @@ func TestServeClosesItsListener(t *testing.T) {
 
 	served := make(chan error, 1)
 	runner := utils.RunWithGracefulCancel(func(ctx utils.GracefulContext) {
-		served <- Serve(ctx, addr, baby.NewStateManager())
+		served <- Serve(ctx, addr, relay.NewHub(baby.NewStateManager()))
 	})
 	require.Eventually(t, func() bool {
 		conn, err := net.Dial("tcp", addr)

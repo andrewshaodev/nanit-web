@@ -10,6 +10,7 @@ import (
 	"github.com/andrewshaodev/nanit-web/pkg/client"
 	"github.com/andrewshaodev/nanit-web/pkg/history"
 	"github.com/andrewshaodev/nanit-web/pkg/mqtt"
+	"github.com/andrewshaodev/nanit-web/pkg/relay"
 	"github.com/andrewshaodev/nanit-web/pkg/rtmpserver"
 	"github.com/andrewshaodev/nanit-web/pkg/session"
 	"github.com/andrewshaodev/nanit-web/pkg/streaming"
@@ -26,10 +27,12 @@ type App struct {
 	RestClient       *client.NanitClient
 	MQTTConnection   *mqtt.Connection
 	HLSManager       *streaming.HLSManager
-	HistoryTracker   *history.Tracker
-	WebAuth          *webauth.WebAuth
-	Cameras          *camera.Registry
-	mainContext      utils.GracefulContext // Store main application context
+	// Relay - each camera's live stream, for every output
+	Relay          *relay.Hub
+	HistoryTracker *history.Tracker
+	WebAuth        *webauth.WebAuth
+	Cameras        *camera.Registry
+	mainContext    utils.GracefulContext // Store main application context
 
 	// Set once RTMP and MQTT have been started. Signing in again used to
 	// start them, and every camera, a second time.
@@ -68,6 +71,8 @@ func NewApp(opts Opts) (*App, error) {
 		HLSManager: streaming.NewHLSManager(opts.DataDirectories.BaseDir + "/hls"),
 		WebAuth:    webauth.NewWebAuth(opts.WebAuth.PasswordFile),
 	}
+
+	instance.Relay = relay.NewHub(instance.BabyStateManager)
 
 	if opts.MQTT != nil {
 		instance.MQTTConnection = mqtt.NewConnection(*opts.MQTT)
@@ -210,7 +215,7 @@ func (app *App) startSharedServices(ctx utils.GracefulContext) {
 		ctx.RunAsChild(func(childCtx utils.GracefulContext) {
 			// Logged rather than stopping the app: in a container that would
 			// restart it, reconnecting to Nanit, in a loop
-			if err := rtmpserver.Serve(childCtx, app.Opts.RTMP.ListenAddr, app.BabyStateManager); err != nil {
+			if err := rtmpserver.Serve(childCtx, app.Opts.RTMP.ListenAddr, app.Relay); err != nil {
 				log.Error().Err(err).Msg("RTMP server failed; video is unavailable")
 			}
 		})
