@@ -3,6 +3,7 @@ import useSWR, { useSWRConfig } from 'swr';
 import { Check, Copy, Eye, EyeOff, KeyRound, Loader2, RefreshCw } from 'lucide-react';
 import { api } from '@/lib/api';
 import { copyToClipboard } from '@/lib/utils';
+import { setKeyRevealed, useKeyRevealed } from '@/lib/keyReveal';
 import type { StreamingInfoResponse, StreamPasswordInfo, WebAuthStatusResponse } from '@/types/api';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
@@ -30,7 +31,8 @@ export default function StreamKey({ password }: StreamKeyProps) {
   });
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [revealed, setRevealed] = useState(false);
+  const revealed = useKeyRevealed();
+  const setRevealed = setKeyRevealed;
   const [copied, setCopied] = useState(false);
   const [confirmRegenerate, setConfirmRegenerate] = useState(false);
 
@@ -82,11 +84,7 @@ export default function StreamKey({ password }: StreamKeyProps) {
                 aria-label="Require a password for RTSP and RTMP"
                 checked={enabled}
                 disabled={busy || !password}
-                onCheckedChange={(on) => {
-                  // The first key is shown straight away, ready to copy
-                  if (on && !password?.key) setRevealed(true);
-                  void apply(() => api.setStreamPassword(on));
-                }}
+                onCheckedChange={(on) => void apply(() => api.setStreamPassword(on))}
               />
             </span>
           }
@@ -163,7 +161,9 @@ export default function StreamKey({ password }: StreamKeyProps) {
               variant="destructive"
               onClick={() => {
                 setConfirmRegenerate(false);
-                setRevealed(true);
+                // A new key stays hidden like the old one; copy works without
+                // showing it
+                setRevealed(false);
                 void apply(() => api.regenerateStreamPassword());
               }}
             >

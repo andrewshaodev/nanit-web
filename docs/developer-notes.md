@@ -40,7 +40,7 @@ Two things guard against that, both in `pkg/client`:
 - The connection is retired shortly after the point where `MaybeAuthorize` starts treating the token as stale, and the attempt loop immediately reopens it with a fresh one. This means a healthy connection is deliberately recycled a few minutes before its token lapses.
 - Keep-alives are one-way and prove nothing on their own, so silence longer than `livenessProbeAfter` triggers a `GET_STATUS` probe. A probe that goes unanswered closes the connection, which is what makes the read loop fail and the reconnect happen.
 
-Reconnecting must not disturb the stream. The cam publishes RTMP over its own connection, which a websocket drop does not touch, so the reconnect leaves a live stream exactly as it is: `autoStopStreaming` releases nothing while the cam is still publishing, and `autoStartStreaming` skips the `PUT_STREAMING` request rather than asking for a stream that is already running. That matters because the cam answers a request for a stream it is already publishing by opening a *second* publisher connection, and `getNewPublisher` closes every subscriber of the first one when it registers - which disconnects anything consuming the stream, go2rtc and Frigate included.
+Reconnecting must not disturb the stream. The cam publishes RTMP over its own connection, which a websocket drop does not touch, so the reconnect leaves a live stream exactly as it is: the stream loop in `pkg/camera/streaming.go` stops nothing while the cam is still publishing, and doesn't send `PUT_STREAMING` for a stream that is already running. That matters because the cam answers a request for a stream it is already publishing by opening a *second* publisher connection, and the relay hub (`pkg/relay`) closes every subscriber of the first when the second registers - which disconnects anything consuming the stream, go2rtc and Frigate included.
 
 Note that `gowebsocket` sets a read deadline only when its `Timeout` is non-zero, and it discards write errors into a logger that is off by default. Neither can be relied on to notice a half-open connection, which is why writes go to the gorilla connection directly.
 
@@ -60,13 +60,19 @@ The local websocket can be authorized using _User Camera_ token with `Authorizat
 
 Remote streaming is possible through Nanit servers on URL: `rtmps://media-secured.nanit.com/nanit/{baby_uid}.{auth_token}`.
 
-Local streaming seems to be only happening outbound. Meaning you inform cam with the URL (through PUT_STREAMING message) and it starts pushing to that URL a RTMP stream. You can use ie. [nginx-rtmp](https://docs.nginx.com/nginx/admin-guide/dynamic-modules/rtmp/) to accept that stream and restream it however you need (as your own RTMP stream, HLS stream, ...).
+Local streaming seems to be only happening outbound. Meaning you inform cam with the URL (through PUT_STREAMING message) and it starts pushing to that URL a RTMP stream. The bridge's own RTMP server accepts it and re-serves it (RTMP, RTSP, the dashboard's live view and HLS).
+
+Observed with firmware 6.58.615:
+
+- The cam pushes to **one** URL at a time. Asking it to stream elsewhere moves the stream, which is why only the instance with `NANIT_STREAM_SERVER=true` sends `PUT_STREAMING`, and viewer instances pull from it over RTSP instead.
+- The URL may use a host name (`rtmp://monitor.home.lan:1935/local/{baby_uid}`); the cam resolves it with the DNS server DHCP gave it.
+- The stream is H.264 Main, 1920x1080 at about 10 fps, with AAC-LC audio at 44.1 kHz mono.
 
 ## Getting logs
 
 It is possible to retrieve logs from the device using GET_LOGS request (through websocket). They are then sent to the given url using HTTP PUT. The retrieved archive is `tar.gz` (don't let the wrong Content-Type header fool you). After unpacking majority of the interesting stuff is in `journalctl.log`.
 
-In the project there is a HTTP handler prepared for that on `/log` endpoint. It will output the received logs to the `data/logs` folder.
+The project used to have a `/log` endpoint to receive them. It was removed: it wrote any request body to disk, unauthenticated. Receive them with a throwaway HTTP server if you need them.
 
 Be aware that getting the logs will take time. In my experience it can even take several minutes for them to arrive. To my understanding, the request might be scheduled for execution given the need to compress the files.
 

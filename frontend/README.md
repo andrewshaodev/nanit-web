@@ -5,13 +5,13 @@ The React dashboard for Nanit Web, built with Vite and served by the Go backend.
 ## Features
 
 - 🎯 **Real-time Dashboard** - Live sensor data with 5-second updates
-- 📹 **Video Streaming** - HLS video player with live controls
+- 📹 **Live View** - Sub-second video over a WebSocket (Media Source Extensions), falling back to HLS
 - 📊 **Historical Data** - Temperature, humidity and day/night charts (Chart.js)
 - 🎛️ **Device Controls** - Night light, standby mode controls
 - 🔧 **Device Information** - Detailed device status and diagnostics
-- 🔗 **Streaming Links** - RTMP and HLS URLs for external use
+- 🔗 **Streaming** - RTSP, RTMP and HLS links, the stream password, and a viewer's stream server
 - 📱 **Responsive Design** - Works on desktop, tablet, and mobile
-- 🔐 **Authentication** - 2FA setup flow
+- 🔐 **Authentication** - Nanit sign-in with 2FA, and the dashboard password
 
 ## Technology Stack
 
@@ -20,7 +20,7 @@ The React dashboard for Nanit Web, built with Vite and served by the Go backend.
 - **Language**: TypeScript 7
 - **Styling**: Tailwind CSS 4
 - **Data Fetching**: SWR for real-time updates
-- **Video**: video.js and HLS.js
+- **Video**: Media Source Extensions (`src/lib/liveSession.ts`) for the live view; video.js for the HLS fallback
 - **Charts**: Chart.js
 - **Linting**: oxlint
 
@@ -40,7 +40,7 @@ bun run typecheck  # tsc --noEmit
 bun run lint       # oxlint
 ```
 
-The dev server proxies `/api` and `/health` to a running Go backend at `http://localhost:8080`
+The dev server proxies `/api` (WebSockets included, for the live view) and `/health` to a running Go backend at `http://localhost:8080`
 (the backend's default `NANIT_HTTP_PORT`). Set `NANIT_API_URL` to point it elsewhere:
 
 ```bash
@@ -50,7 +50,7 @@ NANIT_API_URL=http://n100:8080 bun run dev
 ## Integration with Go Backend
 
 The root `Dockerfile` builds this app with Bun and copies `dist/` into the Go
-image as `/app/web`. The Go server (`pkg/app/serve_react.go`) serves the
+image as `/app/web`. The Go server (`pkg/httpapi`) serves the
 content-hashed files under `/assets/` with immutable caching, and answers every
 other non-API path with `index.html` (revalidated on each load) so React Router
 can handle it.
@@ -81,11 +81,10 @@ frontend/
 
 ### Baby Card (`components/baby/BabyCard.tsx`)
 Main component displaying baby information including:
-- Live video stream
-- Sensor data (temperature, humidity, motion, sound)
-- Device controls
+- Live video (`VideoSection.tsx`: the live view in `LiveVideo.tsx`, or the HLS fallback)
+- Sensor data (temperature, humidity, day/night, night light)
+- Device controls and the camera's sounds
 - Historical data charts
-- Streaming URLs
 
 ### API Client (`lib/api.ts`)
 TypeScript client for all backend API calls with proper error handling and type safety.
@@ -94,7 +93,9 @@ TypeScript client for all backend API calls with proper error handling and type 
 - `useStatus.ts` - Real-time status updates with SWR
 - `useTemperatureUnit.ts` - Temperature unit conversion
 - `useHistoricalData.ts` - Historical sensor data and analytics
-- `useVideoPlayer.ts` - video.js player lifecycle
+- `useLivePlayer.ts` - the live view's session (`lib/liveSession.ts`: WebSocket, MSE, latency, reconnects)
+- `useVideoPlayer.ts` - video.js player lifecycle, for the HLS fallback
+- `useStreamingInfo.ts` - streaming addresses, role and stream password
 
 ### Real-time Updates
 Uses SWR with 5-second polling for live data updates. Automatically handles connection states and error recovery.
@@ -106,7 +107,7 @@ The frontend communicates with the Go backend through REST APIs:
 - **Status**: `/api/status` - Real-time baby data
 - **Controls**: `/api/control/*` - Device commands
 - **History**: `/api/history/*` - Historical data
-- **Streaming**: `/api/stream/*` - Video streaming
+- **Streaming**: `/api/stream/*` - the live view's WebSocket and HLS; `/api/streaming/*` - addresses, stream password and a viewer's stream server
 - **Auth**: `/api/auth/*` - Authentication
 
 ## Contributing

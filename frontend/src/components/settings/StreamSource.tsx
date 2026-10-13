@@ -132,8 +132,8 @@ export default function StreamSource() {
                 size="icon"
                 variant="outline"
                 onClick={() => setShowKey(!showKey)}
-                title={showKey ? 'Hide key' : 'Show key'}
-                aria-label={showKey ? 'Hide key' : 'Show key'}
+                title={showKey ? 'Hide server key' : 'Show server key'}
+                aria-label={showKey ? 'Hide server key' : 'Show server key'}
               >
                 {showKey ? <EyeOff /> : <Eye />}
               </Button>

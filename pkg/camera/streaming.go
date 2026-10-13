@@ -39,7 +39,7 @@ const (
 )
 
 // stolenStreamMessage - the device alert for two stream servers
-const stolenStreamMessage = "Another bridge may be taking this camera's stream. Only one may have NANIT_STREAM_SERVER=true; the others watch it with NANIT_STREAM_FROM."
+const stolenStreamMessage = "Another bridge may be taking this camera's stream. Only one may have NANIT_STREAM_SERVER=true; the others are viewers, set under Settings → Streaming → Stream server."
 
 // errConnectionLimit - Nanit turned the stream down because too many apps
 // are connected to the account

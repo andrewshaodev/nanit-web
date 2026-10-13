@@ -12,9 +12,11 @@ services:
     restart: unless-stopped
     ports:
       - "8080:8080"   # dashboard; leave this out if a reverse proxy reaches it over a Docker network
-      - "1935:1935"   # RTMP, which the camera connects to
+      - "1935:1935"   # RTMP: the camera pushes its stream here, and RTMP players watch
+      - "8554:8554"   # RTSP, for Home Assistant, Frigate and viewer instances
     environment:
-      NANIT_RTMP_ADDR: "192.168.1.100:1935"   # this host's LAN address, reachable by the camera
+      NANIT_STREAM_SERVER: "true"             # this is the instance that asks the cameras to stream
+      NANIT_RTMP_ADDR: "192.168.1.100:1935"   # this host's LAN address (or a name for it), reachable by the camera
       TZ: "America/New_York"
       # Optional: publish readings to Home Assistant's broker
       # NANIT_MQTT_ENABLED: "true"
@@ -33,7 +35,13 @@ services:
 
 See [.env.sample](../.env.sample) for every option. Prefer `NANIT_MQTT_USERNAME` and `NANIT_MQTT_PASSWORD` to putting credentials in the broker URL.
 
-Then open `http://<host>:8080` and sign in to Nanit. The session is kept in `./data`.
+Then open `http://<host>:8080` and sign in to Nanit. The session is kept in `./data`. Under **Settings**, you can then turn on the dashboard password and the stream password.
+
+To publish a port on one interface only, prefix it with the address, e.g. `"192.168.1.100:8554:8554"`.
+
+## A second instance as a viewer
+
+A second instance (a test copy on another machine, say) leaves out `NANIT_STREAM_SERVER`, so it never asks the cameras to stream. It needs its own data folder, and `NANIT_RTMP_ADDR` is just the host shown in its own links (`localhost:1935` is fine). Then, in its dashboard under **Settings → Streaming → Stream server**, enter the stream server's host, RTSP port (8554) and, if the server's stream password is on, its key.
 
 ## Everyday commands
 
@@ -51,4 +59,6 @@ To upgrade only when you choose, pin a build instead, for example `ghcr.io/andre
 
 ## Behind a reverse proxy
 
-Point the proxy at port 8080 (or the container on a shared Docker network) and drop the `8080` port mapping. Keep `1935` published: the camera connects to it directly on your LAN. The dashboard works over HTTPS as-is.
+Point the proxy at port 8080 (or the container on a shared Docker network) and drop the `8080` port mapping. Let WebSockets through, for the live view. Keep `1935` and `8554` published: the camera and RTSP players connect to them directly on your LAN. The dashboard works over HTTPS as-is.
+
+Other containers on the proxy's Docker network can reach port 8080 without going through the proxy's sign-on, so set a dashboard password as well.

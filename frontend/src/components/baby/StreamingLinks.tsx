@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { api } from '@/lib/api'
 import { useStreamingInfo } from '@/hooks/useStreamingInfo'
 import { copyToClipboard } from '@/lib/utils'
+import { maskKey, useKeyRevealed } from '@/lib/keyReveal'
 import type { Baby } from '@/types/api'
 import { Cctv, Check, ChevronRight, Copy, Globe, Link, Radio, type LucideIcon } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -45,12 +46,14 @@ interface StreamCardProps {
   title: string
   description: string
   url: string
+  // What's shown, with the stream password's key masked; copying gives url
+  displayUrl?: string
   copyLabel: string
   // Shown instead of the URL when this output is off
   disabled?: React.ReactNode
 }
 
-function StreamCard({ icon: Icon, title, description, url, copyLabel, disabled }: StreamCardProps) {
+function StreamCard({ icon: Icon, title, description, url, displayUrl, copyLabel, disabled }: StreamCardProps) {
   return (
     // The URL and button sit at the bottom, so they line up across cards
     // whatever the length of each description
@@ -68,7 +71,7 @@ function StreamCard({ icon: Icon, title, description, url, copyLabel, disabled }
         ) : (
           <>
             <div className="bg-muted p-3 rounded-md border text-sm font-mono text-foreground overflow-x-auto whitespace-nowrap">
-              {url}
+              {displayUrl ?? url}
             </div>
             <CopyButton text={url} label={copyLabel} />
           </>
@@ -89,6 +92,8 @@ export default function StreamingLinks({ baby }: StreamingLinksProps) {
   const rtspUrl = api.getRTSPUrl(baby.uid, streamingInfo)
   const rtmpUrl = api.getRTMPUrl(baby.uid, streamingInfo)
   const hlsUrl = api.getHLSUrl(baby.uid)
+  const showKey = useKeyRevealed()
+  const key = streamingInfo?.password?.enabled ? streamingInfo.password.key : undefined
 
   return (
     // A disclosure row, flush inside its CameraBox
@@ -114,6 +119,7 @@ export default function StreamingLinks({ baby }: StreamingLinksProps) {
               title="RTSP Stream"
               description="For Frigate, go2rtc, NVRs and Home Assistant"
               url={rtspUrl}
+              displayUrl={maskKey(rtspUrl, key, showKey)}
               copyLabel="Copy RTSP URL"
               disabled={
                 streamingInfo?.rtsp?.enabled === false && (
@@ -126,6 +132,7 @@ export default function StreamingLinks({ baby }: StreamingLinksProps) {
               title="RTMP Stream"
               description="For OBS, VLC and other RTMP players"
               url={rtmpUrl}
+              displayUrl={maskKey(rtmpUrl, key, showKey)}
               copyLabel="Copy RTMP URL"
               disabled={
                 streamingInfo?.rtmp?.enabled === false && (
