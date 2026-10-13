@@ -40,6 +40,7 @@ export type StreamStartResponse = api.StreamResponse
 export type StreamStatusResponse = api.StreamStatusResponse
 export type StreamError = api.StreamErrorInfo
 export type StreamingInfoResponse = api.StreamingInfoResponse
+export type LiveMessage = api.LiveMessage
 
 export type WebAuthStatusResponse = api.WebAuthStatusResponse
 export type WebAuthResponse = api.MessageResponse

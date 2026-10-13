@@ -1,6 +1,7 @@
 import videojs from 'video.js'
 import 'video.js/dist/video-js.css'
 import { createElement, Camera, type IconNode } from 'lucide'
+import { saveSnapshot } from '@/lib/snapshot'
 
 // A Lucide icon for the custom control-bar buttons, which video.js builds
 // outside React
@@ -341,58 +342,12 @@ export const addCustomControlsToPlayer = (player: VideoJSPlayer) => {
     // Snapshot functionality
     function takeSnapshot() {
       const video = player.el().querySelector('video')
-      if (!video || video.readyState < 2) {
-        console.log('Video not ready for snapshot')
-        player.trigger('snapshotFailed', 'Video not ready')
-        return
-      }
-      
-      try {
-        // Create canvas element
-        const canvas = document.createElement('canvas')
-        const ctx = canvas.getContext('2d')
-        
-        if (!ctx) {
-          throw new Error('Could not get canvas context')
-        }
-        
-        // Set canvas size to video dimensions
-        canvas.width = video.videoWidth || video.clientWidth
-        canvas.height = video.videoHeight || video.clientHeight
-        
-        // Draw current video frame to canvas
-        ctx.drawImage(video, 0, 0, canvas.width, canvas.height)
-        
-        // Convert to blob and download
-        canvas.toBlob((blob) => {
-          if (!blob) {
-            console.log('Failed to create image blob')
-            player.trigger('snapshotFailed', 'Failed to create image')
-            return
-          }
-          
-          // Create download link
-          const url = URL.createObjectURL(blob)
-          const link = document.createElement('a')
-          link.href = url
-          link.download = `snapshot-${new Date().toISOString().slice(0, 19).replace(/:/g, '-')}.png`
-          
-          // Trigger download
-          document.body.appendChild(link)
-          link.click()
-          document.body.removeChild(link)
-          
-          // Clean up
-          URL.revokeObjectURL(url)
-          
-          console.log('Snapshot saved:', link.download)
-          player.trigger('snapshotTaken', link.download)
-        }, 'image/png')
-        
-      } catch (error: any) {
-        console.error('Snapshot failed:', error)
-        player.trigger('snapshotFailed', error.message)
-      }
+      if (!video) return
+      saveSnapshot(video)
+        .then((name) => player.trigger('snapshotTaken', name))
+        .catch((error: unknown) => {
+          player.trigger('snapshotFailed', error instanceof Error ? error.message : String(error))
+        })
     }
     
     // Add buttons to control bar (insert before fullscreen button). Buttons

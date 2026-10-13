@@ -17,6 +17,7 @@ export default defineConfig({
     outDir: 'dist',
   },
   server: {
-    proxy: { '/api': apiTarget, '/health': apiTarget },
+    // ws: the live view is a WebSocket under /api
+    proxy: { '/api': { target: apiTarget, ws: true }, '/health': apiTarget },
   },
 })
