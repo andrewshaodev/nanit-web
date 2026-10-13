@@ -52,7 +52,9 @@ interface StreamCardProps {
 
 function StreamCard({ icon: Icon, title, description, url, copyLabel, disabled }: StreamCardProps) {
   return (
-    <Card size="sm">
+    // The URL and button sit at the bottom, so they line up across cards
+    // whatever the length of each description
+    <Card size="sm" className="h-full">
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Icon className="size-4" />
@@ -60,7 +62,7 @@ function StreamCard({ icon: Icon, title, description, url, copyLabel, disabled }
         </CardTitle>
         <CardDescription>{description}</CardDescription>
       </CardHeader>
-      <CardContent className="space-y-3">
+      <CardContent className="mt-auto space-y-3">
         {disabled ? (
           <p className="rounded-md border bg-muted p-3 text-sm text-muted-foreground">{disabled}</p>
         ) : (

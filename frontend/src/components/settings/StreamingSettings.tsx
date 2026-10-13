@@ -42,6 +42,28 @@ export default function StreamingSettings({ babies }: StreamingSettingsProps) {
         </AlertDescription>
       </Alert>
 
+      {streamingInfo?.role === 'viewer' && (
+        <Alert variant="info">
+          <Radio />
+          <AlertTitle>Viewer</AlertTitle>
+          <AlertDescription>
+            {streamingInfo.stream_from ? (
+              <p>
+                This instance shows the stream server&apos;s video, from{' '}
+                <code className="font-mono text-foreground break-all">{streamingInfo.stream_from}</code>, and never asks
+                the cameras to stream.
+              </p>
+            ) : (
+              <p>
+                This instance never asks the cameras to stream, and has no video: set{' '}
+                <code className="font-mono text-foreground">NANIT_STREAM_SERVER=true</code> on the one instance that
+                should, or <code className="font-mono text-foreground">NANIT_STREAM_FROM</code> here to watch it.
+              </p>
+            )}
+          </AlertDescription>
+        </Alert>
+      )}
+
       {babies.map((baby) => {
         const { streaming, label } = streamStatus(baby);
         return (
