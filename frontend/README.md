@@ -28,7 +28,7 @@ The React dashboard for Nanit Web, built with Vite and served by the Go backend.
 
 ### Prerequisites
 
-- [Bun](https://bun.sh) 1.3+
+- [Bun](https://bun.sh) 1.4+
 
 ### Local Development
 
