@@ -266,7 +266,48 @@ export interface AuthStatusResponse {
 export interface WebAuthStatusResponse {
   password_protection_enabled: boolean;
   password_set: boolean;
+  /**
+   * SSOEnabled - whether signing in through an OpenID Connect provider is
+   * on (Settings → Sign in with SSO)
+   */
+  sso_enabled: boolean;
   authenticated: boolean;
+}
+/**
+ * SSOConfig - an OpenID Connect provider and the dashboard's client at it.
+ * The client secret is never sent back.
+ */
+export interface SSOConfig {
+  issuer: string;
+  client_id: string;
+}
+/**
+ * SSOSettingsResponse - GET /api/settings/sso
+ */
+export interface SSOSettingsResponse {
+  enabled: boolean;
+  /**
+   * Active - what signs people in; null while off
+   */
+  active?: SSOConfig;
+  /**
+   * Draft - the settings in the form, which a test sign-in turns on
+   */
+  draft: SSOConfig;
+  draft_secret_set: boolean;
+  /**
+   * CallbackURL - the redirect URI to register with the provider
+   */
+  callback_url: string;
+}
+/**
+ * SSOSettingsRequest - PUT /api/settings/sso: a new draft. A blank secret
+ * keeps the saved one.
+ */
+export interface SSOSettingsRequest {
+  issuer: string;
+  client_id: string;
+  client_secret: string;
 }
 /**
  * PasswordRequest - POST /api/webauth/login, set-password, remove-password

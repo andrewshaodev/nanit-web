@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router';
-import type { AuthStatusResponse } from '@/types/api';
+import type { AuthStatusResponse, WebAuthStatusResponse } from '@/types/api';
 import { api } from '@/lib/api';
 import { Loader2 } from 'lucide-react';
 import {
@@ -18,16 +18,12 @@ import { NoteRow, SettingRow } from './SettingRows';
 import NewCredentialInput from './NewCredentialInput';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
-
-interface WebAuthStatus {
-  password_protection_enabled: boolean;
-  password_set: boolean;
-  authenticated: boolean;
-}
+import OpenIDIcon from '@/components/OpenIDIcon';
+import SSOSettings from './SSOSettings';
 
 interface AuthenticationSettingsProps {
   authStatus: AuthStatusResponse | null;
-  webAuthStatus: WebAuthStatus | null;
+  webAuthStatus: WebAuthStatusResponse | null;
   onAuthStatusUpdate: () => void;
   onWebAuthStatusUpdate: () => void;
   onMessage: (message: { type: 'success' | 'error'; text: string }) => void;
@@ -174,6 +170,15 @@ export default function AuthenticationSettings({
           </div>
         </section>
 
+        {/* Signing in through an OpenID Connect provider */}
+        <section className="space-y-2">
+          <h3 className="flex items-center gap-2 font-semibold">
+            <OpenIDIcon className="size-4" />
+            Sign in with SSO
+          </h3>
+          <SSOSettings onChange={onWebAuthStatusUpdate} />
+        </section>
+
         {/* Web dashboard password */}
         {webAuthStatus?.password_protection_enabled && (
           <section className="space-y-2">
@@ -182,15 +187,19 @@ export default function AuthenticationSettings({
               {/* The switch comes first; setting the password is how it's
                   turned on, and it only shows as on once one is set */}
               <SettingRow
-                title="Require a password"
+                title={webAuthStatus.sso_enabled ? 'Also allow a password' : 'Require a password'}
                 description={
                   webAuthStatus.password_set
-                    ? 'On: the dashboard and its API ask for a password.'
-                    : 'Off: anyone who can reach the dashboard can use it.'
+                    ? webAuthStatus.sso_enabled
+                      ? 'On: a password signs in too, if SSO is down.'
+                      : 'On: the dashboard and its API ask for a password.'
+                    : webAuthStatus.sso_enabled
+                      ? 'Off: only SSO signs in.'
+                      : 'Off: anyone who can reach the dashboard can use it.'
                 }
                 actions={
                   <Switch
-                    aria-label="Require a password for the dashboard"
+                    aria-label={webAuthStatus.sso_enabled ? 'Also allow a password for the dashboard' : 'Require a password for the dashboard'}
                     checked={webAuthStatus.password_set}
                     onCheckedChange={(on) => openPasswordForm(on ? 'set' : 'remove')}
                   />

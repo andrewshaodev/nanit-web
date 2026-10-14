@@ -8,17 +8,12 @@ import DashboardLogin from '@/components/DashboardLogin';
 import AuthenticationSettings from '@/components/settings/AuthenticationSettings';
 import DeviceSettings from '@/components/settings/DeviceSettings';
 import StreamingSettings from '@/components/settings/StreamingSettings';
-import type { AuthStatusResponse } from '@/types/api';
+import type { AuthStatusResponse, WebAuthStatusResponse } from '@/types/api';
 
-interface WebAuthStatus {
-  password_protection_enabled: boolean;
-  password_set: boolean;
-  authenticated: boolean;
-}
 
 export default function Settings() {
   const { babies } = useStatus();
-  const [authStatus, setAuthStatus] = useState<WebAuthStatus | null>(null);
+  const [authStatus, setAuthStatus] = useState<WebAuthStatusResponse | null>(null);
   const [nanitAuthStatus, setNanitAuthStatus] = useState<AuthStatusResponse | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
@@ -90,6 +85,8 @@ export default function Settings() {
         error={loginError}
         isLoggingIn={isLoggingIn}
         onSubmit={handlePasswordLogin}
+        sso={authStatus?.sso_enabled}
+        passwordSet={authStatus?.password_set}
       />
     );
   }

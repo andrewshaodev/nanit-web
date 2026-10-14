@@ -50,6 +50,8 @@ export type StreamSourceResponse = api.StreamSourceResponse
 export type LiveMessage = api.LiveMessage
 
 export type WebAuthStatusResponse = api.WebAuthStatusResponse
+export type SSOSettingsRequest = api.SSOSettingsRequest
+export type SSOSettingsResponse = api.SSOSettingsResponse
 export type WebAuthResponse = api.MessageResponse
 
 export type HealthDetails = api.HealthDetails

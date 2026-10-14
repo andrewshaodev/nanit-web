@@ -223,7 +223,37 @@ type AuthStatusResponse struct {
 type WebAuthStatusResponse struct {
 	PasswordProtectionEnabled bool `json:"password_protection_enabled"`
 	PasswordSet               bool `json:"password_set"`
-	Authenticated             bool `json:"authenticated"`
+	// SSOEnabled - whether signing in through an OpenID Connect provider is
+	// on (Settings → Sign in with SSO)
+	SSOEnabled    bool `json:"sso_enabled"`
+	Authenticated bool `json:"authenticated"`
+}
+
+// SSOConfig - an OpenID Connect provider and the dashboard's client at it.
+// The client secret is never sent back.
+type SSOConfig struct {
+	Issuer   string `json:"issuer"`
+	ClientID string `json:"client_id"`
+}
+
+// SSOSettingsResponse - GET /api/settings/sso
+type SSOSettingsResponse struct {
+	Enabled bool `json:"enabled"`
+	// Active - what signs people in; null while off
+	Active *SSOConfig `json:"active"`
+	// Draft - the settings in the form, which a test sign-in turns on
+	Draft          SSOConfig `json:"draft"`
+	DraftSecretSet bool      `json:"draft_secret_set"`
+	// CallbackURL - the redirect URI to register with the provider
+	CallbackURL string `json:"callback_url"`
+}
+
+// SSOSettingsRequest - PUT /api/settings/sso: a new draft. A blank secret
+// keeps the saved one.
+type SSOSettingsRequest struct {
+	Issuer       string `json:"issuer"`
+	ClientID     string `json:"client_id"`
+	ClientSecret string `json:"client_secret"`
 }
 
 // PasswordRequest - POST /api/webauth/login, set-password, remove-password

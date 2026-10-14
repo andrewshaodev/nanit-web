@@ -81,6 +81,8 @@ export default function Dashboard() {
         error={loginError}
         isLoggingIn={isLoggingIn}
         onSubmit={handlePasswordLogin}
+        sso={webAuthStatus?.sso_enabled}
+        passwordSet={webAuthStatus?.password_set}
       />
     )
   }

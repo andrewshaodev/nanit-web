@@ -14,6 +14,7 @@ import (
 	"github.com/andrewshaodev/nanit-web/pkg/app"
 	"github.com/andrewshaodev/nanit-web/pkg/frigate"
 	"github.com/andrewshaodev/nanit-web/pkg/mqtt"
+	"github.com/andrewshaodev/nanit-web/pkg/oidcauth"
 	"github.com/andrewshaodev/nanit-web/pkg/utils"
 	"github.com/andrewshaodev/nanit-web/pkg/webauth"
 	"github.com/rs/zerolog/log"
@@ -22,6 +23,7 @@ import (
 func main() {
 	// Parse command line arguments
 	var resetPassword = flag.Bool("reset-password", false, "Reset web password protection (removes password file)")
+	var disableSSO = flag.Bool("disable-sso", false, "Turn off signing in to the dashboard with SSO")
 	flag.Parse()
 
 	initLogger()
@@ -32,6 +34,10 @@ func main() {
 	// Handle CLI commands
 	if *resetPassword {
 		handleResetPassword()
+		return
+	}
+	if *disableSSO {
+		handleDisableSSO()
 		return
 	}
 
@@ -193,6 +199,25 @@ func main() {
 // /data/web_password.json, whatever NANIT_DATA_DIR said.
 func passwordFile(dataDir string) string {
 	return filepath.Join(dataDir, "web_password.json")
+}
+
+// handleDisableSSO turns off signing in with SSO (CLI command), for when a
+// provider problem locks everyone out
+func handleDisableSSO() {
+	sso := oidcauth.Open(ssoFile(utils.EnvVarStr("NANIT_DATA_DIR", "/data")))
+	if !sso.Enabled() {
+		fmt.Println("Sign-in with SSO is already off.")
+		return
+	}
+	if err := sso.Disable(); err != nil {
+		fmt.Printf("Error turning off SSO: %v\n", err)
+		os.Exit(1)
+	}
+	fmt.Println("Sign-in with SSO is off. Its settings are kept, to turn it back on from the dashboard.")
+}
+
+func ssoFile(dataDir string) string {
+	return filepath.Join(dataDir, "sso.json")
 }
 
 // handleResetPassword removes the web password file (CLI command)

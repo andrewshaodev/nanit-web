@@ -23,6 +23,7 @@ import (
 	"github.com/andrewshaodev/nanit-web/pkg/frigate"
 	"github.com/andrewshaodev/nanit-web/pkg/history"
 	"github.com/andrewshaodev/nanit-web/pkg/httpapi/apitypes"
+	"github.com/andrewshaodev/nanit-web/pkg/oidcauth"
 	"github.com/andrewshaodev/nanit-web/pkg/relay"
 	"github.com/andrewshaodev/nanit-web/pkg/session"
 	"github.com/andrewshaodev/nanit-web/pkg/streamauth"
@@ -71,7 +72,9 @@ type Server struct {
 	// Frigate - crying spells and their recordings; nil without Frigate
 	Frigate *frigate.Service
 	WebAuth *webauth.WebAuth
-	Nanit   *client.NanitClient
+	// SSO - signing in through an OpenID Connect provider
+	SSO   *oidcauth.SSO
+	Nanit *client.NanitClient
 	// SignedIn - called after a Nanit sign-in, to start the cameras
 	SignedIn func()
 	// StartedAt - for /health's uptime
@@ -93,6 +96,10 @@ func (s *Server) Handler() http.Handler {
 	api.HandleFunc("GET /api/streaming/info", s.handleStreamingInfo)
 	api.HandleFunc("PUT /api/streaming/password", s.handleStreamPasswordSet)
 	api.HandleFunc("POST /api/streaming/password/regenerate", s.handleStreamPasswordRegenerate)
+	api.HandleFunc("GET /api/settings/sso", s.handleSSOSettingsGet)
+	api.HandleFunc("PUT /api/settings/sso", s.handleSSOSettingsSet)
+	api.HandleFunc("DELETE /api/settings/sso", s.handleSSOSettingsDisable)
+	api.HandleFunc("GET /api/settings/sso/test", s.handleSSOTest)
 	api.HandleFunc("GET /api/streaming/source", s.handleStreamSourceGet)
 	api.HandleFunc("PUT /api/streaming/source", s.handleStreamSourceSet)
 	api.HandleFunc("GET /api/device-info/{uid}", s.withBaby(s.handleDeviceInfo))
@@ -143,6 +150,8 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("GET /api/webauth/status", s.handleWebAuthStatus)
 	mux.HandleFunc("POST /api/webauth/login", s.handleWebAuthLogin)
 	mux.HandleFunc("POST /api/webauth/logout", s.handleWebAuthLogout)
+	mux.HandleFunc("GET /api/webauth/oidc/login", s.handleSSOLogin)
+	mux.HandleFunc("GET "+oidcauth.CallbackPath, s.handleSSOCallback)
 	mux.HandleFunc("GET /health", s.handleLiveness)
 	mux.HandleFunc("GET /ready", s.handleReadiness)
 
@@ -151,12 +160,26 @@ func (s *Server) Handler() http.Handler {
 	// good.
 	assets := http.FileServer(http.Dir(filepath.Join(s.Config.WebDir, "assets")))
 	mux.Handle("GET /assets/", immutable(http.StripPrefix("/assets/", assets)))
+	// The icons and web app manifest, from Vite's public/ folder. Open, as
+	// browsers and the iPhone home screen fetch them without the cookie.
+	for _, name := range publicFiles {
+		mux.HandleFunc("GET /"+name, func(w http.ResponseWriter, r *http.Request) {
+			w.Header().Set("Cache-Control", "public, max-age=86400")
+			if strings.HasSuffix(name, ".webmanifest") {
+				w.Header().Set("Content-Type", "application/manifest+json")
+			}
+			http.ServeFile(w, r, filepath.Join(s.Config.WebDir, name))
+		})
+	}
 	// Everything else is a client-side route: serve the app's single page.
 	// It takes every method: "GET /" would clash with "/api/" in the mux.
 	mux.HandleFunc("/", s.handleIndex)
 
 	return jsonErrors(mux)
 }
+
+// publicFiles - the files at the dashboard's root, besides index.html
+var publicFiles = []string{"favicon.svg", "apple-touch-icon.png", "icon-192.png", "icon-512.png", "manifest.webmanifest"}
 
 func (s *Server) handleIndex(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet && r.Method != http.MethodHead {
@@ -184,17 +207,17 @@ func immutable(h http.Handler) http.Handler {
 	})
 }
 
-// signedIn - whether r carries a valid dashboard session, or no password
-// is set
+// signedIn - whether r carries a valid dashboard session, or the dashboard
+// is open: no password and no SSO
 func (s *Server) signedIn(r *http.Request) bool {
-	if !s.WebAuth.IsPasswordSet() {
+	if !s.WebAuth.IsPasswordSet() && !s.ssoEnabled() {
 		return true
 	}
 	cookie, err := r.Cookie(sessionCookie)
 	return err == nil && s.WebAuth.ValidateSession(cookie.Value)
 }
 
-// requireAuth - the dashboard password, when one is set
+// requireAuth - a dashboard session, when a password or SSO is on
 func (s *Server) requireAuth(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if !s.signedIn(r) {

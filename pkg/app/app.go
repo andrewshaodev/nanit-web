@@ -13,6 +13,7 @@ import (
 	"github.com/andrewshaodev/nanit-web/pkg/frigate"
 	"github.com/andrewshaodev/nanit-web/pkg/history"
 	"github.com/andrewshaodev/nanit-web/pkg/mqtt"
+	"github.com/andrewshaodev/nanit-web/pkg/oidcauth"
 	"github.com/andrewshaodev/nanit-web/pkg/relay"
 	"github.com/andrewshaodev/nanit-web/pkg/rtmpserver"
 	"github.com/andrewshaodev/nanit-web/pkg/rtspserver"
@@ -41,6 +42,8 @@ type App struct {
 	// server
 	StreamSource   *streamsource.Store
 	HistoryTracker *history.Tracker
+	// SSO - signing in to the dashboard through an OpenID Connect provider
+	SSO *oidcauth.SSO
 	// Frigate - crying spells from Frigate; nil without it
 	Frigate     *frigate.Service
 	WebAuth     *webauth.WebAuth
@@ -83,6 +86,7 @@ func NewApp(opts Opts) (*App, error) {
 		},
 		HLSManager: streaming.NewHLSManager(opts.DataDirectories.BaseDir + "/hls"),
 		WebAuth:    webauth.NewWebAuth(opts.WebAuth.PasswordFile),
+		SSO:        oidcauth.Open(filepath.Join(opts.DataDirectories.BaseDir, "sso.json")),
 		StreamAuth: streamauth.Open(filepath.Join(opts.DataDirectories.BaseDir, "stream_auth.json")),
 	}
 	// A viewer's stream server, set in the dashboard

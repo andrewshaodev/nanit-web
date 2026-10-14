@@ -3,6 +3,7 @@ package httpapi
 import (
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"path/filepath"
 	"testing"
 	"time"
@@ -124,4 +125,22 @@ func TestFrontendRequestsAreRouted(t *testing.T) {
 			assert.NotContains(t, w.Body.String(), `"error":"not_found"`, "no route")
 		})
 	}
+}
+
+// The icons and manifest load without the dashboard password, as the
+// browser and the iPhone home screen fetch them without the cookie
+func TestPublicFiles(t *testing.T) {
+	app, mux := newTestServer(t)
+	for _, name := range publicFiles {
+		require.NoError(t, os.WriteFile(filepath.Join(app.Config.WebDir, name), []byte(name), 0o644))
+	}
+	for _, name := range publicFiles {
+		w := httptest.NewRecorder()
+		mux.ServeHTTP(w, httptest.NewRequest("GET", "/"+name, nil))
+		assert.Equal(t, http.StatusOK, w.Code, name)
+		assert.Equal(t, name, w.Body.String())
+	}
+	w := httptest.NewRecorder()
+	mux.ServeHTTP(w, httptest.NewRequest("GET", "/manifest.webmanifest", nil))
+	assert.Equal(t, "application/manifest+json", w.Header().Get("Content-Type"))
 }

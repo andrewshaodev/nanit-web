@@ -6,7 +6,9 @@ require (
 	github.com/bluenviron/gortmplib v1.0.4
 	github.com/bluenviron/gortsplib/v5 v5.6.7
 	github.com/bluenviron/mediacommon/v2 v2.9.6
+	github.com/coreos/go-oidc/v3 v3.15.0
 	github.com/eclipse/paho.mqtt.golang v1.5.1
+	github.com/go-jose/go-jose/v4 v4.0.5
 	github.com/gorilla/websocket v1.5.3
 	github.com/joho/godotenv v1.5.1
 	github.com/mattn/go-sqlite3 v1.14.52
@@ -14,6 +16,7 @@ require (
 	github.com/rs/zerolog v1.35.1
 	github.com/stretchr/testify v1.12.1
 	golang.org/x/crypto v0.58.0
+	golang.org/x/oauth2 v0.30.0
 	google.golang.org/protobuf v1.36.12
 )
 

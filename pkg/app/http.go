@@ -76,6 +76,7 @@ func (app *App) apiServer(stopping <-chan struct{}) *httpapi.Server {
 		StreamSource: app.StreamSource,
 		History:      app.HistoryTracker,
 		Frigate:      app.Frigate,
+		SSO:          app.SSO,
 		WebAuth:      app.WebAuth,
 		Nanit:        app.RestClient,
 		SignedIn:     app.StartMonitoringServices,

@@ -16,7 +16,7 @@ It isn't affiliated with Nanit. It uses Nanit's unofficial, reverse-engineered A
 - **History.** Temperature and humidity charts, and a day/night timeline that marks the time nothing was recorded, over 1 hour to 30 days, stored in SQLite.
 - **Crying log, with recordings.** With [Frigate](https://frigate.video) listening to the stream for crying, each crying spell shows on the camera's card as it happens, with how long it lasted and its recording, 10 to a page. See [Crying spells from Frigate](#crying-spells-from-frigate).
 - **Dashboard.** Light and dark themes (Catppuccin Latte and Mocha, following the device or set by hand). Several cameras can be collapsed and reordered, per browser; cameras that are off or in standby are listed after working ones.
-- **Sign-in.** Nanit's email/password and 2FA (text or email code) from the dashboard, plus an optional password on the dashboard itself.
+- **Sign-in.** Nanit's email/password and 2FA (text or email code) from the dashboard, plus an optional password or SSO (OpenID Connect, such as Pocket ID) on the dashboard itself.
 - **MQTT.** Readings and switch topics for Home Assistant or anything else. See [MQTT](#mqtt).
 
 ## Quick start
@@ -108,6 +108,22 @@ To remove a forgotten dashboard password:
 
 ```bash
 docker exec -it nanit /app/bin/nanit --reset-password
+```
+
+### Sign in with SSO
+
+The dashboard can also sign people in through an OpenID Connect provider such as [Pocket ID](https://pocket-id.org), set up under **Settings → Authentication & Security → Sign in with SSO**. The login page then shows **Sign in with SSO**, and the password form only while a dashboard password is set, as a way in if the provider is down. With SSO on and no password, only SSO signs in.
+
+1. At the provider, add an OIDC client with the callback URL shown in the settings (`https://<dashboard address>/api/webauth/oidc/callback`).
+2. Choose who may use it at the provider: in Pocket ID, the client's allowed user groups. The bridge lets in anyone the provider signs in.
+3. Enter the issuer URL, client ID and client secret, and press **Test and turn on**. You're sent to the provider to sign in, and SSO is only turned on if that works, so a mistake can't lock you out. Changing the settings later works the same way.
+
+The settings are kept in `sso.json` in the data folder, readable only by the bridge. The sign-in uses PKCE, and the ID token is checked against the provider's keys. A dashboard session lasts 24 hours, as with the password; signing out of the provider doesn't end it, so use **Sign out** in the settings on a shared device.
+
+If the provider stops working and there's no password to fall back on, turn SSO off from inside the container:
+
+```bash
+docker exec -it nanit /app/bin/nanit --disable-sso
 ```
 
 ## Home Assistant
@@ -253,7 +269,7 @@ This fork adds a rebuilt frontend, a sub-second live view, RTSP output, a stream
 
 This bridge holds a session with full access to your Nanit account, live video from your child's room, and controls for the camera. Keep it on your home network or behind a reverse proxy with real authentication, don't expose it directly to the internet, and keep the `/data` directory private.
 
-- **Turn on both passwords** (see [Passwords](#passwords)), so every way the video leaves the bridge needs one. A dashboard behind an SSO proxy is still reachable directly by anything sharing its Docker network.
+- **Turn on both passwords** (see [Passwords](#passwords)), or SSO for the dashboard, so every way the video leaves the bridge needs one. A dashboard behind an SSO proxy is still reachable directly by anything sharing its Docker network.
 - **RTSP accepts Basic sign-in as well as Digest,** and RTMP's key travels in the address, so neither protects against someone watching your network traffic. They stop other devices on your network from casually watching.
 - **The camera's push into port 1935 has no password**, so a device on your network could push its own video in its place. If that matters to you, allow port 1935 on the stream server's host only from the camera's IP address (Docker's published ports bypass ufw; put the rule in the `DOCKER-USER` chain). That also shuts out RTMP players, so watch over RTSP instead.
 

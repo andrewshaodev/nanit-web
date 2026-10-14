@@ -2,7 +2,8 @@
   "body": {
     "authenticated": true,
     "password_protection_enabled": true,
-    "password_set": true
+    "password_set": true,
+    "sso_enabled": false
   },
   "status": 200
 }

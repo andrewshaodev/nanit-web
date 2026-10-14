@@ -160,7 +160,8 @@ func (s *Server) handleWebAuthStatus(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, apitypes.WebAuthStatusResponse{
 		PasswordProtectionEnabled: true,
 		PasswordSet:               s.WebAuth.IsPasswordSet(),
-		// With no password set, everyone counts as signed in
+		SSOEnabled:                s.ssoEnabled(),
+		// With no password set and no SSO, everyone counts as signed in
 		Authenticated: s.signedIn(r),
 	})
 }
@@ -179,11 +180,19 @@ func (s *Server) handleWebAuthLogin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	sessionID, err := s.WebAuth.CreateSession()
-	if err != nil {
+	if err := s.startSession(w, r); err != nil {
 		log.Error().Err(err).Msg("Failed to create session")
 		writeError(w, http.StatusInternalServerError, "session_failed", "Failed to create session")
 		return
+	}
+	writeJSON(w, apitypes.MessageResponse{Success: true, Message: "Login successful"})
+}
+
+// startSession signs the browser in to the dashboard
+func (s *Server) startSession(w http.ResponseWriter, r *http.Request) error {
+	sessionID, err := s.WebAuth.CreateSession()
+	if err != nil {
+		return err
 	}
 	http.SetCookie(w, &http.Cookie{
 		Name:     sessionCookie,
@@ -196,7 +205,7 @@ func (s *Server) handleWebAuthLogin(w http.ResponseWriter, r *http.Request) {
 		SameSite: http.SameSiteLaxMode,
 		MaxAge:   86400, // 24 hours, as the session
 	})
-	writeJSON(w, apitypes.MessageResponse{Success: true, Message: "Login successful"})
+	return nil
 }
 
 // isHTTPS - whether the browser reached the dashboard over HTTPS, directly

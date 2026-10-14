@@ -26,6 +26,8 @@ import type {
   WebAuthResponse,
   HealthResponse,
   LivenessResponse,
+  SSOSettingsRequest,
+  SSOSettingsResponse,
 } from '@/types/api'
 
 // In production, API calls go directly to the same host since Go serves the frontend
@@ -344,6 +346,28 @@ class ApiClient {
       method: 'POST',
       body: JSON.stringify({ password }),
     });
+  }
+
+  // Sign-in with SSO: the settings, a new draft, and turning it off
+  async getSSOSettings(): Promise<SSOSettingsResponse> {
+    return this.request<SSOSettingsResponse>('/settings/sso');
+  }
+
+  async saveSSOSettings(settings: SSOSettingsRequest): Promise<SSOSettingsResponse> {
+    return this.request<SSOSettingsResponse>('/settings/sso', {
+      method: 'PUT',
+      body: JSON.stringify(settings),
+    });
+  }
+
+  async disableSSO(): Promise<SSOSettingsResponse> {
+    return this.request<SSOSettingsResponse>('/settings/sso', { method: 'DELETE' });
+  }
+
+  // Where the browser goes for a test sign-in with the draft, which turns
+  // it on if it works
+  ssoTestUrl(): string {
+    return `${API_BASE}/api/settings/sso/test`;
   }
 
   async logoutWeb(): Promise<WebAuthResponse> {
