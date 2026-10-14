@@ -177,6 +177,22 @@ export interface LiveMessage {
   mime?: string;
 }
 /**
+ * TalkStart - the first message on the talk-back WebSocket,
+ * GET /api/talk/{uid}. The microphone's audio follows as binary messages:
+ * 16-bit little-endian mono PCM at SampleRate.
+ */
+export interface TalkStart {
+  sample_rate: number /* int */;
+}
+/**
+ * TalkMessage - what the talk-back WebSocket says back: "connecting" while
+ * the camera is asked to play, then "talking" once it's playing. Why it
+ * ended is in the close reason.
+ */
+export interface TalkMessage {
+  type: 'connecting' | 'talking';
+}
+/**
  * ControlRequest - POST /api/control/night-light and /api/control/standby
  */
 export interface ControlRequest {

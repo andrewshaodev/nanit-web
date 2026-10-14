@@ -144,6 +144,20 @@ type LiveMessage struct {
 	MIME string `json:"mime,omitempty"`
 }
 
+// TalkStart - the first message on the talk-back WebSocket,
+// GET /api/talk/{uid}. The microphone's audio follows as binary messages:
+// 16-bit little-endian mono PCM at SampleRate.
+type TalkStart struct {
+	SampleRate int `json:"sample_rate"`
+}
+
+// TalkMessage - what the talk-back WebSocket says back: "connecting" while
+// the camera is asked to play, then "talking" once it's playing. Why it
+// ended is in the close reason.
+type TalkMessage struct {
+	Type string `json:"type" tstype:"'connecting' | 'talking'"`
+}
+
 // ControlRequest - POST /api/control/night-light and /api/control/standby
 type ControlRequest struct {
 	BabyUID string `json:"baby_uid"`

@@ -87,6 +87,9 @@ type Camera struct {
 
 	mu   sync.RWMutex
 	conn requester // nil while the websocket is down
+	// talkPlaying - talk-back sessions waiting for the camera to say it's
+	// playing them, by session ID
+	talkPlaying map[string]chan struct{}
 
 	// For the stream loop; nil without RTMP
 	streamEvents   chan streamEvent
@@ -232,6 +235,22 @@ func (c *Camera) runWebsocket(conn *client.WebsocketConnection, childCtx utils.G
 				processLight(uid, m.Request.Control, stateManager)
 			} else if *m.Request.Type == client.RequestType_PUT_SETTINGS && m.Request.Settings != nil {
 				processStandby(uid, m.Request.Settings, stateManager)
+			} else if *m.Request.Type == client.RequestType_PUT_AUDIO_STREAMING && m.Request.AudioStreaming != nil {
+				// The camera playing (or done with) talk-back. It's answered,
+				// as the app does.
+				a := m.Request.AudioStreaming
+				log.Info().Str("baby_uid", uid).Str("sid", a.GetSessionId()).Stringer("status", a.GetStatus()).Msg("Camera talk-back status")
+				if a.GetStatus() == client.AudioStreaming_STARTED {
+					c.talkStarted(a.GetSessionId())
+				}
+				_ = conn.SendMessage(&client.Message{
+					Type: client.Message_RESPONSE.Enum(),
+					Response: &client.Response{
+						RequestId:   m.Request.Id,
+						RequestType: m.Request.Type,
+						StatusCode:  utils.ConstRefInt32(200),
+					},
+				})
 			} else {
 				// Something the camera sent on its own that isn't handled,
 				// logged whole to learn what it reports (sleep, breathing...)

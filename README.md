@@ -12,6 +12,7 @@ It isn't affiliated with Nanit. It uses Nanit's unofficial, reverse-engineered A
 - **Passwords on everything that streams.** An optional dashboard password covers the dashboard, its live view and HLS; an optional stream password covers RTSP and RTMP.
 - **Readings.** Temperature, humidity, the camera's day/night mode, and night light state, updated live.
 - **Controls.** Night light (tap its reading to switch it), standby, and the camera's built-in sounds (White Noise, Birds, Waves, Wind) with play/stop, a timer and speaker volume.
+- **Talk.** Hold to Talk plays your microphone through the camera's speaker, as the app's talk button does. The camera fetches the audio from the bridge's RTMP server (at `NANIT_RTMP_ADDR`), so it needs RTMP on, and the dashboard on https or localhost for the microphone. Talks end when you let go, and after 5 minutes at most.
 - **Device details.** Firmware, settings, and the camera's WiFi network, signal strength and channel.
 - **History.** Temperature and humidity charts, and a day/night timeline that marks the time nothing was recorded, over 1 hour to 30 days, stored in SQLite.
 - **Crying log, with recordings.** With [Frigate](https://frigate.video) listening to the stream for crying, each crying spell shows on the camera's card as it happens, with how long it lasted and its recording, 10 to a page. See [Crying spells from Frigate](#crying-spells-from-frigate).
@@ -238,13 +239,14 @@ Where things are:
 |---|---|
 | `cmd/nanit` | Reads the configuration and runs the app |
 | `pkg/app` | Starts and stops everything, in order |
-| `pkg/camera` | One camera: its connection to Nanit, its stream requests (stream server only), and its commands (night light, standby, sounds) |
+| `pkg/camera` | One camera: its connection to Nanit, its stream requests (stream server only), and its commands (night light, standby, sounds, talk) |
 | `pkg/httpapi` | The dashboard and its API, including the live view's WebSocket. `apitypes` has every response, and `testdata/golden` the JSON the dashboard expects |
 | `pkg/client` | Nanit's REST API, sign-in, and the camera websocket (`websocket.proto`) |
 | `pkg/relay` | Each camera's live stream, fanned out to every output. The camera (or a viewer's pull) publishes into it |
 | `pkg/rtmpserver` | RTMP: the camera publishes here, and RTMP players watch |
 | `pkg/rtspserver` | RTSP output |
 | `pkg/pull` | A viewer's pull of the stream server's RTSP stream |
+| `pkg/talk` | Talk-back: the microphone's PCM, encoded to AAC by ffmpeg, for the camera to play from `rtmp://…/2wa/<session>` |
 | `pkg/mse` | Fragmented MP4 for the dashboard's live view |
 | `pkg/streamauth` / `pkg/streamsource` | The stream password, and a viewer's stream server setting |
 | `pkg/streaming` | ffmpeg's HLS remux, the dashboard's fallback |

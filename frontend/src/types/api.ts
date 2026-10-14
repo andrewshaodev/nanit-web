@@ -49,6 +49,10 @@ export type StreamSourceRequest = api.StreamSourceRequest
 export type StreamSourceResponse = api.StreamSourceResponse
 export type LiveMessage = api.LiveMessage
 
+// Talking through the camera's speaker, over /api/talk/{baby_uid}
+export type TalkStart = api.TalkStart
+export type TalkMessage = api.TalkMessage
+
 export type WebAuthStatusResponse = api.WebAuthStatusResponse
 export type SSOSettingsRequest = api.SSOSettingsRequest
 export type SSOSettingsResponse = api.SSOSettingsResponse

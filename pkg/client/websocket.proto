@@ -244,6 +244,21 @@ message Streaming {
   optional int32 attempts = 4;
 }
 
+// AudioStreaming - talking through the camera's speaker (PUT_AUDIO_STREAMING).
+// The camera plays the RTMP stream at rtmpUrl (AAC, 44.1 kHz mono, app
+// "2wa", stream named sessionId), and sends its own PUT_AUDIO_STREAMING
+// with the same sessionId once it's playing. Decoded from the Android app.
+message AudioStreaming {
+  enum Status {
+    STARTED = 0;
+    STOPPED = 1;
+  }
+
+  required Status status = 1;
+  optional string rtmpUrl = 2;
+  optional string sessionId = 3;
+}
+
 message GetLogs {
   required string url = 1;
 }
@@ -274,6 +289,7 @@ message Request {
   optional GetSettings getSettings = 6;
   optional Playback playback = 16;
   optional GetLogs getLogs = 18;
+  optional AudioStreaming audioStreaming = 20;
 }
 
 // NetworkStatus - the camera's WiFi connection, answering

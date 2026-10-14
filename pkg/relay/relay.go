@@ -78,7 +78,8 @@ type Hub struct {
 	publishers map[string]*Publisher
 }
 
-// NewHub - a hub that records each stream's state in states
+// NewHub - a hub that records each stream's state in states, or nowhere
+// when states is nil (talk-back's hub, whose streams aren't cameras')
 func NewHub(states *baby.StateManager) *Hub {
 	return &Hub{states: states, publishers: map[string]*Publisher{}}
 }
@@ -104,7 +105,9 @@ func (h *Hub) Publish(babyUID string, stream Stream) *Publisher {
 		log.Warn().Str("baby_uid", babyUID).Msg("Baby already has active publisher, closing existing subscribers")
 		existing.closeSubscribers()
 	}
-	h.states.Update(babyUID, *baby.NewState().SetStreamState(baby.StreamState_Alive).SetStreamRequestState(baby.StreamRequestState_NotRequested))
+	if h.states != nil {
+		h.states.Update(babyUID, *baby.NewState().SetStreamState(baby.StreamState_Alive).SetStreamRequestState(baby.StreamRequestState_NotRequested))
+	}
 	return p
 }
 
@@ -183,7 +186,7 @@ func (p *Publisher) remove(sub *Subscription) {
 
 // Broadcast - sends a frame to every subscriber
 func (p *Publisher) Broadcast(f Frame) {
-	if now := time.Now().Unix(); now != p.lastPacketUnix {
+	if now := time.Now().Unix(); now != p.lastPacketUnix && p.hub.states != nil {
 		p.lastPacketUnix = now
 		p.hub.states.Update(p.babyUID, *baby.NewState().SetLastVideoPacketTime(now))
 	}
@@ -220,7 +223,7 @@ func (p *Publisher) Close() {
 
 	// A publisher that was replaced leaves the stream state to the one
 	// that replaced it
-	if current {
+	if current && p.hub.states != nil {
 		p.hub.states.Update(p.babyUID, *baby.NewState().SetStreamState(baby.StreamState_Unhealthy).SetLastVideoPacketTime(0))
 	}
 	p.closeSubscribers()

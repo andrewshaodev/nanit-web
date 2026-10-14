@@ -21,6 +21,7 @@ import (
 	"github.com/andrewshaodev/nanit-web/pkg/streamauth"
 	"github.com/andrewshaodev/nanit-web/pkg/streaming"
 	"github.com/andrewshaodev/nanit-web/pkg/streamsource"
+	"github.com/andrewshaodev/nanit-web/pkg/talk"
 	"github.com/andrewshaodev/nanit-web/pkg/utils"
 	"github.com/andrewshaodev/nanit-web/pkg/webauth"
 	"github.com/rs/zerolog/log"
@@ -36,6 +37,8 @@ type App struct {
 	HLSManager       *streaming.HLSManager
 	// Relay - each camera's live stream, for every output
 	Relay *relay.Hub
+	// Talk - talking through the cameras' speakers
+	Talk *talk.Service
 	// StreamAuth - the optional password on the RTSP and RTMP outputs
 	StreamAuth *streamauth.Store
 	// StreamSource - where a viewer takes its video from; nil on the stream
@@ -95,6 +98,7 @@ func NewApp(opts Opts) (*App, error) {
 	}
 
 	instance.Relay = relay.NewHub(instance.BabyStateManager)
+	instance.Talk = talk.New()
 
 	if opts.MQTT != nil {
 		instance.MQTTConnection = mqtt.NewConnection(*opts.MQTT)
@@ -273,7 +277,7 @@ func (app *App) startSharedServices(ctx utils.GracefulContext) {
 		ctx.RunAsChild(func(childCtx utils.GracefulContext) {
 			// Logged rather than stopping the app: in a container that would
 			// restart it, reconnecting to Nanit, in a loop
-			if err := rtmpserver.Serve(childCtx, app.Opts.RTMP.ListenAddr, app.Relay, app.StreamAuth); err != nil {
+			if err := rtmpserver.Serve(childCtx, app.Opts.RTMP.ListenAddr, app.Relay, app.StreamAuth, app.Talk.Hub); err != nil {
 				log.Error().Err(err).Msg("RTMP server failed; video is unavailable")
 			}
 		})

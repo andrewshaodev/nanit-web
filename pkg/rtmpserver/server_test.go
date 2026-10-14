@@ -286,7 +286,7 @@ func TestServeClosesItsListener(t *testing.T) {
 
 	served := make(chan error, 1)
 	runner := utils.RunWithGracefulCancel(func(ctx utils.GracefulContext) {
-		served <- Serve(ctx, addr, relay.NewHub(baby.NewStateManager()), nil)
+		served <- Serve(ctx, addr, relay.NewHub(baby.NewStateManager()), nil, nil)
 	})
 	require.Eventually(t, func() bool {
 		conn, err := net.Dial("tcp", addr)

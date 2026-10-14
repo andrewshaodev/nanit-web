@@ -72,6 +72,7 @@ func (app *App) apiServer(stopping <-chan struct{}) *httpapi.Server {
 		Cameras:      app.Cameras,
 		HLS:          app.HLSManager,
 		Relay:        app.Relay,
+		Talk:         app.Talk,
 		StreamAuth:   app.StreamAuth,
 		StreamSource: app.StreamSource,
 		History:      app.HistoryTracker,

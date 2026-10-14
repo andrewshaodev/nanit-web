@@ -793,6 +793,62 @@ func (Streaming_Status) EnumDescriptor() ([]byte, []int) {
 	return file_pkg_client_websocket_proto_rawDescGZIP(), []int{9, 0}
 }
 
+type AudioStreaming_Status int32
+
+const (
+	AudioStreaming_STARTED AudioStreaming_Status = 0
+	AudioStreaming_STOPPED AudioStreaming_Status = 1
+)
+
+// Enum value maps for AudioStreaming_Status.
+var (
+	AudioStreaming_Status_name = map[int32]string{
+		0: "STARTED",
+		1: "STOPPED",
+	}
+	AudioStreaming_Status_value = map[string]int32{
+		"STARTED": 0,
+		"STOPPED": 1,
+	}
+)
+
+func (x AudioStreaming_Status) Enum() *AudioStreaming_Status {
+	p := new(AudioStreaming_Status)
+	*p = x
+	return p
+}
+
+func (x AudioStreaming_Status) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (AudioStreaming_Status) Descriptor() protoreflect.EnumDescriptor {
+	return file_pkg_client_websocket_proto_enumTypes[11].Descriptor()
+}
+
+func (AudioStreaming_Status) Type() protoreflect.EnumType {
+	return &file_pkg_client_websocket_proto_enumTypes[11]
+}
+
+func (x AudioStreaming_Status) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Do not use.
+func (x *AudioStreaming_Status) UnmarshalJSON(b []byte) error {
+	num, err := protoimpl.X.UnmarshalJSONEnum(x.Descriptor(), b)
+	if err != nil {
+		return err
+	}
+	*x = AudioStreaming_Status(num)
+	return nil
+}
+
+// Deprecated: Use AudioStreaming_Status.Descriptor instead.
+func (AudioStreaming_Status) EnumDescriptor() ([]byte, []int) {
+	return file_pkg_client_websocket_proto_rawDescGZIP(), []int{10, 0}
+}
+
 type Message_Type int32
 
 const (
@@ -826,11 +882,11 @@ func (x Message_Type) String() string {
 }
 
 func (Message_Type) Descriptor() protoreflect.EnumDescriptor {
-	return file_pkg_client_websocket_proto_enumTypes[11].Descriptor()
+	return file_pkg_client_websocket_proto_enumTypes[12].Descriptor()
 }
 
 func (Message_Type) Type() protoreflect.EnumType {
-	return &file_pkg_client_websocket_proto_enumTypes[11]
+	return &file_pkg_client_websocket_proto_enumTypes[12]
 }
 
 func (x Message_Type) Number() protoreflect.EnumNumber {
@@ -849,7 +905,7 @@ func (x *Message_Type) UnmarshalJSON(b []byte) error {
 
 // Deprecated: Use Message_Type.Descriptor instead.
 func (Message_Type) EnumDescriptor() ([]byte, []int) {
-	return file_pkg_client_websocket_proto_rawDescGZIP(), []int{16, 0}
+	return file_pkg_client_websocket_proto_rawDescGZIP(), []int{17, 0}
 }
 
 type SensorData struct {
@@ -1607,6 +1663,70 @@ func (x *Streaming) GetAttempts() int32 {
 	return 0
 }
 
+// AudioStreaming - talking through the camera's speaker (PUT_AUDIO_STREAMING).
+// The camera plays the RTMP stream at rtmpUrl (AAC, 44.1 kHz mono, app
+// "2wa", stream named sessionId), and sends its own PUT_AUDIO_STREAMING
+// with the same sessionId once it's playing. Decoded from the Android app.
+type AudioStreaming struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Status        *AudioStreaming_Status `protobuf:"varint,1,req,name=status,enum=client.AudioStreaming_Status" json:"status,omitempty"`
+	RtmpUrl       *string                `protobuf:"bytes,2,opt,name=rtmpUrl" json:"rtmpUrl,omitempty"`
+	SessionId     *string                `protobuf:"bytes,3,opt,name=sessionId" json:"sessionId,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *AudioStreaming) Reset() {
+	*x = AudioStreaming{}
+	mi := &file_pkg_client_websocket_proto_msgTypes[10]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *AudioStreaming) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AudioStreaming) ProtoMessage() {}
+
+func (x *AudioStreaming) ProtoReflect() protoreflect.Message {
+	mi := &file_pkg_client_websocket_proto_msgTypes[10]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use AudioStreaming.ProtoReflect.Descriptor instead.
+func (*AudioStreaming) Descriptor() ([]byte, []int) {
+	return file_pkg_client_websocket_proto_rawDescGZIP(), []int{10}
+}
+
+func (x *AudioStreaming) GetStatus() AudioStreaming_Status {
+	if x != nil && x.Status != nil {
+		return *x.Status
+	}
+	return AudioStreaming_STARTED
+}
+
+func (x *AudioStreaming) GetRtmpUrl() string {
+	if x != nil && x.RtmpUrl != nil {
+		return *x.RtmpUrl
+	}
+	return ""
+}
+
+func (x *AudioStreaming) GetSessionId() string {
+	if x != nil && x.SessionId != nil {
+		return *x.SessionId
+	}
+	return ""
+}
+
 type GetLogs struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Url           *string                `protobuf:"bytes,1,req,name=url" json:"url,omitempty"`
@@ -1616,7 +1736,7 @@ type GetLogs struct {
 
 func (x *GetLogs) Reset() {
 	*x = GetLogs{}
-	mi := &file_pkg_client_websocket_proto_msgTypes[10]
+	mi := &file_pkg_client_websocket_proto_msgTypes[11]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1628,7 +1748,7 @@ func (x *GetLogs) String() string {
 func (*GetLogs) ProtoMessage() {}
 
 func (x *GetLogs) ProtoReflect() protoreflect.Message {
-	mi := &file_pkg_client_websocket_proto_msgTypes[10]
+	mi := &file_pkg_client_websocket_proto_msgTypes[11]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1641,7 +1761,7 @@ func (x *GetLogs) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetLogs.ProtoReflect.Descriptor instead.
 func (*GetLogs) Descriptor() ([]byte, []int) {
-	return file_pkg_client_websocket_proto_rawDescGZIP(), []int{10}
+	return file_pkg_client_websocket_proto_rawDescGZIP(), []int{11}
 }
 
 func (x *GetLogs) GetUrl() string {
@@ -1660,7 +1780,7 @@ type GetStatus struct {
 
 func (x *GetStatus) Reset() {
 	*x = GetStatus{}
-	mi := &file_pkg_client_websocket_proto_msgTypes[11]
+	mi := &file_pkg_client_websocket_proto_msgTypes[12]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1672,7 +1792,7 @@ func (x *GetStatus) String() string {
 func (*GetStatus) ProtoMessage() {}
 
 func (x *GetStatus) ProtoReflect() protoreflect.Message {
-	mi := &file_pkg_client_websocket_proto_msgTypes[11]
+	mi := &file_pkg_client_websocket_proto_msgTypes[12]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1685,7 +1805,7 @@ func (x *GetStatus) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetStatus.ProtoReflect.Descriptor instead.
 func (*GetStatus) Descriptor() ([]byte, []int) {
-	return file_pkg_client_websocket_proto_rawDescGZIP(), []int{11}
+	return file_pkg_client_websocket_proto_rawDescGZIP(), []int{12}
 }
 
 func (x *GetStatus) GetAll() bool {
@@ -1706,7 +1826,7 @@ type GetSettings struct {
 
 func (x *GetSettings) Reset() {
 	*x = GetSettings{}
-	mi := &file_pkg_client_websocket_proto_msgTypes[12]
+	mi := &file_pkg_client_websocket_proto_msgTypes[13]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1718,7 +1838,7 @@ func (x *GetSettings) String() string {
 func (*GetSettings) ProtoMessage() {}
 
 func (x *GetSettings) ProtoReflect() protoreflect.Message {
-	mi := &file_pkg_client_websocket_proto_msgTypes[12]
+	mi := &file_pkg_client_websocket_proto_msgTypes[13]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1731,7 +1851,7 @@ func (x *GetSettings) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetSettings.ProtoReflect.Descriptor instead.
 func (*GetSettings) Descriptor() ([]byte, []int) {
-	return file_pkg_client_websocket_proto_rawDescGZIP(), []int{12}
+	return file_pkg_client_websocket_proto_rawDescGZIP(), []int{13}
 }
 
 func (x *GetSettings) GetAll() bool {
@@ -1742,27 +1862,28 @@ func (x *GetSettings) GetAll() bool {
 }
 
 type Request struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Id            *int32                 `protobuf:"varint,1,req,name=id" json:"id,omitempty"`
-	Type          *RequestType           `protobuf:"varint,2,req,name=type,enum=client.RequestType" json:"type,omitempty"`
-	GetSensorData *GetSensorData         `protobuf:"bytes,12,opt,name=getSensorData" json:"getSensorData,omitempty"`
-	SensorData_   []*SensorData          `protobuf:"bytes,13,rep,name=sensorData" json:"sensorData,omitempty"`
-	Streaming     *Streaming             `protobuf:"bytes,4,opt,name=streaming" json:"streaming,omitempty"`
-	Control       *Control               `protobuf:"bytes,15,opt,name=control" json:"control,omitempty"`
-	GetControl_   *GetControl            `protobuf:"bytes,17,opt,name=getControl" json:"getControl,omitempty"`
-	Settings      *Settings              `protobuf:"bytes,5,opt,name=settings" json:"settings,omitempty"`
-	Status        *Status                `protobuf:"bytes,7,opt,name=status" json:"status,omitempty"`
-	GetStatus_    *GetStatus             `protobuf:"bytes,8,opt,name=getStatus" json:"getStatus,omitempty"`
-	GetSettings_  *GetSettings           `protobuf:"bytes,6,opt,name=getSettings" json:"getSettings,omitempty"`
-	Playback      *Playback              `protobuf:"bytes,16,opt,name=playback" json:"playback,omitempty"`
-	GetLogs       *GetLogs               `protobuf:"bytes,18,opt,name=getLogs" json:"getLogs,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state          protoimpl.MessageState `protogen:"open.v1"`
+	Id             *int32                 `protobuf:"varint,1,req,name=id" json:"id,omitempty"`
+	Type           *RequestType           `protobuf:"varint,2,req,name=type,enum=client.RequestType" json:"type,omitempty"`
+	GetSensorData  *GetSensorData         `protobuf:"bytes,12,opt,name=getSensorData" json:"getSensorData,omitempty"`
+	SensorData_    []*SensorData          `protobuf:"bytes,13,rep,name=sensorData" json:"sensorData,omitempty"`
+	Streaming      *Streaming             `protobuf:"bytes,4,opt,name=streaming" json:"streaming,omitempty"`
+	Control        *Control               `protobuf:"bytes,15,opt,name=control" json:"control,omitempty"`
+	GetControl_    *GetControl            `protobuf:"bytes,17,opt,name=getControl" json:"getControl,omitempty"`
+	Settings       *Settings              `protobuf:"bytes,5,opt,name=settings" json:"settings,omitempty"`
+	Status         *Status                `protobuf:"bytes,7,opt,name=status" json:"status,omitempty"`
+	GetStatus_     *GetStatus             `protobuf:"bytes,8,opt,name=getStatus" json:"getStatus,omitempty"`
+	GetSettings_   *GetSettings           `protobuf:"bytes,6,opt,name=getSettings" json:"getSettings,omitempty"`
+	Playback       *Playback              `protobuf:"bytes,16,opt,name=playback" json:"playback,omitempty"`
+	GetLogs        *GetLogs               `protobuf:"bytes,18,opt,name=getLogs" json:"getLogs,omitempty"`
+	AudioStreaming *AudioStreaming        `protobuf:"bytes,20,opt,name=audioStreaming" json:"audioStreaming,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
 }
 
 func (x *Request) Reset() {
 	*x = Request{}
-	mi := &file_pkg_client_websocket_proto_msgTypes[13]
+	mi := &file_pkg_client_websocket_proto_msgTypes[14]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1774,7 +1895,7 @@ func (x *Request) String() string {
 func (*Request) ProtoMessage() {}
 
 func (x *Request) ProtoReflect() protoreflect.Message {
-	mi := &file_pkg_client_websocket_proto_msgTypes[13]
+	mi := &file_pkg_client_websocket_proto_msgTypes[14]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1787,7 +1908,7 @@ func (x *Request) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Request.ProtoReflect.Descriptor instead.
 func (*Request) Descriptor() ([]byte, []int) {
-	return file_pkg_client_websocket_proto_rawDescGZIP(), []int{13}
+	return file_pkg_client_websocket_proto_rawDescGZIP(), []int{14}
 }
 
 func (x *Request) GetId() int32 {
@@ -1881,6 +2002,13 @@ func (x *Request) GetGetLogs() *GetLogs {
 	return nil
 }
 
+func (x *Request) GetAudioStreaming() *AudioStreaming {
+	if x != nil {
+		return x.AudioStreaming
+	}
+	return nil
+}
+
 // NetworkStatus - the camera's WiFi connection, answering
 // GET_STATUS_NETWORK. Worked out from a live reply, whose fields 1 and 4
 // (0 and 3) are still unexplained.
@@ -1897,7 +2025,7 @@ type NetworkStatus struct {
 
 func (x *NetworkStatus) Reset() {
 	*x = NetworkStatus{}
-	mi := &file_pkg_client_websocket_proto_msgTypes[14]
+	mi := &file_pkg_client_websocket_proto_msgTypes[15]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1909,7 +2037,7 @@ func (x *NetworkStatus) String() string {
 func (*NetworkStatus) ProtoMessage() {}
 
 func (x *NetworkStatus) ProtoReflect() protoreflect.Message {
-	mi := &file_pkg_client_websocket_proto_msgTypes[14]
+	mi := &file_pkg_client_websocket_proto_msgTypes[15]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1922,7 +2050,7 @@ func (x *NetworkStatus) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use NetworkStatus.ProtoReflect.Descriptor instead.
 func (*NetworkStatus) Descriptor() ([]byte, []int) {
-	return file_pkg_client_websocket_proto_rawDescGZIP(), []int{14}
+	return file_pkg_client_websocket_proto_rawDescGZIP(), []int{15}
 }
 
 func (x *NetworkStatus) GetSsid() string {
@@ -1965,7 +2093,7 @@ type Response struct {
 
 func (x *Response) Reset() {
 	*x = Response{}
-	mi := &file_pkg_client_websocket_proto_msgTypes[15]
+	mi := &file_pkg_client_websocket_proto_msgTypes[16]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1977,7 +2105,7 @@ func (x *Response) String() string {
 func (*Response) ProtoMessage() {}
 
 func (x *Response) ProtoReflect() protoreflect.Message {
-	mi := &file_pkg_client_websocket_proto_msgTypes[15]
+	mi := &file_pkg_client_websocket_proto_msgTypes[16]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1990,7 +2118,7 @@ func (x *Response) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Response.ProtoReflect.Descriptor instead.
 func (*Response) Descriptor() ([]byte, []int) {
-	return file_pkg_client_websocket_proto_rawDescGZIP(), []int{15}
+	return file_pkg_client_websocket_proto_rawDescGZIP(), []int{16}
 }
 
 func (x *Response) GetRequestId() int32 {
@@ -2081,7 +2209,7 @@ type Message struct {
 
 func (x *Message) Reset() {
 	*x = Message{}
-	mi := &file_pkg_client_websocket_proto_msgTypes[16]
+	mi := &file_pkg_client_websocket_proto_msgTypes[17]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2093,7 +2221,7 @@ func (x *Message) String() string {
 func (*Message) ProtoMessage() {}
 
 func (x *Message) ProtoReflect() protoreflect.Message {
-	mi := &file_pkg_client_websocket_proto_msgTypes[16]
+	mi := &file_pkg_client_websocket_proto_msgTypes[17]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2106,7 +2234,7 @@ func (x *Message) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Message.ProtoReflect.Descriptor instead.
 func (*Message) Descriptor() ([]byte, []int) {
-	return file_pkg_client_websocket_proto_rawDescGZIP(), []int{16}
+	return file_pkg_client_websocket_proto_rawDescGZIP(), []int{17}
 }
 
 func (x *Message) GetType() Message_Type {
@@ -2144,7 +2272,7 @@ type Control_SensorDataTransfer struct {
 
 func (x *Control_SensorDataTransfer) Reset() {
 	*x = Control_SensorDataTransfer{}
-	mi := &file_pkg_client_websocket_proto_msgTypes[17]
+	mi := &file_pkg_client_websocket_proto_msgTypes[18]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2156,7 +2284,7 @@ func (x *Control_SensorDataTransfer) String() string {
 func (*Control_SensorDataTransfer) ProtoMessage() {}
 
 func (x *Control_SensorDataTransfer) ProtoReflect() protoreflect.Message {
-	mi := &file_pkg_client_websocket_proto_msgTypes[17]
+	mi := &file_pkg_client_websocket_proto_msgTypes[18]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2230,7 +2358,7 @@ type Settings_SensorSettings struct {
 
 func (x *Settings_SensorSettings) Reset() {
 	*x = Settings_SensorSettings{}
-	mi := &file_pkg_client_websocket_proto_msgTypes[18]
+	mi := &file_pkg_client_websocket_proto_msgTypes[19]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2242,7 +2370,7 @@ func (x *Settings_SensorSettings) String() string {
 func (*Settings_SensorSettings) ProtoMessage() {}
 
 func (x *Settings_SensorSettings) ProtoReflect() protoreflect.Message {
-	mi := &file_pkg_client_websocket_proto_msgTypes[18]
+	mi := &file_pkg_client_websocket_proto_msgTypes[19]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2328,7 +2456,7 @@ type Settings_StreamSettings struct {
 
 func (x *Settings_StreamSettings) Reset() {
 	*x = Settings_StreamSettings{}
-	mi := &file_pkg_client_websocket_proto_msgTypes[19]
+	mi := &file_pkg_client_websocket_proto_msgTypes[20]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2340,7 +2468,7 @@ func (x *Settings_StreamSettings) String() string {
 func (*Settings_StreamSettings) ProtoMessage() {}
 
 func (x *Settings_StreamSettings) ProtoReflect() protoreflect.Message {
-	mi := &file_pkg_client_websocket_proto_msgTypes[19]
+	mi := &file_pkg_client_websocket_proto_msgTypes[20]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2531,13 +2659,20 @@ const file_pkg_client_websocket_proto_rawDesc = "" +
 	"\aSTARTED\x10\x00\x12\v\n" +
 	"\aSTOPPED\x10\x01\x12\n" +
 	"\n" +
-	"\x06PAUSED\x10\x02\"\x1b\n" +
+	"\x06PAUSED\x10\x02\"\xa3\x01\n" +
+	"\x0eAudioStreaming\x125\n" +
+	"\x06status\x18\x01 \x02(\x0e2\x1d.client.AudioStreaming.StatusR\x06status\x12\x18\n" +
+	"\artmpUrl\x18\x02 \x01(\tR\artmpUrl\x12\x1c\n" +
+	"\tsessionId\x18\x03 \x01(\tR\tsessionId\"\"\n" +
+	"\x06Status\x12\v\n" +
+	"\aSTARTED\x10\x00\x12\v\n" +
+	"\aSTOPPED\x10\x01\"\x1b\n" +
 	"\aGetLogs\x12\x10\n" +
 	"\x03url\x18\x01 \x02(\tR\x03url\"\x1d\n" +
 	"\tGetStatus\x12\x10\n" +
 	"\x03all\x18\x01 \x01(\bR\x03all\"\x1f\n" +
 	"\vGetSettings\x12\x10\n" +
-	"\x03all\x18\x01 \x01(\bR\x03all\"\xda\x04\n" +
+	"\x03all\x18\x01 \x01(\bR\x03all\"\x9a\x05\n" +
 	"\aRequest\x12\x0e\n" +
 	"\x02id\x18\x01 \x02(\x05R\x02id\x12'\n" +
 	"\x04type\x18\x02 \x02(\x0e2\x13.client.RequestTypeR\x04type\x12;\n" +
@@ -2555,7 +2690,8 @@ const file_pkg_client_websocket_proto_rawDesc = "" +
 	"\tgetStatus\x18\b \x01(\v2\x11.client.GetStatusR\tgetStatus\x125\n" +
 	"\vgetSettings\x18\x06 \x01(\v2\x13.client.GetSettingsR\vgetSettings\x12,\n" +
 	"\bplayback\x18\x10 \x01(\v2\x10.client.PlaybackR\bplayback\x12)\n" +
-	"\agetLogs\x18\x12 \x01(\v2\x0f.client.GetLogsR\agetLogs\"U\n" +
+	"\agetLogs\x18\x12 \x01(\v2\x0f.client.GetLogsR\agetLogs\x12>\n" +
+	"\x0eaudioStreaming\x18\x14 \x01(\v2\x16.client.AudioStreamingR\x0eaudioStreaming\"U\n" +
 	"\rNetworkStatus\x12\x12\n" +
 	"\x04ssid\x18\x02 \x01(\tR\x04ssid\x12\x12\n" +
 	"\x04rssi\x18\x03 \x01(\x05R\x04rssi\x12\x1c\n" +
@@ -2665,8 +2801,8 @@ func file_pkg_client_websocket_proto_rawDescGZIP() []byte {
 	return file_pkg_client_websocket_proto_rawDescData
 }
 
-var file_pkg_client_websocket_proto_enumTypes = make([]protoimpl.EnumInfo, 12)
-var file_pkg_client_websocket_proto_msgTypes = make([]protoimpl.MessageInfo, 20)
+var file_pkg_client_websocket_proto_enumTypes = make([]protoimpl.EnumInfo, 13)
+var file_pkg_client_websocket_proto_msgTypes = make([]protoimpl.MessageInfo, 21)
 var file_pkg_client_websocket_proto_goTypes = []any{
 	(RequestType)(0),                   // 0: client.RequestType
 	(SensorType)(0),                    // 1: client.SensorType
@@ -2679,74 +2815,78 @@ var file_pkg_client_websocket_proto_goTypes = []any{
 	(Playback_Status)(0),               // 8: client.Playback.Status
 	(Stream_Type)(0),                   // 9: client.Stream.Type
 	(Streaming_Status)(0),              // 10: client.Streaming.Status
-	(Message_Type)(0),                  // 11: client.Message.Type
-	(*SensorData)(nil),                 // 12: client.SensorData
-	(*GetSensorData)(nil),              // 13: client.GetSensorData
-	(*GetControl)(nil),                 // 14: client.GetControl
-	(*Control)(nil),                    // 15: client.Control
-	(*Settings)(nil),                   // 16: client.Settings
-	(*Status)(nil),                     // 17: client.Status
-	(*Playback)(nil),                   // 18: client.Playback
-	(*Soundtrack)(nil),                 // 19: client.Soundtrack
-	(*Stream)(nil),                     // 20: client.Stream
-	(*Streaming)(nil),                  // 21: client.Streaming
-	(*GetLogs)(nil),                    // 22: client.GetLogs
-	(*GetStatus)(nil),                  // 23: client.GetStatus
-	(*GetSettings)(nil),                // 24: client.GetSettings
-	(*Request)(nil),                    // 25: client.Request
-	(*NetworkStatus)(nil),              // 26: client.NetworkStatus
-	(*Response)(nil),                   // 27: client.Response
-	(*Message)(nil),                    // 28: client.Message
-	(*Control_SensorDataTransfer)(nil), // 29: client.Control.SensorDataTransfer
-	(*Settings_SensorSettings)(nil),    // 30: client.Settings.SensorSettings
-	(*Settings_StreamSettings)(nil),    // 31: client.Settings.StreamSettings
+	(AudioStreaming_Status)(0),         // 11: client.AudioStreaming.Status
+	(Message_Type)(0),                  // 12: client.Message.Type
+	(*SensorData)(nil),                 // 13: client.SensorData
+	(*GetSensorData)(nil),              // 14: client.GetSensorData
+	(*GetControl)(nil),                 // 15: client.GetControl
+	(*Control)(nil),                    // 16: client.Control
+	(*Settings)(nil),                   // 17: client.Settings
+	(*Status)(nil),                     // 18: client.Status
+	(*Playback)(nil),                   // 19: client.Playback
+	(*Soundtrack)(nil),                 // 20: client.Soundtrack
+	(*Stream)(nil),                     // 21: client.Stream
+	(*Streaming)(nil),                  // 22: client.Streaming
+	(*AudioStreaming)(nil),             // 23: client.AudioStreaming
+	(*GetLogs)(nil),                    // 24: client.GetLogs
+	(*GetStatus)(nil),                  // 25: client.GetStatus
+	(*GetSettings)(nil),                // 26: client.GetSettings
+	(*Request)(nil),                    // 27: client.Request
+	(*NetworkStatus)(nil),              // 28: client.NetworkStatus
+	(*Response)(nil),                   // 29: client.Response
+	(*Message)(nil),                    // 30: client.Message
+	(*Control_SensorDataTransfer)(nil), // 31: client.Control.SensorDataTransfer
+	(*Settings_SensorSettings)(nil),    // 32: client.Settings.SensorSettings
+	(*Settings_StreamSettings)(nil),    // 33: client.Settings.StreamSettings
 }
 var file_pkg_client_websocket_proto_depIdxs = []int32{
 	1,  // 0: client.SensorData.sensorType:type_name -> client.SensorType
 	4,  // 1: client.Control.nightLight:type_name -> client.Control.NightLight
-	29, // 2: client.Control.sensorDataTransfer:type_name -> client.Control.SensorDataTransfer
-	30, // 3: client.Settings.sensors:type_name -> client.Settings.SensorSettings
-	31, // 4: client.Settings.streams:type_name -> client.Settings.StreamSettings
+	31, // 2: client.Control.sensorDataTransfer:type_name -> client.Control.SensorDataTransfer
+	32, // 3: client.Settings.sensors:type_name -> client.Settings.SensorSettings
+	33, // 4: client.Settings.streams:type_name -> client.Settings.StreamSettings
 	5,  // 5: client.Settings.antiFlicker:type_name -> client.Settings.AntiFlicker
 	6,  // 6: client.Settings.wifiBand:type_name -> client.Settings.WifiBand
 	7,  // 7: client.Status.connectionToServer:type_name -> client.Status.ConnectionToServer
 	3,  // 8: client.Status.mode:type_name -> client.MountingMode
 	8,  // 9: client.Playback.status:type_name -> client.Playback.Status
-	19, // 10: client.Playback.soundtrack:type_name -> client.Soundtrack
-	19, // 11: client.Playback.selectedSoundtrack:type_name -> client.Soundtrack
+	20, // 10: client.Playback.soundtrack:type_name -> client.Soundtrack
+	20, // 11: client.Playback.selectedSoundtrack:type_name -> client.Soundtrack
 	9,  // 12: client.Stream.type:type_name -> client.Stream.Type
 	2,  // 13: client.Streaming.id:type_name -> client.StreamIdentifier
 	10, // 14: client.Streaming.status:type_name -> client.Streaming.Status
-	0,  // 15: client.Request.type:type_name -> client.RequestType
-	13, // 16: client.Request.getSensorData:type_name -> client.GetSensorData
-	12, // 17: client.Request.sensorData:type_name -> client.SensorData
-	21, // 18: client.Request.streaming:type_name -> client.Streaming
-	15, // 19: client.Request.control:type_name -> client.Control
-	14, // 20: client.Request.getControl:type_name -> client.GetControl
-	16, // 21: client.Request.settings:type_name -> client.Settings
-	17, // 22: client.Request.status:type_name -> client.Status
-	23, // 23: client.Request.getStatus:type_name -> client.GetStatus
-	24, // 24: client.Request.getSettings:type_name -> client.GetSettings
-	18, // 25: client.Request.playback:type_name -> client.Playback
-	22, // 26: client.Request.getLogs:type_name -> client.GetLogs
-	0,  // 27: client.Response.requestType:type_name -> client.RequestType
-	17, // 28: client.Response.status:type_name -> client.Status
-	12, // 29: client.Response.sensorData:type_name -> client.SensorData
-	16, // 30: client.Response.settings:type_name -> client.Settings
-	15, // 31: client.Response.control:type_name -> client.Control
-	19, // 32: client.Response.soundtracks:type_name -> client.Soundtrack
-	18, // 33: client.Response.playback:type_name -> client.Playback
-	26, // 34: client.Response.networkStatus:type_name -> client.NetworkStatus
-	11, // 35: client.Message.type:type_name -> client.Message.Type
-	25, // 36: client.Message.request:type_name -> client.Request
-	27, // 37: client.Message.response:type_name -> client.Response
-	1,  // 38: client.Settings.SensorSettings.sensorType:type_name -> client.SensorType
-	2,  // 39: client.Settings.StreamSettings.id:type_name -> client.StreamIdentifier
-	40, // [40:40] is the sub-list for method output_type
-	40, // [40:40] is the sub-list for method input_type
-	40, // [40:40] is the sub-list for extension type_name
-	40, // [40:40] is the sub-list for extension extendee
-	0,  // [0:40] is the sub-list for field type_name
+	11, // 15: client.AudioStreaming.status:type_name -> client.AudioStreaming.Status
+	0,  // 16: client.Request.type:type_name -> client.RequestType
+	14, // 17: client.Request.getSensorData:type_name -> client.GetSensorData
+	13, // 18: client.Request.sensorData:type_name -> client.SensorData
+	22, // 19: client.Request.streaming:type_name -> client.Streaming
+	16, // 20: client.Request.control:type_name -> client.Control
+	15, // 21: client.Request.getControl:type_name -> client.GetControl
+	17, // 22: client.Request.settings:type_name -> client.Settings
+	18, // 23: client.Request.status:type_name -> client.Status
+	25, // 24: client.Request.getStatus:type_name -> client.GetStatus
+	26, // 25: client.Request.getSettings:type_name -> client.GetSettings
+	19, // 26: client.Request.playback:type_name -> client.Playback
+	24, // 27: client.Request.getLogs:type_name -> client.GetLogs
+	23, // 28: client.Request.audioStreaming:type_name -> client.AudioStreaming
+	0,  // 29: client.Response.requestType:type_name -> client.RequestType
+	18, // 30: client.Response.status:type_name -> client.Status
+	13, // 31: client.Response.sensorData:type_name -> client.SensorData
+	17, // 32: client.Response.settings:type_name -> client.Settings
+	16, // 33: client.Response.control:type_name -> client.Control
+	20, // 34: client.Response.soundtracks:type_name -> client.Soundtrack
+	19, // 35: client.Response.playback:type_name -> client.Playback
+	28, // 36: client.Response.networkStatus:type_name -> client.NetworkStatus
+	12, // 37: client.Message.type:type_name -> client.Message.Type
+	27, // 38: client.Message.request:type_name -> client.Request
+	29, // 39: client.Message.response:type_name -> client.Response
+	1,  // 40: client.Settings.SensorSettings.sensorType:type_name -> client.SensorType
+	2,  // 41: client.Settings.StreamSettings.id:type_name -> client.StreamIdentifier
+	42, // [42:42] is the sub-list for method output_type
+	42, // [42:42] is the sub-list for method input_type
+	42, // [42:42] is the sub-list for extension type_name
+	42, // [42:42] is the sub-list for extension extendee
+	0,  // [0:42] is the sub-list for field type_name
 }
 
 func init() { file_pkg_client_websocket_proto_init() }
@@ -2759,8 +2899,8 @@ func file_pkg_client_websocket_proto_init() {
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_pkg_client_websocket_proto_rawDesc), len(file_pkg_client_websocket_proto_rawDesc)),
-			NumEnums:      12,
-			NumMessages:   20,
+			NumEnums:      13,
+			NumMessages:   21,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

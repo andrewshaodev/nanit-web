@@ -9,6 +9,7 @@ import (
 
 	"github.com/andrewshaodev/nanit-web/pkg/relay"
 	"github.com/andrewshaodev/nanit-web/pkg/streamauth"
+	"github.com/andrewshaodev/nanit-web/pkg/talk"
 	"github.com/andrewshaodev/nanit-web/pkg/utils"
 	"github.com/bluenviron/gortmplib"
 	"github.com/bluenviron/gortmplib/pkg/codecs"
@@ -37,11 +38,14 @@ const (
 type rtmpHandler struct {
 	hub  *relay.Hub
 	auth *streamauth.Store // nil: no password
+	// talk - talk-back sessions, which the camera plays from /2wa/<session
+	// ID>; nil without talk-back
+	talk *relay.Hub
 }
 
 // Serve runs the RTMP server on addr until ctx ends, then closes its
 // listener. The listener used to stay open for the life of the process.
-func Serve(ctx utils.GracefulContext, addr string, hub *relay.Hub, auth *streamauth.Store) error {
+func Serve(ctx utils.GracefulContext, addr string, hub *relay.Hub, auth *streamauth.Store, talkHub *relay.Hub) error {
 	lis, err := net.Listen("tcp", addr)
 	if err != nil {
 		return fmt.Errorf("failed to start RTMP server on %s: %w", addr, err)
@@ -54,7 +58,9 @@ func Serve(ctx utils.GracefulContext, addr string, hub *relay.Hub, auth *streama
 		lis.Close()
 	}()
 
-	err = newRtmpHandler(hub, auth).serve(lis)
+	handler := newRtmpHandler(hub, auth)
+	handler.talk = talkHub
+	err = handler.serve(lis)
 	if errors.Is(err, net.ErrClosed) {
 		log.Info().Msg("RTMP server stopped")
 		return nil
@@ -82,7 +88,10 @@ func (s *rtmpHandler) serve(lis net.Listener) error {
 	}
 }
 
-var rtmpURLRX = regexp.MustCompile(`^/local/([a-z0-9_-]+)$`)
+var (
+	rtmpURLRX = regexp.MustCompile(`^/local/([a-z0-9_-]+)$`)
+	talkURLRX = regexp.MustCompile(`^/` + talk.App + `/([0-9a-f]{16})$`)
+)
 
 func (s *rtmpHandler) handleConnection(nc net.Conn) {
 	defer nc.Close()
@@ -108,6 +117,13 @@ func (s *rtmpHandler) handleConnection(nc net.Conn) {
 		return
 	}
 
+	// The camera playing talk-back. The session ID, random and only around
+	// while someone talks, is what lets it in.
+	if m := talkURLRX.FindStringSubmatch(sc.URL.Path); m != nil && !sc.Publish && s.talk != nil {
+		s.handleSubscriber(s.talk, m[1], nc, sc, sublog.With().Str("talk_sid", m[1]).Logger())
+		return
+	}
+
 	submatch := rtmpURLRX.FindStringSubmatch(sc.URL.Path)
 	if len(submatch) != 2 {
 		sublog.Warn().Str("path", sc.URL.Path).Msg("Invalid RTMP stream requested")
@@ -124,7 +140,7 @@ func (s *rtmpHandler) handleConnection(nc net.Conn) {
 			sublog.Warn().Msg("RTMP player refused: missing or wrong stream password key")
 			return
 		}
-		s.handleSubscriber(babyUID, nc, sc, sublog)
+		s.handleSubscriber(s.hub, babyUID, nc, sc, sublog)
 	}
 }
 
@@ -180,7 +196,7 @@ func (s *rtmpHandler) handlePublisher(babyUID string, nc net.Conn, sc *gortmplib
 	}
 }
 
-func (s *rtmpHandler) handleSubscriber(babyUID string, nc net.Conn, sc *gortmplib.ServerConn, sublog zerolog.Logger) {
+func (s *rtmpHandler) handleSubscriber(hub *relay.Hub, babyUID string, nc net.Conn, sc *gortmplib.ServerConn, sublog zerolog.Logger) {
 	// A change to the stream password disconnects players, so they have to
 	// connect again with the new settings
 	var passwordChanged <-chan struct{}
@@ -188,7 +204,7 @@ func (s *rtmpHandler) handleSubscriber(babyUID string, nc net.Conn, sc *gortmpli
 		passwordChanged = s.auth.Changed()
 	}
 
-	stream, sub, ok := s.hub.Subscribe(babyUID)
+	stream, sub, ok := hub.Subscribe(babyUID)
 	if !ok {
 		sublog.Warn().Msg("No stream publisher registered yet, closing subscriber stream")
 		return

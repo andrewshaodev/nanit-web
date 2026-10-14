@@ -213,3 +213,35 @@ func TestSoundAndMotionReadingsLeaveOtherReadingsAlone(t *testing.T) {
 	}, state)
 	assert.Equal(t, 22.5, state.GetBabyState("baby1").GetTemperature())
 }
+
+// Talk-back: the camera is asked to play the session, says when it is, and
+// is told when it's over
+func TestTalk(t *testing.T) {
+	cam, conn := newTestCamera(t)
+
+	playing, err := cam.StartTalk("rtmp://bridge:1935/2wa/0123456789abcdef", "0123456789abcdef")
+	require.NoError(t, err)
+	start := conn.sent()[0].GetAudioStreaming()
+	assert.Equal(t, client.AudioStreaming_STARTED, start.GetStatus())
+	assert.Equal(t, "rtmp://bridge:1935/2wa/0123456789abcdef", start.GetRtmpUrl())
+	assert.Equal(t, "0123456789abcdef", start.GetSessionId())
+
+	cam.talkStarted("another session")
+	select {
+	case <-playing:
+		t.Fatal("playing on another session's word")
+	default:
+	}
+	cam.talkStarted("0123456789abcdef")
+	<-playing
+
+	require.NoError(t, cam.StopTalk("rtmp://bridge:1935/2wa/0123456789abcdef", "0123456789abcdef"))
+	stop := conn.sent()[1]
+	assert.Equal(t, client.RequestType_PUT_AUDIO_STREAMING, stop.GetType())
+	assert.Equal(t, client.AudioStreaming_STOPPED, stop.GetAudioStreaming().GetStatus())
+
+	conn.errs[client.RequestType_PUT_AUDIO_STREAMING] = errors.New("refused")
+	_, err = cam.StartTalk("rtmp://bridge:1935/2wa/fedcba9876543210", "fedcba9876543210")
+	assert.Error(t, err)
+	assert.Empty(t, cam.talkPlaying, "a refused talk isn't waited on")
+}

@@ -4,6 +4,7 @@ import type { Baby } from '@/types/api'
 import { Loader2, TriangleAlert } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Alert, AlertDescription } from '@/components/ui/alert'
+import TalkButton from './TalkButton'
 
 interface ControlPanelProps {
   baby: Baby
@@ -78,6 +79,7 @@ function ControlButton({ onClick, disabled, loading, children, variant = 'primar
 
 export default function ControlPanel({ baby }: ControlPanelProps) {
   const [loadingStates, setLoadingStates] = useState<Record<string, boolean>>({})
+  const [talkError, setTalkError] = useState<string | null>(null)
 
   const setLoading = (action: string, loading: boolean) => {
     setLoadingStates(prev => ({ ...prev, [action]: loading }))
@@ -116,7 +118,15 @@ export default function ControlPanel({ baby }: ControlPanelProps) {
         >
           {baby.standby ? 'Exit Standby' : 'Enter Standby'}
         </ControlButton>
+        <TalkButton babyUid={baby.uid} disabled={isDisabled} onError={setTalkError} />
       </div>
+
+      {talkError && (
+        <Alert variant="warning">
+          <TriangleAlert />
+          <AlertDescription>Talking stopped: {talkError}</AlertDescription>
+        </Alert>
+      )}
       
       <div className="text-xs text-muted-foreground">
         Control commands are sent to the device and may take a few seconds to take effect.

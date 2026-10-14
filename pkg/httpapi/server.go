@@ -29,6 +29,7 @@ import (
 	"github.com/andrewshaodev/nanit-web/pkg/streamauth"
 	"github.com/andrewshaodev/nanit-web/pkg/streaming"
 	"github.com/andrewshaodev/nanit-web/pkg/streamsource"
+	"github.com/andrewshaodev/nanit-web/pkg/talk"
 	"github.com/andrewshaodev/nanit-web/pkg/webauth"
 	"github.com/rs/zerolog/log"
 )
@@ -63,6 +64,8 @@ type Server struct {
 	HLS      *streaming.HLSManager
 	// Relay - each camera's live stream, for the live view; nil without one
 	Relay *relay.Hub
+	// Talk - talking through the cameras' speakers; nil without it
+	Talk *talk.Service
 	// StreamAuth - the optional password on the RTSP and RTMP outputs; nil
 	// without one
 	StreamAuth *streamauth.Store
@@ -123,6 +126,7 @@ func (s *Server) Handler() http.Handler {
 
 	api.HandleFunc("GET /api/stream/hls/{uid}/{file}", s.withBaby(s.handleHLSFile))
 	api.HandleFunc("GET /api/stream/live/{uid}", s.withBaby(s.handleLive))
+	api.HandleFunc("GET /api/talk/{uid}", s.withBaby(s.handleTalk))
 	// The dashboard sends these with a trailing slash
 	for _, path := range []string{"/api/stream/start", "/api/stream/start/{$}"} {
 		api.HandleFunc("POST "+path, s.handleStreamStart)
