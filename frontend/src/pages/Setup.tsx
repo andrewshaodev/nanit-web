@@ -2,7 +2,8 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router'
 import { mutate } from 'swr'
 import { api } from '@/lib/api'
-import { Baby, CircleAlert, Loader2, MessageSquareText } from 'lucide-react'
+import { CircleAlert, Loader2, MessageSquareText } from 'lucide-react'
+import AppLogo from '@/components/AppLogo'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -98,7 +99,7 @@ export default function SetupPage() {
     <div className="min-h-screen bg-background flex flex-col items-center px-4 pt-16">
       <div className="w-full max-w-sm">
         <div className="mb-4 flex flex-col items-center gap-3 text-center">
-          <Baby className="size-10 text-ctp-mauve" aria-hidden="true" />
+          <AppLogo className="size-12" />
           <h1 className="text-2xl font-light">
             {step === 'login' ? 'Sign in to Nanit' : 'Two-factor authentication'}
           </h1>

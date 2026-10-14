@@ -1,5 +1,6 @@
 import { useState } from 'react'
-import { Baby, LayoutDashboard, Settings, type LucideIcon } from 'lucide-react'
+import { LayoutDashboard, Settings, type LucideIcon } from 'lucide-react'
+import AppLogo from '@/components/AppLogo'
 import { Link, useLocation } from 'react-router'
 import ThemeToggle from '@/components/layout/ThemeToggle'
 import useSWR from 'swr'
@@ -76,7 +77,7 @@ export default function Header() {
       <div className="mx-auto flex h-12 max-w-[1280px] items-center justify-between gap-2 px-3 sm:gap-4 sm:px-4 md:px-6">
         <div className="flex min-w-0 items-center gap-2 sm:gap-4">
           <Link to="/" className="flex shrink-0 items-center gap-2 whitespace-nowrap font-semibold text-foreground">
-            <Baby className="size-5 text-ctp-mauve" />
+            <AppLogo className="size-6" />
             {/* A phone only has room for the logo beside the links */}
             <span className="sr-only sm:not-sr-only">Nanit Web</span>
           </Link>
