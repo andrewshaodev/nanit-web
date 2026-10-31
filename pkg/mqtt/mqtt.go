@@ -211,7 +211,10 @@ func runMqtt(conn *Connection, attempt utils.AttemptContext) {
 			topic := fmt.Sprintf("%v/babies/%v/%v", conn.Opts.TopicPrefix, babyUID, key)
 			log.Trace().Str("topic", topic).Interface("value", value).Msg("MQTT publish")
 
-			token := conn.client.Publish(topic, 0, false, fmt.Sprintf("%v", value))
+			// Retained, so a subscriber that (re)connects gets the latest
+			// value straight away: some arrive only every few hours (the
+			// camera sends temperature only when asked, on each reconnect)
+			token := conn.client.Publish(topic, 0, true, fmt.Sprintf("%v", value))
 			if token.Wait(); token.Error() != nil {
 				log.Error().Err(token.Error()).Msgf("Unable to publish %v update", key)
 			}
