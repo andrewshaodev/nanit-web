@@ -44,6 +44,11 @@ func TestSnapshotAuth(t *testing.T) {
 	basic := req("/api/snapshot/baby1")
 	basic.SetBasicAuth("nanit", settings.Key)
 	assert.Equal(t, http.StatusServiceUnavailable, get(basic))
+	// The camera's own user name and password as basic auth (Home
+	// Assistant sends them with every request) don't hide a key in the query
+	both := req("/api/snapshot/baby1?key=" + settings.Key)
+	both.SetBasicAuth("admin", "something else")
+	assert.Equal(t, http.StatusServiceUnavailable, get(both))
 
 	// With no dashboard password and the stream password off, it's open,
 	// like the RTSP output

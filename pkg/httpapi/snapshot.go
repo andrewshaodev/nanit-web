@@ -52,14 +52,28 @@ func (s *Server) handleSnapshot(w http.ResponseWriter, r *http.Request) {
 }
 
 // snapshotAllowed - a dashboard session (or none needed), or the stream
-// password's key while it's on
+// password's key while it's on, in either place: Home Assistant sends the
+// camera's user name and password as basic auth with every request, so a
+// key in the query must still count when that password isn't the key
 func (s *Server) snapshotAllowed(r *http.Request) bool {
-	key := r.URL.Query().Get("key")
-	if _, password, ok := r.BasicAuth(); ok {
-		key = password
-	}
-	if _, required := s.StreamAuth.Required(); required && key != "" && s.StreamAuth.Allows(key) {
+	if s.signedIn(r) {
 		return true
 	}
-	return s.signedIn(r)
+	queryKey := r.URL.Query().Get("key")
+	user, password, hasBasic := r.BasicAuth()
+	if _, required := s.StreamAuth.Required(); required {
+		for _, key := range []string{queryKey, password} {
+			if key != "" && s.StreamAuth.Allows(key) {
+				return true
+			}
+		}
+	}
+	// Why it was refused, without the values, for setting up a client
+	log.Info().
+		Str("remote", r.RemoteAddr).
+		Bool("query_key", queryKey != "").
+		Bool("basic_auth", hasBasic).
+		Str("basic_user", user).
+		Msg("Snapshot refused: no session, and no valid stream password key")
+	return false
 }
