@@ -43,5 +43,5 @@ export interface Schedules {
    * Active - whether this bridge runs schedules: only the stream server
    * does, so two bridges don't both send them (only in answers)
    */
-  active?: boolean;
+  active: boolean;
 }
