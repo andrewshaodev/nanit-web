@@ -2,21 +2,18 @@
 
 ## Camera
 
-Use the RTSP stream. **Settings → Streaming** in the dashboard shows each camera's address under its Streaming Links, and a ready-made example with a copy button. Add it to `configuration.yaml`:
+Add the RTSP stream as a **Generic Camera**: in Home Assistant, **Settings → Devices & services → Add integration → Generic Camera**, one per camera. **Settings → Streaming** in the dashboard shows each camera's address under its Streaming Links, with a copy button.
 
-```yaml
-camera:
-  - platform: ffmpeg
-    name: Nanit
-    input: rtsp://192.168.1.100:8554/local/YOUR_BABY_UID
-```
+- **Stream source URL:** `rtsp://192.168.1.100:8554/local/YOUR_BABY_UID`, or with the stream password on, `rtsp://nanit:KEY@192.168.1.100:8554/local/YOUR_BABY_UID`
+- **RTSP transport protocol:** TCP, the only one the bridge serves
+- **Still image URL:** leave empty; Home Assistant takes stills from the stream
 
-With the stream password on, the address carries the key: `rtsp://nanit:KEY@192.168.1.100:8554/local/YOUR_BABY_UID`. Changing the key means updating it here and restarting Home Assistant.
+A new stream key means editing the address in the camera's options (**Configure** on the Generic Camera).
 
 Notes:
 
 - **Low latency:** Home Assistant 2024.11 and later plays RTSP cameras over WebRTC through its built-in go2rtc, under a second behind. Cards show it live with `camera_view: live`.
-- **TCP only:** the bridge serves RTSP over TCP. ffmpeg tries UDP first, is refused, and switches straight away; go2rtc uses TCP for RTSP. A Generic Camera can be set to TCP explicitly.
+- **TCP only:** the bridge serves RTSP over TCP. An ffmpeg camera in `configuration.yaml` (`platform: ffmpeg`, `input:` the same address) also works: it tries UDP first, is refused, and switches straight away.
 - **Home Assistant is a viewer of the stream server:** point it at the instance with `NANIT_STREAM_SERVER=true` (or at a viewer instance, which re-serves the same stream). It never asks the camera to stream, so it can't take the stream away from the bridge.
 - **RTMP** (`rtmp://192.168.1.100:1935/local/YOUR_BABY_UID`, plus `?key=KEY` with the stream password on) also works, but goes through Home Assistant's slower HLS conversion.
 

@@ -131,18 +131,13 @@ docker exec -it nanit /app/bin/nanit --disable-sso
 
 ### Camera
 
-Add the RTSP stream as an ffmpeg camera. **Settings → Streaming** shows each camera's exact address under its Streaming Links, and a ready-made example with a copy button:
+Add the RTSP stream as a **Generic Camera**: in Home Assistant, **Settings → Devices & services → Add integration → Generic Camera**, one per camera. **Settings → Streaming** in the dashboard shows each camera's address under its Streaming Links, with a copy button.
 
-```yaml
-camera:
-  - platform: ffmpeg
-    name: Nanit
-    input: rtsp://192.168.1.100:8554/local/YOUR_BABY_UID
-    # with the stream password on:
-    # input: rtsp://nanit:KEY@192.168.1.100:8554/local/YOUR_BABY_UID
-```
+- **Stream source URL:** `rtsp://192.168.1.100:8554/local/YOUR_BABY_UID`, or with the stream password on, `rtsp://nanit:KEY@192.168.1.100:8554/local/YOUR_BABY_UID`
+- **RTSP transport protocol:** TCP, the only one the bridge serves
+- **Still image URL:** leave empty; Home Assistant takes stills from the stream
 
-Home Assistant 2024.11 and later plays RTSP cameras over WebRTC with its built-in go2rtc, under a second behind. The bridge serves RTSP over TCP only; ffmpeg and go2rtc switch to TCP on their own. RTMP (`rtmp://192.168.1.100:1935/local/YOUR_BABY_UID`) still works, but goes through Home Assistant's slower HLS conversion. See also [docs/home-assistant.md](docs/home-assistant.md).
+Home Assistant 2024.11 and later plays RTSP cameras over WebRTC with its built-in go2rtc, under a second behind. RTMP (`rtmp://192.168.1.100:1935/local/YOUR_BABY_UID`) still works, but goes through Home Assistant's slower HLS conversion. See also [docs/home-assistant.md](docs/home-assistant.md).
 
 ### MQTT
 

@@ -17,11 +17,6 @@ interface StreamingSettingsProps {
   babies: Baby[];
 }
 
-const haConfig = (input: string) => `camera:
-  - platform: ffmpeg
-    name: "Nanit Camera"
-    input: "${input}"`;
-
 export default function StreamingSettings({ babies }: StreamingSettingsProps) {
   const { streamingInfo } = useStreamingInfo();
   if (babies.length === 0) {
@@ -70,11 +65,22 @@ export default function StreamingSettings({ babies }: StreamingSettingsProps) {
         <House />
         <AlertTitle>Home Assistant integration</AlertTitle>
         <AlertDescription className="space-y-2">
-          <p>To add these streams to Home Assistant, use the RTSP URLs in your camera configuration:</p>
-          <HAExample config={haConfig(api.getRTSPUrl(babies[0].uid, streamingInfo))} streamingInfo={streamingInfo} />
+          <p>
+            In Home Assistant, add a <strong>Generic Camera</strong> (Settings → Devices &amp; services → Add
+            integration) for each camera:
+          </p>
+          <ul className="list-disc space-y-0.5 pl-4">
+            <li><strong>Stream source URL:</strong> the camera&apos;s RTSP address, such as the first one&apos;s:</li>
+          </ul>
+          <HAExample config={api.getRTSPUrl(babies[0].uid, streamingInfo)} streamingInfo={streamingInfo} />
+          <ul className="list-disc space-y-0.5 pl-4">
+            <li><strong>RTSP transport protocol:</strong> TCP, the only one the bridge serves</li>
+            <li><strong>Still image URL:</strong> leave empty; Home Assistant takes stills from the stream</li>
+          </ul>
           <p className="text-xs">
-            That&apos;s the first camera&apos;s address; each camera has its own (see its Streaming Links). The
-            host comes from NANIT_RTMP_ADDR, and RTSP listens on port 8554 unless NANIT_RTSP_ADDR says otherwise.
+            Each camera has its own address (see its Streaming Links). The host comes from NANIT_RTMP_ADDR, and
+            RTSP listens on port 8554 unless NANIT_RTSP_ADDR says otherwise. A new stream key means editing the
+            address in the camera&apos;s options.
           </p>
         </AlertDescription>
       </Alert>
@@ -82,8 +88,8 @@ export default function StreamingSettings({ babies }: StreamingSettingsProps) {
   );
 }
 
-// The Home Assistant config, with the stream password's key masked unless
-// it's shown; Copy gives the real one
+// The camera's address for Home Assistant, with the stream password's key
+// masked unless it's shown; Copy gives the real one
 function HAExample({ config, streamingInfo }: { config: string; streamingInfo: StreamingInfoResponse | undefined }) {
   const showKey = useKeyRevealed();
   const [copied, setCopied] = useState(false);
@@ -98,15 +104,15 @@ function HAExample({ config, streamingInfo }: { config: string; streamingInfo: S
 
   return (
     <div className="relative">
-      <pre className="overflow-x-auto rounded-md border bg-muted p-3 pr-12 font-mono text-xs text-foreground">
+      <pre className="rounded-md border bg-muted p-3 pr-12 font-mono text-xs break-all whitespace-pre-wrap text-foreground">
         {maskKey(config, key, showKey)}
       </pre>
       <Button
         size="icon-sm"
         variant={copied ? 'success' : 'outline'}
         onClick={copy}
-        title="Copy config"
-        aria-label="Copy config"
+        title="Copy address"
+        aria-label="Copy address"
         className="absolute right-2 top-2"
       >
         {copied ? <Check /> : <Copy />}
