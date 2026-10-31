@@ -158,7 +158,7 @@ With `NANIT_MQTT_ENABLED=true`, readings are published to `<prefix>/babies/<baby
 | `is_stream_alive` | `true` while the camera is streaming to the bridge |
 | `motion_timestamp` / `sound_timestamp` | Unix time of the latest motion or sound event (needs `NANIT_EVENTS_POLLING=true` and those notifications turned on in the Nanit app) |
 
-Values are published with the retain flag, so Home Assistant gets the latest one as soon as it connects. Temperature can arrive only every few hours: the camera sends it only when the bridge asks, on each reconnect.
+Values are published with the retain flag, so Home Assistant gets the latest one as soon as it connects. The camera sends temperature only when asked, so the bridge asks every 30 minutes (humidity comes every minute).
 
 Publish `true` or `false` to `<prefix>/babies/<baby_uid>/night_light/switch` or `.../standby/switch` to control them.
 

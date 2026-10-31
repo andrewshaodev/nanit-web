@@ -24,6 +24,11 @@ import (
 // networkStatusInterval - how often the camera's WiFi signal is read
 const networkStatusInterval = 5 * time.Minute
 
+// sensorDataInterval - how often the camera's readings are asked for. It
+// sends humidity by itself every minute, but since late October 2026 it
+// sends temperature only when asked.
+const sensorDataInterval = 30 * time.Minute
+
 // ErrNotConnected - the camera's websocket isn't up, so it can't take commands
 var ErrNotConnected = errors.New("camera not connected")
 
@@ -274,12 +279,24 @@ func (c *Camera) runWebsocket(conn *client.WebsocketConnection, childCtx utils.G
 		NightLight: utils.ConstRefBool(true),
 	}})
 
-	// Ask for sensor data (initial request)
-	conn.SendRequest(client.RequestType_GET_SENSOR_DATA, &client.Request{
-		GetSensorData: &client.GetSensorData{
-			All: utils.ConstRefBool(true),
-		},
-	})
+	// Ask for its readings, now and every so often: temperature only
+	// arrives when asked
+	go func() {
+		ticker := time.NewTicker(sensorDataInterval)
+		defer ticker.Stop()
+		for {
+			conn.SendRequest(client.RequestType_GET_SENSOR_DATA, &client.Request{
+				GetSensorData: &client.GetSensorData{
+					All: utils.ConstRefBool(true),
+				},
+			})
+			select {
+			case <-childCtx.Done():
+				return
+			case <-ticker.C:
+			}
+		}
+	}()
 
 	// Ask for status
 	conn.SendRequest(client.RequestType_GET_STATUS, &client.Request{
