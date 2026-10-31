@@ -19,7 +19,8 @@ const DURATIONS = [
 const trackLabel = (name: string) => name.replace(/\.[a-z0-9]+$/i, '')
 
 // The camera's built-in sounds and speaker volume. It only reads the camera's
-// state on its own: nothing plays or changes until one of the controls is used.
+// state on its own: nothing plays or changes until one of the controls is
+// used, or a schedule set in Settings comes due (the bridge runs those).
 export default function SoundPanel({ baby }: { baby: Baby }) {
   const { data, error, isLoading, mutate } = useSWR<SoundStatus>(
     baby.websocket_alive ? `/sound/${baby.uid}` : null,

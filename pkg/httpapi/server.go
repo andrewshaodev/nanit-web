@@ -26,6 +26,7 @@ import (
 	"github.com/andrewshaodev/nanit-web/pkg/oidcauth"
 	"github.com/andrewshaodev/nanit-web/pkg/relay"
 	"github.com/andrewshaodev/nanit-web/pkg/session"
+	"github.com/andrewshaodev/nanit-web/pkg/soundschedule"
 	"github.com/andrewshaodev/nanit-web/pkg/streamauth"
 	"github.com/andrewshaodev/nanit-web/pkg/streaming"
 	"github.com/andrewshaodev/nanit-web/pkg/streamsource"
@@ -66,6 +67,8 @@ type Server struct {
 	Relay *relay.Hub
 	// Talk - talking through the cameras' speakers; nil without it
 	Talk *talk.Service
+	// SoundSchedules - sounds played between set times of day
+	SoundSchedules *soundschedule.Store
 	// StreamAuth - the optional password on the RTSP and RTMP outputs; nil
 	// without one
 	StreamAuth *streamauth.Store
@@ -114,6 +117,8 @@ func (s *Server) Handler() http.Handler {
 	api.HandleFunc("POST /api/sound/{uid}/play", s.withBaby(s.handleSoundPlay))
 	api.HandleFunc("POST /api/sound/{uid}/stop", s.withBaby(s.handleSoundStop))
 	api.HandleFunc("POST /api/sound/{uid}/volume", s.withBaby(s.handleSoundVolume))
+	api.HandleFunc("GET /api/sound/{uid}/schedules", s.withBaby(s.handleSoundSchedulesGet))
+	api.HandleFunc("PUT /api/sound/{uid}/schedules", s.withBaby(s.handleSoundSchedulesSet))
 
 	api.HandleFunc("POST /api/auth/login", s.handleNanitLogin)
 	api.HandleFunc("POST /api/auth/verify-2fa", s.handleNanitVerify2FA)

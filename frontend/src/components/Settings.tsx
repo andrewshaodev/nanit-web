@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Camera, CircleAlert, CircleCheck, Radio, ShieldCheck } from 'lucide-react';
+import { CalendarClock, Camera, CircleAlert, CircleCheck, Radio, ShieldCheck } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { api } from '@/lib/api';
 import { useStatus } from '@/hooks/useStatus';
@@ -8,6 +8,7 @@ import DashboardLogin from '@/components/DashboardLogin';
 import AuthenticationSettings from '@/components/settings/AuthenticationSettings';
 import DeviceSettings from '@/components/settings/DeviceSettings';
 import StreamingSettings from '@/components/settings/StreamingSettings';
+import SoundScheduleSettings from '@/components/settings/SoundScheduleSettings';
 import type { AuthStatusResponse, WebAuthStatusResponse } from '@/types/api';
 
 
@@ -148,6 +149,14 @@ export default function Settings() {
       content: (
         <StreamingSettings babies={babies} />
       ),
+      disabled: babies.length === 0,
+    },
+    {
+      id: 'sound-schedules',
+      label: 'Sound Schedules',
+      shortLabel: 'Schedules',
+      icon: CalendarClock,
+      content: <SoundScheduleSettings babies={babies} />,
       disabled: babies.length === 0,
     },
   ];

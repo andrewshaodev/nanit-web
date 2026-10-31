@@ -5,6 +5,7 @@ import type * as api from './generated/api'
 import type * as baby from './generated/baby'
 import type * as camera from './generated/camera'
 import type * as history from './generated/history'
+import type * as soundschedule from './generated/soundschedule'
 
 // A camera's live readings, as /api/status sends them. stream_state is the
 // backend's number; see streamStatus()
@@ -17,6 +18,10 @@ export type DeviceInfoResponse = api.DeviceInfoResponse
 
 // The camera's built-in sounds, from /api/sound/{baby_uid}
 export type SoundStatus = camera.SoundStatus
+
+// Sounds played between set times of day, from /api/sound/{baby_uid}/schedules
+export type SoundSchedule = soundschedule.Schedule
+export type SoundSchedules = soundschedule.Schedules
 
 export type SensorReading = history.SensorReading
 export type SensorDataResponse = api.SensorHistoryResponse

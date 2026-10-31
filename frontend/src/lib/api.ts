@@ -1,6 +1,8 @@
 import type {
   StatusResponse,
   SoundStatus,
+  SoundSchedule,
+  SoundSchedules,
   DeviceInfoResponse,
   SensorDataResponse,
   // EventsDataResponse,  // Disabled motion/sound activity
@@ -333,6 +335,19 @@ class ApiClient {
     return this.request<SoundStatus>(`/sound/${babyUid}/volume`, {
       method: 'POST',
       body: JSON.stringify({ volume }),
+    });
+  }
+
+  // Sound schedules: the bridge's settings, so they work with the camera
+  // offline. Saving replaces the camera's whole list.
+  async getSoundSchedules(babyUid: string): Promise<SoundSchedules> {
+    return this.request<SoundSchedules>(`/sound/${babyUid}/schedules`);
+  }
+
+  async setSoundSchedules(babyUid: string, schedules: SoundSchedule[]): Promise<SoundSchedules> {
+    return this.request<SoundSchedules>(`/sound/${babyUid}/schedules`, {
+      method: 'PUT',
+      body: JSON.stringify({ schedules }),
     });
   }
 

@@ -27,3 +27,6 @@ packages:
   - path: "github.com/andrewshaodev/nanit-web/pkg/streaming"
     output_path: "frontend/src/types/generated/streaming.ts"
     include_files: ["types.go"]
+  - path: "github.com/andrewshaodev/nanit-web/pkg/soundschedule"
+    output_path: "frontend/src/types/generated/soundschedule.ts"
+    include_files: ["types.go"]

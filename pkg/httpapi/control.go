@@ -8,6 +8,7 @@ import (
 	"github.com/andrewshaodev/nanit-web/pkg/baby"
 	"github.com/andrewshaodev/nanit-web/pkg/camera"
 	"github.com/andrewshaodev/nanit-web/pkg/httpapi/apitypes"
+	"github.com/andrewshaodev/nanit-web/pkg/soundschedule"
 	"github.com/rs/zerolog/log"
 )
 
@@ -74,7 +75,8 @@ func cameraOK(w http.ResponseWriter, err error) bool {
 
 // The camera's built-in sounds (white noise, birds, waves...), played over
 // its speaker. Nothing here runs on its own: every command is an explicit
-// API call, and the bridge never starts or resumes a sound by itself.
+// API call. The only sounds the bridge starts itself are the schedules set
+// here (pkg/soundschedule).
 
 func (s *Server) handleSoundStatus(w http.ResponseWriter, r *http.Request, b baby.Baby) {
 	s.sound(w, b, func(cam *camera.Camera) (camera.SoundStatus, error) { return cam.SoundStatus() })
@@ -125,4 +127,42 @@ func (s *Server) sound(w http.ResponseWriter, b baby.Baby, command func(*camera.
 	if cameraOK(w, err) {
 		writeJSON(w, status)
 	}
+}
+
+// Sound schedules: a sound played between set times of day. They're the
+// bridge's settings, so they can be changed while the camera is offline.
+
+func (s *Server) soundSchedules(babyUID string) soundschedule.Schedules {
+	tz, offset := soundschedule.TimeZone(time.Now())
+	return soundschedule.Schedules{
+		Schedules:        s.SoundSchedules.Get(babyUID),
+		TimeZone:         tz,
+		UTCOffsetMinutes: offset,
+		Active:           s.Config.StreamServer,
+	}
+}
+
+func (s *Server) handleSoundSchedulesGet(w http.ResponseWriter, r *http.Request, b baby.Baby) {
+	if s.SoundSchedules == nil {
+		writeError(w, http.StatusServiceUnavailable, "no_schedules", "Sound schedules aren't available")
+		return
+	}
+	writeJSON(w, s.soundSchedules(b.UID))
+}
+
+func (s *Server) handleSoundSchedulesSet(w http.ResponseWriter, r *http.Request, b baby.Baby) {
+	if s.SoundSchedules == nil {
+		writeError(w, http.StatusServiceUnavailable, "no_schedules", "Sound schedules aren't available")
+		return
+	}
+	var req soundschedule.Schedules
+	if !decode(w, r, &req) {
+		return
+	}
+	if _, err := s.SoundSchedules.Set(b.UID, req.Schedules); err != nil {
+		writeError(w, http.StatusBadRequest, "invalid_schedule", err.Error())
+		return
+	}
+	log.Info().Str("baby_uid", b.UID).Int("schedules", len(req.Schedules)).Msg("Sound schedules saved")
+	writeJSON(w, s.soundSchedules(b.UID))
 }

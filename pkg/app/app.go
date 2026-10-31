@@ -18,6 +18,7 @@ import (
 	"github.com/andrewshaodev/nanit-web/pkg/rtmpserver"
 	"github.com/andrewshaodev/nanit-web/pkg/rtspserver"
 	"github.com/andrewshaodev/nanit-web/pkg/session"
+	"github.com/andrewshaodev/nanit-web/pkg/soundschedule"
 	"github.com/andrewshaodev/nanit-web/pkg/streamauth"
 	"github.com/andrewshaodev/nanit-web/pkg/streaming"
 	"github.com/andrewshaodev/nanit-web/pkg/streamsource"
@@ -39,6 +40,8 @@ type App struct {
 	Relay *relay.Hub
 	// Talk - talking through the cameras' speakers
 	Talk *talk.Service
+	// SoundSchedules - sounds played between set times of day
+	SoundSchedules *soundschedule.Store
 	// StreamAuth - the optional password on the RTSP and RTMP outputs
 	StreamAuth *streamauth.Store
 	// StreamSource - where a viewer takes its video from; nil on the stream
@@ -99,6 +102,7 @@ func NewApp(opts Opts) (*App, error) {
 
 	instance.Relay = relay.NewHub(instance.BabyStateManager)
 	instance.Talk = talk.New()
+	instance.SoundSchedules = soundschedule.Open(filepath.Join(opts.DataDirectories.BaseDir, "sound_schedules.json"))
 
 	if opts.MQTT != nil {
 		instance.MQTTConnection = mqtt.NewConnection(*opts.MQTT)
@@ -295,6 +299,16 @@ func (app *App) startSharedServices(ctx utils.GracefulContext) {
 		ctx.RunAsChild(func(childCtx utils.GracefulContext) {
 			app.MQTTConnection.Run(app.BabyStateManager, childCtx)
 		})
+	}
+
+	// Only the stream server runs the sound schedules, so two bridges
+	// don't both send them
+	if app.Opts.StreamServer {
+		runner := &soundschedule.Runner{Store: app.SoundSchedules, Camera: func(babyUID string) (soundschedule.Player, bool) {
+			cam, ok := app.Cameras.Get(babyUID)
+			return cam, ok
+		}}
+		ctx.RunAsChild(runner.Run)
 	}
 
 	ctx.RunAsChild(func(childCtx utils.GracefulContext) {

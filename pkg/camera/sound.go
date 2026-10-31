@@ -12,8 +12,8 @@ import (
 // The camera's built-in sounds (white noise, birds, waves...), played over its
 // speaker. The protocol fields were worked out by maddijoyce/nanit-web.
 //
-// Nothing here runs on its own: every command is an explicit API call, and the
-// bridge never starts or resumes a sound by itself.
+// Nothing here runs on its own: every command is an explicit API call, or a
+// sound schedule set in the dashboard (pkg/soundschedule).
 
 const (
 	soundRequestTimeout = 10 * time.Second

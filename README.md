@@ -12,6 +12,7 @@ It isn't affiliated with Nanit. It uses Nanit's unofficial, reverse-engineered A
 - **Passwords on everything that streams.** An optional dashboard password covers the dashboard, its live view and HLS; an optional stream password covers RTSP and RTMP.
 - **Readings.** Temperature, humidity, the camera's day/night mode, and night light state, updated live.
 - **Controls.** Night light (tap its reading to switch it), standby, and the camera's built-in sounds (White Noise, Birds, Waves, Wind) with play/stop, a timer and speaker volume.
+- **Sound schedules.** In Settings → Sound Schedules, play a sound between set times of day (white noise from 7:30 PM to 6:30 AM, say), on chosen days. The bridge runs them, so no dashboard needs to be open; only the stream server does, and the times are on its clock (set `TZ`). A sound stopped by hand stays stopped until the next start.
 - **Talk.** Hold to Talk plays your microphone through the camera's speaker, as the app's talk button does. The camera fetches the audio from the bridge's RTMP server (at `NANIT_RTMP_ADDR`), so it needs RTMP on, and the dashboard on https or localhost for the microphone. Talks end when you let go, and after 5 minutes at most.
 - **Device details.** Firmware, settings, and the camera's WiFi network, signal strength and channel.
 - **History.** Temperature and humidity charts, and a day/night timeline that marks the time nothing was recorded, over 1 hour to 30 days, stored in SQLite.
@@ -243,6 +244,7 @@ Where things are:
 | `pkg/rtmpserver` | RTMP: the camera publishes here, and RTMP players watch |
 | `pkg/rtspserver` | RTSP output |
 | `pkg/pull` | A viewer's pull of the stream server's RTSP stream |
+| `pkg/soundschedule` | Sound schedules, kept in `sound_schedules.json`, and the runner that starts and stops them |
 | `pkg/talk` | Talk-back: the microphone's PCM, encoded to AAC by ffmpeg, for the camera to play from `rtmp://…/2wa/<session>` |
 | `pkg/mse` | Fragmented MP4 for the dashboard's live view |
 | `pkg/streamauth` / `pkg/streamsource` | The stream password, and a viewer's stream server setting |
