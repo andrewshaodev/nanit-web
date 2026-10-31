@@ -14,6 +14,7 @@ It isn't affiliated with Nanit. It uses Nanit's unofficial, reverse-engineered A
 - **Controls.** Night light (tap its reading to switch it), standby, and the camera's built-in sounds (White Noise, Birds, Waves, Wind) with play/stop, a timer and speaker volume.
 - **Sound schedules.** In Settings → Sound Schedules, play a sound between set times of day (white noise from 7:30 PM to 6:30 AM, say), on chosen days. The bridge runs them, so no dashboard needs to be open; only the stream server does, and the times are on its clock (set `TZ`). A sound stopped by hand stays stopped until the next start.
 - **Talk.** Hold to Talk plays your microphone through the camera's speaker, as the app's talk button does. The camera fetches the audio from the bridge's RTMP server (at `NANIT_RTMP_ADDR`), so it needs RTMP on, and the dashboard on https or localhost for the microphone. Talks end when you let go, and after 5 minutes at most.
+- **Snapshots.** `GET /api/snapshot/<baby_uid>` returns a JPEG of the camera now, taken from the stream and reused for 5 seconds, for Home Assistant's Still image URL. See [Camera](#camera).
 - **Device details.** Firmware, settings, and the camera's WiFi network, signal strength and channel.
 - **History.** Temperature and humidity charts, and a day/night timeline that marks the time nothing was recorded, over 1 hour to 30 days, stored in SQLite.
 - **Crying log, with recordings.** With [Frigate](https://frigate.video) listening to the stream for crying, each crying spell shows on the camera's card as it happens, with how long it lasted and its recording, 10 to a page. See [Crying spells from Frigate](#crying-spells-from-frigate).
@@ -136,7 +137,9 @@ Add the RTSP stream as a **Generic Camera**: in Home Assistant, **Settings → D
 
 - **Stream source URL:** `rtsp://192.168.1.100:8554/local/YOUR_BABY_UID`, or with the stream password on, `rtsp://nanit:KEY@192.168.1.100:8554/local/YOUR_BABY_UID`
 - **RTSP transport protocol:** TCP, the only one the bridge serves
-- **Still image URL:** leave empty; Home Assistant takes stills from the stream
+- **Still image URL:** `http://192.168.1.100:8080/api/snapshot/YOUR_BABY_UID`, plus `?key=KEY` with the stream password on. The bridge answers with a JPEG of the camera now, which is quicker and lighter than Home Assistant opening the stream for each still. Left empty, Home Assistant takes stills from the stream itself.
+
+The snapshot address opens with a dashboard session, or with the stream password's key (`?key=KEY`, or basic auth as user `nanit`). With a dashboard password or SSO on, turn the stream password on so Home Assistant can use the key; behind a sign-in proxy, let `/api/snapshot/` through. With neither password on, it's open, like RTSP.
 
 Home Assistant 2024.11 and later plays RTSP cameras over WebRTC with its built-in go2rtc, under a second behind. RTMP (`rtmp://192.168.1.100:1935/local/YOUR_BABY_UID`) still works, but goes through Home Assistant's slower HLS conversion. See also [docs/home-assistant.md](docs/home-assistant.md).
 
@@ -243,6 +246,7 @@ Where things are:
 | `pkg/relay` | Each camera's live stream, fanned out to every output. The camera (or a viewer's pull) publishes into it |
 | `pkg/rtmpserver` | RTMP: the camera publishes here, and RTMP players watch |
 | `pkg/rtspserver` | RTSP output |
+| `pkg/snapshot` | Still pictures (JPEG) from the stream, for `/api/snapshot/<baby_uid>` |
 | `pkg/pull` | A viewer's pull of the stream server's RTSP stream |
 | `pkg/soundschedule` | Sound schedules, kept in `sound_schedules.json`, and the runner that starts and stops them |
 | `pkg/talk` | Talk-back: the microphone's PCM, encoded to AAC by ffmpeg, for the camera to play from `rtmp://…/2wa/<session>` |

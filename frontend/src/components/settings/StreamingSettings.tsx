@@ -75,12 +75,17 @@ export default function StreamingSettings({ babies }: StreamingSettingsProps) {
           <HAExample config={api.getRTSPUrl(babies[0].uid, streamingInfo)} streamingInfo={streamingInfo} />
           <ul className="list-disc space-y-0.5 pl-4">
             <li><strong>RTSP transport protocol:</strong> TCP, the only one the bridge serves</li>
-            <li><strong>Still image URL:</strong> leave empty; Home Assistant takes stills from the stream</li>
+            <li><strong>Still image URL:</strong> the bridge&apos;s picture of the camera, quicker than Home Assistant taking one from the stream:</li>
           </ul>
+          <HAExample config={api.getSnapshotUrl(babies[0].uid, streamingInfo)} streamingInfo={streamingInfo} />
           <p className="text-xs">
-            Each camera has its own address (see its Streaming Links). The host comes from NANIT_RTMP_ADDR, and
-            RTSP listens on port 8554 unless NANIT_RTSP_ADDR says otherwise. A new stream key means editing the
-            address in the camera&apos;s options.
+            Home Assistant must reach this address. With a dashboard password or SSO on, turn on the stream
+            password: its key opens the picture. Behind a sign-in proxy, let <code>/api/snapshot/</code> through.
+          </p>
+          <p className="text-xs">
+            Each camera has its own addresses (see its Streaming Links for RTSP). The host comes from NANIT_RTMP_ADDR, and
+            RTSP listens on port 8554 unless NANIT_RTSP_ADDR says otherwise. A new stream key means editing both
+            addresses in the camera&apos;s options.
           </p>
         </AlertDescription>
       </Alert>

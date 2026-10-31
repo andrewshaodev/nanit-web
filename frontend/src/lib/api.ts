@@ -294,6 +294,15 @@ class ApiClient {
     return `rtsp://${credentials}${host}:8554/local/${babyUid}`;
   }
 
+  // A still picture, for Home Assistant's Still image URL: the stream
+  // password's key opens it without a dashboard session
+  getSnapshotUrl(babyUid: string, streamingInfo?: StreamingInfoResponse): string {
+    const origin = typeof window !== 'undefined' ? window.location.origin : 'http://localhost:8080';
+    const password = streamingInfo?.password;
+    const key = password?.enabled && password.key ? `?key=${password.key}` : '';
+    return `${origin}/api/snapshot/${babyUid}${key}`;
+  }
+
   getHLSUrl(babyUid: string): string {
     // Same origin as the page, so it keeps working over HTTPS behind a reverse
     // proxy (a hardcoded http:// URL is blocked there as mixed content)

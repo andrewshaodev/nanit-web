@@ -18,6 +18,7 @@ import (
 	"github.com/andrewshaodev/nanit-web/pkg/rtmpserver"
 	"github.com/andrewshaodev/nanit-web/pkg/rtspserver"
 	"github.com/andrewshaodev/nanit-web/pkg/session"
+	"github.com/andrewshaodev/nanit-web/pkg/snapshot"
 	"github.com/andrewshaodev/nanit-web/pkg/soundschedule"
 	"github.com/andrewshaodev/nanit-web/pkg/streamauth"
 	"github.com/andrewshaodev/nanit-web/pkg/streaming"
@@ -40,6 +41,8 @@ type App struct {
 	Relay *relay.Hub
 	// Talk - talking through the cameras' speakers
 	Talk *talk.Service
+	// Snapshots - still pictures from the cameras' streams
+	Snapshots *snapshot.Service
 	// SoundSchedules - sounds played between set times of day
 	SoundSchedules *soundschedule.Store
 	// StreamAuth - the optional password on the RTSP and RTMP outputs
@@ -102,6 +105,7 @@ func NewApp(opts Opts) (*App, error) {
 
 	instance.Relay = relay.NewHub(instance.BabyStateManager)
 	instance.Talk = talk.New()
+	instance.Snapshots = snapshot.New(instance.Relay)
 	instance.SoundSchedules = soundschedule.Open(filepath.Join(opts.DataDirectories.BaseDir, "sound_schedules.json"))
 
 	if opts.MQTT != nil {

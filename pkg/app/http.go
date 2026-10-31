@@ -74,6 +74,7 @@ func (app *App) apiServer(stopping <-chan struct{}) *httpapi.Server {
 		Relay:          app.Relay,
 		Talk:           app.Talk,
 		SoundSchedules: app.SoundSchedules,
+		Snapshots:      app.Snapshots,
 		StreamAuth:     app.StreamAuth,
 		StreamSource:   app.StreamSource,
 		History:        app.HistoryTracker,

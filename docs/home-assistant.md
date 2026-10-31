@@ -6,7 +6,9 @@ Add the RTSP stream as a **Generic Camera**: in Home Assistant, **Settings → D
 
 - **Stream source URL:** `rtsp://192.168.1.100:8554/local/YOUR_BABY_UID`, or with the stream password on, `rtsp://nanit:KEY@192.168.1.100:8554/local/YOUR_BABY_UID`
 - **RTSP transport protocol:** TCP, the only one the bridge serves
-- **Still image URL:** leave empty; Home Assistant takes stills from the stream
+- **Still image URL:** `http://192.168.1.100:8080/api/snapshot/YOUR_BABY_UID`, plus `?key=KEY` with the stream password on. The bridge answers with a JPEG of the camera now, which is quicker and lighter than Home Assistant opening the stream for each still. Left empty, Home Assistant takes stills from the stream itself.
+
+The snapshot address opens with a dashboard session, or with the stream password's key (`?key=KEY`, or basic auth as user `nanit`). With a dashboard password or SSO on, turn the stream password on so Home Assistant can use the key; behind a sign-in proxy, let `/api/snapshot/` through. With neither password on, it's open, like RTSP.
 
 A new stream key means editing the address in the camera's options (**Configure** on the Generic Camera).
 

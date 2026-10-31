@@ -26,6 +26,7 @@ import (
 	"github.com/andrewshaodev/nanit-web/pkg/oidcauth"
 	"github.com/andrewshaodev/nanit-web/pkg/relay"
 	"github.com/andrewshaodev/nanit-web/pkg/session"
+	"github.com/andrewshaodev/nanit-web/pkg/snapshot"
 	"github.com/andrewshaodev/nanit-web/pkg/soundschedule"
 	"github.com/andrewshaodev/nanit-web/pkg/streamauth"
 	"github.com/andrewshaodev/nanit-web/pkg/streaming"
@@ -69,6 +70,8 @@ type Server struct {
 	Talk *talk.Service
 	// SoundSchedules - sounds played between set times of day
 	SoundSchedules *soundschedule.Store
+	// Snapshots - still pictures from the streams; nil without them
+	Snapshots *snapshot.Service
 	// StreamAuth - the optional password on the RTSP and RTMP outputs; nil
 	// without one
 	StreamAuth *streamauth.Store
@@ -161,6 +164,8 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("POST /api/webauth/logout", s.handleWebAuthLogout)
 	mux.HandleFunc("GET /api/webauth/oidc/login", s.handleSSOLogin)
 	mux.HandleFunc("GET "+oidcauth.CallbackPath, s.handleSSOCallback)
+	// A still picture: the stream key opens it too, for Home Assistant
+	mux.HandleFunc("GET /api/snapshot/{uid}", s.handleSnapshot)
 	mux.HandleFunc("GET /health", s.handleLiveness)
 	mux.HandleFunc("GET /ready", s.handleReadiness)
 
